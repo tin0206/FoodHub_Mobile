@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/screens/login_screen.dart';
-import 'package:foodhub_mobile/services/auth_service.dart';
+import 'package:foodhub_mobile/screens/main_shell_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -14,7 +14,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
 
   bool _isSubmitting = false;
 
@@ -32,24 +31,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     setState(() => _isSubmitting = true);
-    try {
-      await _authService.signUp(
-        fullName: _fullNameController.text.trim(),
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-    } on UnimplementedError catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.message ?? 'Create account is not implemented.'),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    if (!mounted) {
+      return;
     }
+    setState(() => _isSubmitting = false);
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const MainShellScreen()),
+    );
   }
 
   @override

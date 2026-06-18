@@ -19,9 +19,15 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
 
       // Device Preview
-      useInheritedMediaQuery: true,
       locale: DevicePreview.locale(context),
-      builder: DevicePreview.appBuilder,
+      builder: (context, child) {
+        final preview = DevicePreview.appBuilder(context, child);
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(textScaler: const TextScaler.linear(1.12)),
+          child: preview,
+        );
+      },
 
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF059669)),

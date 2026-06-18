@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/screens/main_shell_screen.dart';
 import 'package:foodhub_mobile/screens/signup_screen.dart';
-import 'package:foodhub_mobile/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,7 +13,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
 
   bool _rememberMe = false;
   bool _isSubmitting = false;
@@ -31,22 +30,14 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isSubmitting = true);
-    try {
-      await _authService.signIn(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        rememberMe: _rememberMe,
-      );
-    } on UnimplementedError catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message ?? 'Sign in is not implemented.')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    if (!mounted) {
+      return;
     }
+    setState(() => _isSubmitting = false);
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const MainShellScreen()),
+    );
   }
 
   Future<void> _forgotPassword() async {
@@ -58,16 +49,11 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    try {
-      await _authService.forgotPassword(email: email);
-    } on UnimplementedError catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.message ?? 'Forgot password is not implemented.'),
-        ),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Forgot password for $email will be implemented later.'),
+      ),
+    );
   }
 
   @override
