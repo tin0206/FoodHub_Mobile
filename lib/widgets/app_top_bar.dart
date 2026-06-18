@@ -40,7 +40,7 @@ class AppTopBar extends StatelessWidget {
                     Text(
                       'FoodHub',
                       style: TextStyle(
-                        fontSize: 24 / 2,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: colors.onSurface,
                       ),
