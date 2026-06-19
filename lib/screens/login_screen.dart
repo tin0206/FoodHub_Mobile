@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/screens/forgot_password_screen.dart';
 import 'package:foodhub_mobile/screens/main_shell_screen.dart';
 import 'package:foodhub_mobile/screens/signup_screen.dart';
 
@@ -40,19 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _forgotPassword() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email first.')),
-      );
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Forgot password for $email will be implemented later.'),
-      ),
+  void _forgotPassword() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
     );
   }
 

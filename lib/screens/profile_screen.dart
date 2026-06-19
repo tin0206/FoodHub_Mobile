@@ -5,10 +5,12 @@ class ProfileScreen extends StatefulWidget {
     super.key,
     required this.isDarkMode,
     required this.onToggleTheme,
+    required this.onLogout,
   });
 
   final bool isDarkMode;
   final VoidCallback onToggleTheme;
+  final VoidCallback onLogout;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -361,6 +363,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: const Text(
                 'Save changes',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 44,
+            child: OutlinedButton.icon(
+              onPressed: widget.onLogout,
+              icon: const Icon(Icons.logout, size: 16),
+              label: const Text(
+                'Log out',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFDC2626),
+                side: const BorderSide(color: Color(0xFFFCA5A5)),
+                backgroundColor: const Color(0xFFFFF1F2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
             ),
           ),

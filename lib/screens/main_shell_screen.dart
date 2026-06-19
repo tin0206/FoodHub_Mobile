@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/screens/favorites_screen.dart';
 import 'package:foodhub_mobile/screens/home_screen.dart';
+import 'package:foodhub_mobile/screens/login_screen.dart';
 import 'package:foodhub_mobile/screens/profile_screen.dart';
 import 'package:foodhub_mobile/screens/recs_screen.dart';
 import 'package:foodhub_mobile/screens/search_screen.dart';
@@ -56,7 +57,13 @@ class _MainShellScreenState extends State<MainShellScreen> {
       FavoritesScreen(
         onDetailModeChanged: (v) => _onDetailModeChanged(AppTab.favorites, v),
       ),
-      ProfileScreen(isDarkMode: _isDarkMode, onToggleTheme: _toggleTheme),
+      ProfileScreen(
+        isDarkMode: _isDarkMode,
+        onToggleTheme: _toggleTheme,
+        onLogout: () => Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        ),
+      ),
     ];
 
     final scheme = ColorScheme.fromSeed(
