@@ -338,12 +338,16 @@ class _SearchScreenState extends State<SearchScreen> {
           ],
         ),
         const SizedBox(height: 10),
-        ...visibleRecipes.map(
-          (recipe) => _SearchRecipeCard(
+        ...visibleRecipes.asMap().entries.map((entry) {
+          final cardIndex = entry.key;
+          final recipe = entry.value;
+          return _SearchRecipeCard(
             recipe: recipe,
+            cardColor:
+                _kSearchCardColors[cardIndex % _kSearchCardColors.length],
             onPressed: () => _openRecipeDetails(recipe),
-          ),
-        ),
+          );
+        }),
       ],
     );
   }
@@ -967,9 +971,14 @@ class _SearchDetailSectionCard extends StatelessWidget {
 }
 
 class _SearchRecipeCard extends StatelessWidget {
-  const _SearchRecipeCard({required this.recipe, required this.onPressed});
+  const _SearchRecipeCard({
+    required this.recipe,
+    required this.cardColor,
+    required this.onPressed,
+  });
 
   final _SearchRecipe recipe;
+  final Color cardColor;
   final VoidCallback onPressed;
 
   @override
@@ -979,7 +988,7 @@ class _SearchRecipeCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: colors.outlineVariant),
       ),

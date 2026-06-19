@@ -454,6 +454,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               padding: const EdgeInsets.only(bottom: 8),
               child: _FavoriteRecipeCard(
                 recipe: recipe,
+                cardColor:
+                    _kFavoriteCardColors[index % _kFavoriteCardColors.length],
                 onTap: () => _openRecipeDetails(index),
                 onEditNote: () => _onEditNote(index),
                 onUnfavorite: () => _onUnfavorite(index),
@@ -1069,12 +1071,14 @@ class _SummaryCard extends StatelessWidget {
 class _FavoriteRecipeCard extends StatelessWidget {
   const _FavoriteRecipeCard({
     required this.recipe,
+    required this.cardColor,
     required this.onTap,
     required this.onEditNote,
     required this.onUnfavorite,
   });
 
   final _FavoriteRecipe recipe;
+  final Color cardColor;
   final VoidCallback onTap;
   final VoidCallback onEditNote;
   final VoidCallback onUnfavorite;
@@ -1082,7 +1086,7 @@ class _FavoriteRecipeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: cardColor,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
