@@ -947,12 +947,23 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                           onPressed: (_isPreparingIngredients)
                               ? null
                               : _previousStep,
-                          child: const Text('Previous'),
+                          child: const Text(
+                            'Previous',
+                            style: TextStyle(color: Colors.black),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(40),
+                            backgroundColor: const Color(0xFF059669),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
                           onPressed: _isPreparingIngredients
                               ? _nextStep
                               : (_currentStepIndex < totalSteps - 1
@@ -964,6 +975,14 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(40),
+                            backgroundColor: const Color(0xFF059669),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
                           onPressed: canFinish ? _finishCooking : null,
                           child: const Text('Finish'),
                         ),
@@ -998,6 +1017,14 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                           onPressed: _isEditMode
                               ? _saveEditedRecipe
                               : _openCookingMode,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(40),
+                            backgroundColor: const Color(0xFF059669),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
                           child: Text(
                             _isEditMode ? 'Save Changes' : 'Start Cooking',
                           ),
