@@ -198,8 +198,10 @@ class _RecsScreenState extends State<RecsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      color: const Color(0xFFE5E7EB),
+      color: isDarkMode ? const Color(0xFF07152D) : const Color(0xFFE5E7EB),
       child: SafeArea(
         top: false,
         child: Column(
@@ -227,7 +229,7 @@ class _RecsScreenState extends State<RecsScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -236,7 +238,9 @@ class _RecsScreenState extends State<RecsScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF111827),
+                                  color: isDarkMode
+                                      ? const Color(0xFFF8FAFC)
+                                      : const Color(0xFF111827),
                                 ),
                               ),
                               SizedBox(height: 2),
@@ -244,7 +248,9 @@ class _RecsScreenState extends State<RecsScreen> {
                                 'Powered by LLM',
                                 style: TextStyle(
                                   fontSize: 10.5,
-                                  color: Color(0xFF6B7280),
+                                  color: isDarkMode
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF6B7280),
                                 ),
                               ),
                             ],
@@ -259,22 +265,27 @@ class _RecsScreenState extends State<RecsScreen> {
                       children: [
                         _TagChip(
                           'Dairy Free',
+                          isDarkMode: isDarkMode,
                           onTap: () => _onQuickPromptTap('Dairy Free'),
                         ),
                         _TagChip(
                           'Egg Free',
+                          isDarkMode: isDarkMode,
                           onTap: () => _onQuickPromptTap('Egg Free'),
                         ),
                         _TagChip(
                           'Gluten Free',
+                          isDarkMode: isDarkMode,
                           onTap: () => _onQuickPromptTap('Gluten Free'),
                         ),
                         _TagChip(
                           'Nut Free',
+                          isDarkMode: isDarkMode,
                           onTap: () => _onQuickPromptTap('Nut Free'),
                         ),
                         _TagChip(
                           '+3',
+                          isDarkMode: isDarkMode,
                           onTap: () => _onQuickPromptTap('More filters'),
                         ),
                       ],
@@ -283,7 +294,10 @@ class _RecsScreenState extends State<RecsScreen> {
                     ..._messages.map(
                       (message) => Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: _ChatBubble(message: message),
+                        child: _ChatBubble(
+                          message: message,
+                          isDarkMode: isDarkMode,
+                        ),
                       ),
                     ),
                   ],
@@ -292,7 +306,18 @@ class _RecsScreenState extends State<RecsScreen> {
             ),
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(color: Color(0xFFE5E7EB)),
+              decoration: BoxDecoration(
+                color: isDarkMode
+                    ? const Color(0xFF07152D)
+                    : const Color(0xFFE5E7EB),
+                border: Border(
+                  top: BorderSide(
+                    color: isDarkMode
+                        ? const Color(0xFF1E3A5F)
+                        : const Color(0xFFD1D5DB),
+                  ),
+                ),
+              ),
               child: Column(
                 children: [
                   Row(
@@ -307,9 +332,17 @@ class _RecsScreenState extends State<RecsScreen> {
                           label: const Text('Ingredients'),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(44),
-                            backgroundColor: const Color(0xFFF3F4F6),
-                            foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(color: Color(0xFFD1D5DB)),
+                            backgroundColor: isDarkMode
+                                ? const Color(0xFF0B1B38)
+                                : const Color(0xFFF3F4F6),
+                            foregroundColor: isDarkMode
+                                ? const Color(0xFFCBD5E1)
+                                : const Color(0xFF374151),
+                            side: BorderSide(
+                              color: isDarkMode
+                                  ? const Color(0xFF274A73)
+                                  : const Color(0xFFD1D5DB),
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -332,9 +365,17 @@ class _RecsScreenState extends State<RecsScreen> {
                           label: const Text('Dish photo'),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(44),
-                            backgroundColor: const Color(0xFFF3F4F6),
-                            foregroundColor: const Color(0xFF374151),
-                            side: const BorderSide(color: Color(0xFFD1D5DB)),
+                            backgroundColor: isDarkMode
+                                ? const Color(0xFF0B1B38)
+                                : const Color(0xFFF3F4F6),
+                            foregroundColor: isDarkMode
+                                ? const Color(0xFFCBD5E1)
+                                : const Color(0xFF374151),
+                            side: BorderSide(
+                              color: isDarkMode
+                                  ? const Color(0xFF274A73)
+                                  : const Color(0xFFD1D5DB),
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -355,23 +396,39 @@ class _RecsScreenState extends State<RecsScreen> {
                   Container(
                     height: 38,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF3F4F6),
+                      color: isDarkMode
+                          ? const Color(0xFF102647)
+                          : const Color(0xFFF3F4F6),
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: const Color(0xFFD1D5DB)),
+                      border: Border.all(
+                        color: isDarkMode
+                            ? const Color(0xFF274A73)
+                            : const Color(0xFFD1D5DB),
+                      ),
                     ),
                     child: Row(
                       children: [
                         Expanded(
                           child: TextField(
                             controller: _promptController,
-                            style: const TextStyle(fontSize: 12),
-                            decoration: const InputDecoration(
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDarkMode
+                                  ? const Color(0xFFE2E8F0)
+                                  : const Color(0xFF111827),
+                            ),
+                            decoration: InputDecoration(
                               hintText: 'Ask for recipes...',
-                              hintStyle: TextStyle(fontSize: 12),
+                              hintStyle: TextStyle(
+                                fontSize: 12,
+                                color: isDarkMode
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF6B7280),
+                              ),
                               isDense: true,
                               filled: false,
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
+                              contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 10,
                               ),
@@ -413,9 +470,10 @@ class _RecsScreenState extends State<RecsScreen> {
 }
 
 class _TagChip extends StatelessWidget {
-  const _TagChip(this.label, {this.onTap});
+  const _TagChip(this.label, {required this.isDarkMode, this.onTap});
 
   final String label;
+  final bool isDarkMode;
   final VoidCallback? onTap;
 
   @override
@@ -426,13 +484,22 @@ class _TagChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFFF3F4F6),
+          color: isDarkMode ? const Color(0xFF102647) : const Color(0xFFF3F4F6),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0xFFD1D5DB)),
+          border: Border.all(
+            color: isDarkMode
+                ? const Color(0xFF274A73)
+                : const Color(0xFFD1D5DB),
+          ),
         ),
         child: Text(
           label,
-          style: const TextStyle(fontSize: 10.5, color: Color(0xFF4B5563)),
+          style: TextStyle(
+            fontSize: 10.5,
+            color: isDarkMode
+                ? const Color(0xFFCBD5E1)
+                : const Color(0xFF4B5563),
+          ),
         ),
       ),
     );
@@ -447,9 +514,10 @@ class _ChatMessage {
 }
 
 class _ChatBubble extends StatelessWidget {
-  const _ChatBubble({required this.message});
+  const _ChatBubble({required this.message, required this.isDarkMode});
 
   final _ChatMessage message;
+  final bool isDarkMode;
 
   @override
   Widget build(BuildContext context) {
@@ -500,16 +568,22 @@ class _ChatBubble extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDarkMode ? const Color(0xFF1E293B) : Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFD1D5DB)),
+              border: Border.all(
+                color: isDarkMode
+                    ? const Color(0xFF334155)
+                    : const Color(0xFFD1D5DB),
+              ),
             ),
             child: Text(
               message.text,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 height: 1.28,
-                color: Color(0xFF374151),
+                color: isDarkMode
+                    ? const Color(0xFFE2E8F0)
+                    : const Color(0xFF374151),
               ),
             ),
           ),

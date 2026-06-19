@@ -396,6 +396,14 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDarkMode ? const Color(0xFF0B1B38) : Colors.white;
+    final panelColor = isDarkMode
+        ? const Color(0xFF102647)
+        : const Color(0xFFF8FAFC);
+    final borderColor = isDarkMode
+        ? const Color(0xFF274A73)
+        : colors.outlineVariant;
     final stepItems = widget.recipe.stepItems;
     final ingredientItems = widget.recipe.ingredientItems;
     final totalSteps = stepItems.length;
@@ -421,14 +429,14 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
         !_isPreparingIngredients && _currentStepIndex == totalSteps - 1;
 
     return Container(
-      color: widget.cardColor,
+      color: isDarkMode ? const Color(0xFF07152D) : widget.cardColor,
       child: Column(
         children: [
           Container(
             height: 38,
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(bottom: BorderSide(color: colors.outlineVariant)),
+              color: surfaceColor,
+              border: Border(bottom: BorderSide(color: borderColor)),
             ),
             child: Row(
               children: [
@@ -463,9 +471,9 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: surfaceColor,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: colors.outlineVariant),
+                        border: Border.all(color: borderColor),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -562,9 +570,9 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
+                              color: panelColor,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: colors.outlineVariant),
+                              border: Border.all(color: borderColor),
                             ),
                             child: _isPreparingIngredients
                                 ? Column(
@@ -753,7 +761,7 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                         _DetailSectionCard(
                           title: 'Ingredients',
                           icon: Icons.shopping_basket_outlined,
-                          backgroundColor: Colors.white,
+                          backgroundColor: panelColor,
                           iconColor: accentColor,
                           children: _isEditMode
                               ? [
@@ -798,7 +806,7 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                         _DetailSectionCard(
                           title: 'Instructions',
                           icon: Icons.format_list_numbered,
-                          backgroundColor: Colors.white,
+                          backgroundColor: panelColor,
                           iconColor: accentColor,
                           children: _isEditMode
                               ? [
@@ -826,7 +834,9 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                                               width: 22,
                                               height: 22,
                                               decoration: BoxDecoration(
-                                                color: widget.cardColor,
+                                                color: isDarkMode
+                                                    ? const Color(0xFF274A73)
+                                                    : widget.cardColor,
                                                 borderRadius:
                                                     BorderRadius.circular(999),
                                               ),
@@ -860,7 +870,7 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                         _DetailSectionCard(
                           title: 'Labels',
                           icon: Icons.sell_outlined,
-                          backgroundColor: Colors.white,
+                          backgroundColor: panelColor,
                           iconColor: accentColor,
                           children: _isEditMode
                               ? [
@@ -876,6 +886,7 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                                         materialTapTargetSize:
                                             MaterialTapTargetSize.shrinkWrap,
                                         backgroundColor: Colors.white,
+                                        side: BorderSide(color: borderColor),
                                         selectedColor: const Color(0xFF059669),
                                         checkmarkColor: Colors.white,
                                         selected: isSelected,
@@ -913,9 +924,9 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                                               vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.white,
+                                              color: panelColor,
                                               border: Border.all(
-                                                color: colors.outlineVariant,
+                                                color: borderColor,
                                               ),
                                               borderRadius:
                                                   BorderRadius.circular(999),
@@ -947,10 +958,12 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                           onPressed: (_isPreparingIngredients)
                               ? null
                               : _previousStep,
-                          child: const Text(
-                            'Previous',
-                            style: TextStyle(color: Colors.black),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: colors.onSurface,
+                            side: BorderSide(color: borderColor),
+                            backgroundColor: panelColor,
                           ),
+                          child: const Text('Previous'),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -1001,9 +1014,9 @@ class _RecipeDetailViewState extends State<_RecipeDetailView> {
                             });
                           },
                           style: OutlinedButton.styleFrom(
-                            backgroundColor: Colors.white,
+                            backgroundColor: panelColor,
                             foregroundColor: colors.onSurface,
-                            side: BorderSide(color: colors.outline),
+                            side: BorderSide(color: borderColor),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(999),
                             ),
@@ -1200,9 +1213,64 @@ class _EmptyRecipesView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
-      child: Text('No recipes yet', style: TextStyle(color: colors.onSurface)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              color: isDarkMode
+                  ? const Color(0xFF1E293B)
+                  : const Color(0xFFE5E7EB),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Icon(
+              Icons.menu_book_outlined,
+              color: isDarkMode
+                  ? const Color(0xFF94A3B8)
+                  : const Color(0xFF6B7280),
+              size: 34,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No recipes yet',
+            style: TextStyle(
+              color: colors.onSurface,
+              fontWeight: FontWeight.w700,
+              fontSize: 17,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Add your own recipes and share your culinary creations',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isDarkMode
+                  ? const Color(0xFF94A3B8)
+                  : colors.onSurfaceVariant,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            onPressed: onAddFirstRecipe,
+            icon: const Icon(Icons.add),
+            label: const Text('Add your first recipe'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1221,13 +1289,19 @@ class _RecipeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDarkMode
+        ? const Color(0xFF0B1B38)
+        : _kRecipeCardColors[cardIndex % _kRecipeCardColors.length];
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: _kRecipeCardColors[cardIndex % _kRecipeCardColors.length],
+        color: cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.outlineVariant),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF274A73) : colors.outlineVariant,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1263,8 +1337,23 @@ class _RecipeCard extends StatelessWidget {
             children: recipe.labels
                 .map(
                   (tag) => Chip(
-                    backgroundColor: Colors.white,
-                    label: Text(tag, style: const TextStyle(fontSize: 11)),
+                    backgroundColor: isDarkMode
+                        ? const Color(0xFF102647)
+                        : Colors.white,
+                    side: BorderSide(
+                      color: isDarkMode
+                          ? const Color(0xFF274A73)
+                          : colors.outlineVariant,
+                    ),
+                    label: Text(
+                      tag,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDarkMode
+                            ? const Color(0xFFCBD5E1)
+                            : colors.onSurfaceVariant,
+                      ),
+                    ),
                   ),
                 )
                 .toList(),

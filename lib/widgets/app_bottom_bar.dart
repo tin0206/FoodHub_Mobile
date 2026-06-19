@@ -15,9 +15,10 @@ class AppBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Material(
-      color: Colors.white,
+      color: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
       child: SafeArea(
         top: false,
         child: Container(

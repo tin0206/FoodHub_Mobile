@@ -54,7 +54,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
         useMaterial3: true,
         colorScheme: scheme,
         scaffoldBackgroundColor: _isDarkMode
-            ? const Color(0xFF111827)
+            ? const Color(0xFF07152D)
             : const Color(0xFFF3F4F6),
       ),
       child: Scaffold(

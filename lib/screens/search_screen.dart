@@ -220,6 +220,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final visibleRecipes = _filteredRecipes;
 
     if (_selectedRecipeIndex != null) {
@@ -263,19 +264,42 @@ class _SearchScreenState extends State<SearchScreen> {
         TextField(
           controller: _searchController,
           onChanged: _onSearchChanged,
-          style: const TextStyle(fontSize: 14),
+          style: TextStyle(
+            fontSize: 14,
+            color: isDarkMode
+                ? const Color(0xFFE2E8F0)
+                : const Color(0xFF111827),
+          ),
           decoration: InputDecoration(
             hintText: 'Search recipes, ingredients...',
-            prefixIcon: const Icon(Icons.search),
+            hintStyle: TextStyle(
+              color: isDarkMode
+                  ? const Color(0xFF94A3B8)
+                  : const Color(0xFF6B7280),
+            ),
+            prefixIcon: Icon(
+              Icons.search,
+              color: isDarkMode
+                  ? const Color(0xFF94A3B8)
+                  : colors.onSurfaceVariant,
+            ),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: isDarkMode ? const Color(0xFF102647) : Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: colors.outlineVariant),
+              borderSide: BorderSide(
+                color: isDarkMode
+                    ? const Color(0xFF274A73)
+                    : colors.outlineVariant,
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: colors.outlineVariant),
+              borderSide: BorderSide(
+                color: isDarkMode
+                    ? const Color(0xFF274A73)
+                    : colors.outlineVariant,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
@@ -303,19 +327,27 @@ class _SearchScreenState extends State<SearchScreen> {
                   vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF059669) : Colors.white,
+                  color: isSelected
+                      ? const Color(0xFF059669)
+                      : (isDarkMode ? const Color(0xFF102647) : Colors.white),
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(
                     color: isSelected
                         ? const Color(0xFF059669)
-                        : colors.outlineVariant,
+                        : (isDarkMode
+                              ? const Color(0xFF274A73)
+                              : colors.outlineVariant),
                   ),
                 ),
                 child: Text(
                   category,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isSelected ? Colors.white : colors.onSurfaceVariant,
+                    color: isSelected
+                        ? Colors.white
+                        : (isDarkMode
+                              ? const Color(0xFFCBD5E1)
+                              : colors.onSurfaceVariant),
                   ),
                 ),
               ),
@@ -343,8 +375,9 @@ class _SearchScreenState extends State<SearchScreen> {
           final recipe = entry.value;
           return _SearchRecipeCard(
             recipe: recipe,
-            cardColor:
-                _kSearchCardColors[cardIndex % _kSearchCardColors.length],
+            cardColor: isDarkMode
+                ? const Color(0xFF0B1B38)
+                : _kSearchCardColors[cardIndex % _kSearchCardColors.length],
             onPressed: () => _openRecipeDetails(recipe),
           );
         }),
@@ -389,6 +422,14 @@ class _SearchRecipeDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDarkMode ? const Color(0xFF0B1B38) : Colors.white;
+    final panelColor = isDarkMode
+        ? const Color(0xFF102647)
+        : const Color(0xFFF8FAFC);
+    final borderColor = isDarkMode
+        ? const Color(0xFF274A73)
+        : colors.outlineVariant;
     final accentColor = HSLColor.fromColor(cardColor)
         .withLightness(
           (HSLColor.fromColor(cardColor).lightness - 0.35).clamp(0.0, 1.0),
@@ -405,14 +446,14 @@ class _SearchRecipeDetailView extends StatelessWidget {
     final progressLabel = '${(progress * 100).round()}%';
 
     return Container(
-      color: cardColor,
+      color: isDarkMode ? const Color(0xFF07152D) : cardColor,
       child: Column(
         children: [
           Container(
             height: 38,
             decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(bottom: BorderSide(color: colors.outlineVariant)),
+              color: surfaceColor,
+              border: Border(bottom: BorderSide(color: borderColor)),
             ),
             child: Row(
               children: [
@@ -447,9 +488,9 @@ class _SearchRecipeDetailView extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: surfaceColor,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: colors.outlineVariant),
+                        border: Border.all(color: borderColor),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,9 +583,9 @@ class _SearchRecipeDetailView extends StatelessWidget {
                             width: double.infinity,
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
+                              color: panelColor,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: colors.outlineVariant),
+                              border: Border.all(color: borderColor),
                             ),
                             child: isPreparingIngredients
                                 ? Column(
@@ -689,6 +730,7 @@ class _SearchRecipeDetailView extends StatelessWidget {
                         _SearchDetailSectionCard(
                           title: 'Ingredients',
                           icon: Icons.shopping_basket_outlined,
+                          isDarkMode: isDarkMode,
                           iconColor: accentColor,
                           children: recipe.ingredientItems
                               .map(
@@ -720,6 +762,7 @@ class _SearchRecipeDetailView extends StatelessWidget {
                         _SearchDetailSectionCard(
                           title: 'Instructions',
                           icon: Icons.format_list_numbered,
+                          isDarkMode: isDarkMode,
                           iconColor: accentColor,
                           children: recipe.stepItems
                               .asMap()
@@ -735,7 +778,9 @@ class _SearchRecipeDetailView extends StatelessWidget {
                                         width: 22,
                                         height: 22,
                                         decoration: BoxDecoration(
-                                          color: cardColor,
+                                          color: isDarkMode
+                                              ? const Color(0xFF274A73)
+                                              : cardColor,
                                           borderRadius: BorderRadius.circular(
                                             999,
                                           ),
@@ -769,6 +814,7 @@ class _SearchRecipeDetailView extends StatelessWidget {
                         _SearchDetailSectionCard(
                           title: 'Labels',
                           icon: Icons.sell_outlined,
+                          isDarkMode: isDarkMode,
                           iconColor: accentColor,
                           children: [
                             Wrap(
@@ -782,13 +828,11 @@ class _SearchRecipeDetailView extends StatelessWidget {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: panelColor,
                                         borderRadius: BorderRadius.circular(
                                           999,
                                         ),
-                                        border: Border.all(
-                                          color: colors.outlineVariant,
-                                        ),
+                                        border: Border.all(color: borderColor),
                                       ),
                                       child: Text(
                                         tag,
@@ -884,12 +928,12 @@ class _SearchRecipeDetailView extends StatelessWidget {
                           label: Text(isSaved ? 'Saved' : 'Save'),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(40),
-                            backgroundColor: Colors.white,
+                            backgroundColor: panelColor,
                             foregroundColor: saveColor,
                             side: BorderSide(
                               color: isSaved
                                   ? const Color(0xFFFCA5A5)
-                                  : colors.outline,
+                                  : borderColor,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(999),
@@ -926,6 +970,7 @@ class _SearchDetailSectionCard extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.children,
+    required this.isDarkMode,
     this.iconColor = const Color(0xFF059669),
   });
 
@@ -933,6 +978,7 @@ class _SearchDetailSectionCard extends StatelessWidget {
   final IconData icon;
   final List<Widget> children;
   final Color iconColor;
+  final bool isDarkMode;
 
   @override
   Widget build(BuildContext context) {
@@ -942,7 +988,7 @@ class _SearchDetailSectionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? const Color(0xFF07152D) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colors.outlineVariant),
       ),
@@ -984,13 +1030,16 @@ class _SearchRecipeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: isDarkMode ? const Color(0xFF07152D) : cardColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.outlineVariant),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF274A73) : colors.outlineVariant,
+        ),
       ),
       child: InkWell(
         onTap: onPressed,
@@ -1055,16 +1104,22 @@ class _SearchRecipeCard extends StatelessWidget {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF9FAFB),
+                                color: isDarkMode
+                                    ? const Color(0xFF102647)
+                                    : const Color(0xFFF9FAFB),
                                 borderRadius: BorderRadius.circular(999),
                                 border: Border.all(
-                                  color: colors.outlineVariant,
+                                  color: isDarkMode
+                                      ? const Color(0xFF274A73)
+                                      : colors.outlineVariant,
                                 ),
                               ),
                               child: Text(
                                 tag,
                                 style: TextStyle(
-                                  color: colors.onSurfaceVariant,
+                                  color: isDarkMode
+                                      ? const Color(0xFFCBD5E1)
+                                      : colors.onSurfaceVariant,
                                   fontSize: 10,
                                 ),
                               ),

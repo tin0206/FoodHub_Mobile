@@ -52,14 +52,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _setTheme(bool darkMode) {
-    if (widget.isDarkMode == darkMode) return;
-    widget.onToggleTheme();
-  }
+  Color get _screenBackground =>
+      widget.isDarkMode ? const Color(0xFF07152D) : const Color(0xFFE5E7EB);
+
+  Color get _cardBackground =>
+      widget.isDarkMode ? const Color(0xFF0B1B38) : const Color(0xFFF3F4F6);
+
+  Color get _cardBorder =>
+      widget.isDarkMode ? const Color(0xFF1E3A5F) : const Color(0xFFD1D5DB);
+
+  Color get _primaryText =>
+      widget.isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
+
+  Color get _secondaryText =>
+      widget.isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+
+  Color get _fieldFill =>
+      widget.isDarkMode ? const Color(0xFF1A2B49) : const Color(0xFFE5E7EB);
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final dietaryTags = const [
       'Dairy Free',
       'Egg Free',
@@ -71,7 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ];
 
     return Container(
-      color: const Color(0xFFE5E7EB),
+      color: _screenBackground,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(8, 8, 8, 14),
         children: [
@@ -80,16 +92,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: colors.onSurface,
+              color: _primaryText,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             'Settings & preferences',
-            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 10.5),
+            style: TextStyle(color: _secondaryText, fontSize: 10.5),
           ),
           const SizedBox(height: 10),
           _SectionCard(
+            backgroundColor: _cardBackground,
+            borderColor: _cardBorder,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -98,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: colors.onSurface,
+                    color: _primaryText,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -110,44 +124,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Text(
                             'Theme',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: colors.onSurface,
-                            ),
+                            style: TextStyle(fontSize: 11, color: _primaryText),
                           ),
                           const SizedBox(height: 1),
                           Text(
                             widget.isDarkMode ? 'Dark mode' : 'Light mode',
                             style: TextStyle(
                               fontSize: 10.5,
-                              color: colors.onSurfaceVariant,
+                              color: _secondaryText,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE5E7EB),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: const Color(0xFFD1D5DB)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _ThemeModeChip(
-                            label: 'Light',
-                            selected: !widget.isDarkMode,
-                            onTap: () => _setTheme(false),
-                          ),
-                          const SizedBox(width: 4),
-                          _ThemeModeChip(
-                            label: 'Dark',
-                            selected: widget.isDarkMode,
-                            onTap: () => _setTheme(true),
-                          ),
-                        ],
+                    Transform.scale(
+                      scale: 0.9,
+                      child: Switch(
+                        value: widget.isDarkMode,
+                        onChanged: (_) => widget.onToggleTheme(),
+                        activeThumbColor: const Color(0xFFF59E0B),
+                        activeTrackColor: const Color(0xFF10B981),
+                        inactiveThumbColor: const Color(0xFFE5E7EB),
+                        inactiveTrackColor: widget.isDarkMode
+                            ? const Color(0xFF274A73)
+                            : const Color(0xFFF3F4F6),
+                        trackOutlineColor: WidgetStatePropertyAll(
+                          widget.isDarkMode
+                              ? const Color(0xFF274A73)
+                              : const Color(0xFFD1D5DB),
+                        ),
                       ),
                     ),
                   ],
@@ -157,6 +162,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 10),
           _SectionCard(
+            backgroundColor: _cardBackground,
+            borderColor: _cardBorder,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -173,7 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: colors.onSurface,
+                        color: _primaryText,
                       ),
                     ),
                   ],
@@ -181,28 +188,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Full Name',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    color: colors.onSurfaceVariant,
-                  ),
+                  style: TextStyle(fontSize: 10.5, color: _secondaryText),
                 ),
                 const SizedBox(height: 4),
-                _ProfileField(controller: _fullNameController),
+                _ProfileField(
+                  controller: _fullNameController,
+                  isDarkMode: widget.isDarkMode,
+                  fillColor: _fieldFill,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Email',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    color: colors.onSurfaceVariant,
-                  ),
+                  style: TextStyle(fontSize: 10.5, color: _secondaryText),
                 ),
                 const SizedBox(height: 4),
-                _ProfileField(controller: _emailController),
+                _ProfileField(
+                  controller: _emailController,
+                  isDarkMode: widget.isDarkMode,
+                  fillColor: _fieldFill,
+                ),
               ],
             ),
           ),
           const SizedBox(height: 10),
           _SectionCard(
+            backgroundColor: _cardBackground,
+            borderColor: _cardBorder,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -219,7 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: colors.onSurface,
+                        color: _primaryText,
                       ),
                     ),
                   ],
@@ -246,18 +257,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           labelStyle: TextStyle(
                             color: _selectedDietaryTags.contains(tag)
                                 ? const Color(0xFF065F46)
-                                : colors.onSurfaceVariant,
+                                : _secondaryText,
                             fontSize: 10,
                             fontWeight: _selectedDietaryTags.contains(tag)
                                 ? FontWeight.w600
                                 : FontWeight.w400,
                           ),
-                          backgroundColor: const Color(0xFFF9FAFB),
+                          backgroundColor: widget.isDarkMode
+                              ? const Color(0xFF102647)
+                              : const Color(0xFFF9FAFB),
                           selectedColor: const Color(0xFFD1FAE5),
                           side: BorderSide(
                             color: _selectedDietaryTags.contains(tag)
                                 ? const Color(0xFF10B981)
-                                : const Color(0xFFD1D5DB),
+                                : (widget.isDarkMode
+                                      ? const Color(0xFF274A73)
+                                      : const Color(0xFFD1D5DB)),
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(999),
@@ -274,6 +289,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 10),
           _SectionCard(
+            backgroundColor: _cardBackground,
+            borderColor: _cardBorder,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -290,7 +307,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: colors.onSurface,
+                        color: _primaryText,
                       ),
                     ),
                   ],
@@ -299,6 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _ToggleRow(
                   title: 'Recipe recommendations',
                   value: _notifyRecommendations,
+                  isDarkMode: widget.isDarkMode,
                   onChanged: (value) {
                     setState(() {
                       _notifyRecommendations = value;
@@ -308,6 +326,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _ToggleRow(
                   title: 'New features',
                   value: _notifyNewFeatures,
+                  isDarkMode: widget.isDarkMode,
                   onChanged: (value) {
                     setState(() {
                       _notifyNewFeatures = value;
@@ -317,6 +336,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _ToggleRow(
                   title: 'Weekly summary',
                   value: _notifyWeeklySummary,
+                  isDarkMode: widget.isDarkMode,
                   onChanged: (value) {
                     setState(() {
                       _notifyWeeklySummary = value;
@@ -351,21 +371,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.child});
+  const _SectionCard({
+    required this.child,
+    required this.backgroundColor,
+    required this.borderColor,
+  });
 
   final Widget child;
+  final Color backgroundColor;
+  final Color borderColor;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.outlineVariant),
+        border: Border.all(color: borderColor),
       ),
       child: child,
     );
@@ -373,30 +397,47 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _ProfileField extends StatelessWidget {
-  const _ProfileField({required this.controller});
+  const _ProfileField({
+    required this.controller,
+    required this.isDarkMode,
+    required this.fillColor,
+  });
 
   final TextEditingController controller;
+  final bool isDarkMode;
+  final Color fillColor;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      style: const TextStyle(fontSize: 12, color: Color(0xFF374151)),
+      style: TextStyle(
+        fontSize: 12,
+        color: isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF374151),
+      ),
       decoration: InputDecoration(
         isDense: true,
         filled: true,
-        fillColor: const Color(0xFFE5E7EB),
+        fillColor: fillColor,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 10,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+          borderSide: BorderSide(
+            color: isDarkMode
+                ? const Color(0xFF274A73)
+                : const Color(0xFFD1D5DB),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+          borderSide: BorderSide(
+            color: isDarkMode
+                ? const Color(0xFF274A73)
+                : const Color(0xFFD1D5DB),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -432,50 +473,17 @@ class _IconBadge extends StatelessWidget {
   }
 }
 
-class _ThemeModeChip extends StatelessWidget {
-  const _ThemeModeChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF059669) : Colors.transparent,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : const Color(0xFF374151),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _ToggleRow extends StatelessWidget {
   const _ToggleRow({
     required this.title,
     required this.value,
+    required this.isDarkMode,
     required this.onChanged,
   });
 
   final String title;
   final bool value;
+  final bool isDarkMode;
   final ValueChanged<bool> onChanged;
 
   @override
@@ -489,7 +497,10 @@ class _ToggleRow extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: TextStyle(fontSize: 11, color: colors.onSurface),
+              style: TextStyle(
+                fontSize: 11,
+                color: isDarkMode ? const Color(0xFFE2E8F0) : colors.onSurface,
+              ),
             ),
           ),
           Transform.scale(
