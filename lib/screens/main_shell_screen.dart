@@ -17,10 +17,19 @@ class MainShellScreen extends StatefulWidget {
 class _MainShellScreenState extends State<MainShellScreen> {
   AppTab _currentTab = AppTab.home;
   bool _isDarkMode = false;
+  final Map<AppTab, bool> _tabInDetail = {};
+
+  bool get _showBottomBar => !(_tabInDetail[_currentTab] ?? false);
 
   void _onTabSelected(AppTab tab) {
     setState(() {
       _currentTab = tab;
+    });
+  }
+
+  void _onDetailModeChanged(AppTab tab, bool inDetail) {
+    setState(() {
+      _tabInDetail[tab] = inDetail;
     });
   }
 
@@ -37,10 +46,16 @@ class _MainShellScreenState extends State<MainShellScreen> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const HomeScreen(),
-      const SearchScreen(),
+      HomeScreen(
+        onDetailModeChanged: (v) => _onDetailModeChanged(AppTab.home, v),
+      ),
+      SearchScreen(
+        onDetailModeChanged: (v) => _onDetailModeChanged(AppTab.search, v),
+      ),
       const RecsScreen(),
-      const FavoritesScreen(),
+      FavoritesScreen(
+        onDetailModeChanged: (v) => _onDetailModeChanged(AppTab.favorites, v),
+      ),
       ProfileScreen(isDarkMode: _isDarkMode, onToggleTheme: _toggleTheme),
     ];
 
@@ -66,10 +81,12 @@ class _MainShellScreenState extends State<MainShellScreen> {
             ),
           ],
         ),
-        bottomNavigationBar: AppBottomBar(
-          currentTab: _currentTab,
-          onTabSelected: _onTabSelected,
-        ),
+        bottomNavigationBar: _showBottomBar
+            ? AppBottomBar(
+                currentTab: _currentTab,
+                onTabSelected: _onTabSelected,
+              )
+            : null,
       ),
     );
   }
