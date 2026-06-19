@@ -56,10 +56,14 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
   bool _isAddingRecipe = false;
+  _Recipe? _selectedRecipe;
+  int? _selectedRecipeCardIndex;
 
   void _onAddRecipePressed() {
     setState(() {
       _isAddingRecipe = true;
+      _selectedRecipe = null;
+      _selectedRecipeCardIndex = null;
     });
   }
 
@@ -76,9 +80,26 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _closeRecipeDetails() {
+    setState(() {
+      _selectedRecipe = null;
+      _selectedRecipeCardIndex = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+
+    if (_selectedRecipe != null && _selectedRecipeCardIndex != null) {
+      return _RecipeDetailView(
+        recipe: _selectedRecipe!,
+        cardColor:
+            _kRecipeCardColors[_selectedRecipeCardIndex! %
+                _kRecipeCardColors.length],
+        onBack: _closeRecipeDetails,
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.all(12),
@@ -104,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       'My Recipes',
                       style: TextStyle(
-                        fontSize: 32 / 2,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: colors.onSurface,
                       ),
@@ -151,218 +172,265 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openRecipeDetails(_Recipe recipe, int cardIndex) {
-    showDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) {
-        final colors = Theme.of(context).colorScheme;
-        final maxDialogHeight = MediaQuery.of(context).size.height * 0.84;
-        final cardColor =
-            _kRecipeCardColors[cardIndex % _kRecipeCardColors.length];
-        final accentColor = HSLColor.fromColor(cardColor)
-            .withLightness(
-              (HSLColor.fromColor(cardColor).lightness - 0.35).clamp(0.0, 1.0),
-            )
-            .withSaturation(0.7)
-            .toColor();
+    setState(() {
+      _isAddingRecipe = false;
+      _selectedRecipe = recipe;
+      _selectedRecipeCardIndex = cardIndex;
+    });
+  }
+}
 
-        return Dialog(
-          backgroundColor: cardColor,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 24,
+class _RecipeDetailView extends StatelessWidget {
+  const _RecipeDetailView({
+    required this.recipe,
+    required this.cardColor,
+    required this.onBack,
+  });
+
+  final _Recipe recipe;
+  final Color cardColor;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final accentColor = HSLColor.fromColor(cardColor)
+        .withLightness(
+          (HSLColor.fromColor(cardColor).lightness - 0.35).clamp(0.0, 1.0),
+        )
+        .withSaturation(0.7)
+        .toColor();
+
+    return Column(
+      children: [
+        Container(
+          height: 38,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: colors.outlineVariant)),
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+          child: Row(
+            children: [
+              InkWell(
+                onTap: onBack,
+                borderRadius: BorderRadius.circular(999),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(Icons.arrow_back, size: 16),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  recipe.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxDialogHeight),
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  recipe.name,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: colors.outlineVariant),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: accentColor,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.menu_book_outlined,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  recipe.name,
-                                  style: TextStyle(
-                                    color: colors.onSurface,
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Recipe details',
-                                  style: TextStyle(
-                                    color: colors.onSurfaceVariant,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.close),
-                          ),
-                        ],
+                    Icon(
+                      Icons.schedule,
+                      size: 14,
+                      color: colors.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '25 min',
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
+                        fontSize: 12,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    _DetailSectionCard(
-                      title: 'Ingredients',
-                      icon: Icons.shopping_basket_outlined,
-                      backgroundColor: Colors.white,
-                      iconColor: accentColor,
-                      children: recipe.ingredientItems
-                          .map(
-                            (item) => Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.circle,
-                                    size: 6,
-                                    color: accentColor,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      item,
-                                      style: TextStyle(
-                                        color: colors.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                          .toList(),
+                    const SizedBox(width: 14),
+                    Icon(
+                      Icons.local_fire_department_outlined,
+                      size: 14,
+                      color: colors.onSurfaceVariant,
                     ),
-                    const SizedBox(height: 10),
-                    _DetailSectionCard(
-                      title: 'Steps',
-                      icon: Icons.format_list_numbered,
-                      backgroundColor: Colors.white,
-                      iconColor: accentColor,
-                      children: recipe.stepItems
-                          .asMap()
-                          .entries
-                          .map(
-                            (entry) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: 22,
-                                    height: 22,
-                                    decoration: BoxDecoration(
-                                      color: cardColor,
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      '${entry.key + 1}',
-                                      style: TextStyle(
-                                        color: accentColor,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      entry.value,
-                                      style: TextStyle(
-                                        color: colors.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 10),
-                    _DetailSectionCard(
-                      title: 'Labels',
-                      icon: Icons.sell_outlined,
-                      backgroundColor: Colors.white,
-                      iconColor: accentColor,
-                      children: [
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: recipe.labels
-                              .map(
-                                (tag) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    border: Border.all(
-                                      color: colors.outlineVariant,
-                                    ),
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: Text(
-                                    tag,
-                                    style: TextStyle(
-                                      color: colors.onSurfaceVariant,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      ],
+                    const SizedBox(width: 4),
+                    Text(
+                      '420 cal',
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
-              ),
+                if (recipe.labels.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: recipe.labels
+                        .map(
+                          (tag) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: colors.outlineVariant),
+                            ),
+                            child: Text(
+                              tag,
+                              style: TextStyle(
+                                color: colors.onSurfaceVariant,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                _DetailSectionCard(
+                  title: 'Ingredients',
+                  icon: Icons.shopping_basket_outlined,
+                  backgroundColor: Colors.white,
+                  iconColor: accentColor,
+                  children: recipe.ingredientItems
+                      .map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Icon(Icons.circle, size: 6, color: accentColor),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  item,
+                                  style: TextStyle(
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+                const SizedBox(height: 10),
+                _DetailSectionCard(
+                  title: 'Instructions',
+                  icon: Icons.format_list_numbered,
+                  backgroundColor: Colors.white,
+                  iconColor: accentColor,
+                  children: recipe.stepItems
+                      .asMap()
+                      .entries
+                      .map(
+                        (entry) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: cardColor,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '${entry.key + 1}',
+                                  style: TextStyle(
+                                    color: accentColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  entry.value,
+                                  style: TextStyle(
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    // TODO: Open edit recipe screen/dialog
+                  },
+                  label: const Text('Edit'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(40),
+                    foregroundColor: colors.onSurfaceVariant,
+                    side: BorderSide(color: colors.outline),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () {
+                    // TODO: Start cooking flow
+                  },
+                  label: const Text('Start Cooking'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(40),
+                    backgroundColor: const Color(0xFF059669),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
