@@ -249,12 +249,12 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+      padding: const EdgeInsets.all(12),
       children: [
         Text(
           'Search Recipes',
           style: TextStyle(
-            fontSize: 21,
+            fontSize: 16,
             fontWeight: FontWeight.w700,
             color: colors.onSurface,
           ),
@@ -263,6 +263,7 @@ class _SearchScreenState extends State<SearchScreen> {
         TextField(
           controller: _searchController,
           onChanged: _onSearchChanged,
+          style: const TextStyle(fontSize: 14),
           decoration: InputDecoration(
             hintText: 'Search recipes, ingredients...',
             prefixIcon: const Icon(Icons.search),
@@ -285,7 +286,7 @@ class _SearchScreenState extends State<SearchScreen> {
         const SizedBox(height: 18),
         Text(
           'Popular categories',
-          style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
+          style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant),
         ),
         const SizedBox(height: 10),
         Wrap(
@@ -326,7 +327,7 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             Text(
               'Recent recipes',
-              style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
+              style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant),
             ),
             const Spacer(),
             if (_selectedCategory != null || _query.isNotEmpty)

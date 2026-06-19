@@ -8,121 +8,237 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
+  final List<_FavoriteRecipe> _recipes = [
+    const _FavoriteRecipe(
+      name: 'Quinoa Buddha Bowl',
+      duration: '25 min',
+      calories: '420 cal',
+      note: 'Great for meal prep! Double the tahini dressing.',
+    ),
+    const _FavoriteRecipe(
+      name: 'Grilled Chicken & Veggies',
+      duration: '35 min',
+      calories: '450 cal',
+      note: null,
+    ),
+  ];
+
   void _onOpenRecipe(String recipeName) {
-    _showComingSoon('Open favorite recipe: $recipeName');
-  }
-
-  void _onEditNote(String recipeName) {
-    _showComingSoon('Edit note for $recipeName');
-  }
-
-  void _onUnfavorite(String recipeName) {
-    _showComingSoon('Remove $recipeName from favorites');
-  }
-
-  void _showComingSoon(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature will be implemented later.')),
+      SnackBar(content: Text('Open favorite recipe: $recipeName')),
     );
   }
 
+  Future<void> _onEditNote(int index) async {
+    final current = _recipes[index];
+    final updatedNote = await _showEditNoteDialog(
+      initialNote: current.note ?? '',
+    );
+    if (!mounted || updatedNote == null) return;
+
+    setState(() {
+      _recipes[index] = current.copyWith(
+        note: updatedNote.trim().isEmpty ? null : updatedNote.trim(),
+      );
+    });
+  }
+
+  Future<String?> _showEditNoteDialog({required String initialNote}) async {
+    final controller = TextEditingController(text: initialNote);
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'My Note',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF111827),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFD1D5DB)),
+                  ),
+                  child: TextField(
+                    controller: controller,
+                    minLines: 3,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      hintText: 'Write your note...',
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.all(10),
+                      isDense: true,
+                    ),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF374151),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(34),
+                          backgroundColor: const Color(0xFFF3F4F6),
+                          foregroundColor: const Color(0xFF374151),
+                          side: const BorderSide(color: Color(0xFFD1D5DB)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () =>
+                            Navigator.of(context).pop(controller.text),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(34),
+                          backgroundColor: const Color(0xFF059669),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        child: const Text('Save Note'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    controller.dispose();
+    return result;
+  }
+
+  int get _savedCount => _recipes.length;
+
+  int get _noteCount =>
+      _recipes.where((r) => (r.note ?? '').trim().isNotEmpty).length;
+
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.favorite, color: Color(0xFFE11D48)),
-            const SizedBox(width: 8),
-            Text(
-              'Favorite Recipes',
-              style: TextStyle(
-                fontSize: 38 / 2,
-                fontWeight: FontWeight.w700,
-                color: colors.onSurface,
+    return Container(
+      color: const Color(0xFFE5E7EB),
+      child: ListView(
+        padding: const EdgeInsets.all(8),
+        children: [
+          Row(
+            children: const [
+              Icon(Icons.favorite, size: 14, color: Color(0xFFE11D48)),
+              SizedBox(width: 6),
+              Text(
+                'Favorites',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF111827),
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Your saved recipes with personal notes',
-          style: TextStyle(color: colors.onSurfaceVariant),
-        ),
-        const SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          shrinkWrap: true,
-          childAspectRatio: 1.45,
-          physics: const NeverScrollableScrollPhysics(),
-          children: const [
-            _StatCard(value: '3', label: 'Total Saved'),
-            _StatCard(value: '1', label: 'With Notes'),
-            _StatCard(value: '1', label: 'High Protein'),
-            _StatCard(value: '1', label: 'Quick Meals'),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _FavoriteRecipeCard(
-          recipeName: 'Quinoa Buddha Bowl',
-          duration: '25 min',
-          calories: '420 cal',
-          tags: const ['Vegetarian', 'Healthy'],
-          note: 'Great for meal prep! Double the tahini dressing.',
-          onTap: () => _onOpenRecipe('Quinoa Buddha Bowl'),
-          onEditNote: () => _onEditNote('Quinoa Buddha Bowl'),
-          onToggleFavorite: () => _onUnfavorite('Quinoa Buddha Bowl'),
-        ),
-        _FavoriteRecipeCard(
-          recipeName: 'Grilled Chicken & Veggies',
-          duration: '35 min',
-          calories: '450 cal',
-          tags: const ['High Protein', 'Keto'],
-          note: null,
-          onTap: () => _onOpenRecipe('Grilled Chicken & Veggies'),
-          onEditNote: () => _onEditNote('Grilled Chicken & Veggies'),
-          onToggleFavorite: () => _onUnfavorite('Grilled Chicken & Veggies'),
-        ),
-      ],
+            ],
+          ),
+          const SizedBox(height: 2),
+          const Text(
+            'Saved recipes with your notes',
+            style: TextStyle(fontSize: 10.5, color: Color(0xFF6B7280)),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _SummaryCard(value: '$_savedCount', label: 'Saved'),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _SummaryCard(value: '$_noteCount', label: 'With Notes'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...List.generate(_recipes.length, (index) {
+            final recipe = _recipes[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _FavoriteRecipeCard(
+                recipe: recipe,
+                onTap: () => _onOpenRecipe(recipe.name),
+                onEditNote: () => _onEditNote(index),
+              ),
+            );
+          }),
+        ],
+      ),
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.value, required this.label});
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({required this.value, required this.label});
 
   final String value;
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.outlineVariant),
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFD1D5DB)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             value,
-            style: TextStyle(
-              fontSize: 42 / 2,
-              fontWeight: FontWeight.w700,
-              color: colors.onSurface,
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF111827),
+              height: 1,
             ),
           ),
-          Text(label, style: TextStyle(color: colors.onSurfaceVariant)),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+          ),
         ],
       ),
     );
@@ -131,147 +247,125 @@ class _StatCard extends StatelessWidget {
 
 class _FavoriteRecipeCard extends StatelessWidget {
   const _FavoriteRecipeCard({
-    required this.recipeName,
-    required this.duration,
-    required this.calories,
-    required this.tags,
-    required this.note,
+    required this.recipe,
     required this.onTap,
     required this.onEditNote,
-    required this.onToggleFavorite,
   });
 
-  final String recipeName;
-  final String duration;
-  final String calories;
-  final List<String> tags;
-  final String? note;
+  final _FavoriteRecipe recipe;
   final VoidCallback onTap;
   final VoidCallback onEditNote;
-  final VoidCallback onToggleFavorite;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFD1D5DB)),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      recipeName,
-                      style: TextStyle(
-                        fontSize: 28 / 2,
-                        fontWeight: FontWeight.w700,
-                        color: colors.onSurface,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: onToggleFavorite,
-                    icon: const Icon(Icons.favorite_border),
-                  ),
-                ],
+              Text(
+                recipe.name,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF111827),
+                ),
               ),
-              Row(
-                children: [
-                  Icon(
-                    Icons.schedule,
-                    size: 16,
-                    color: colors.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    duration,
-                    style: TextStyle(color: colors.onSurfaceVariant),
-                  ),
-                  const SizedBox(width: 12),
-                  Icon(
-                    Icons.local_fire_department_outlined,
-                    size: 16,
-                    color: colors.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    calories,
-                    style: TextStyle(color: colors.onSurfaceVariant),
-                  ),
-                ],
+              const SizedBox(height: 2),
+              Text(
+                '${recipe.duration} - ${recipe.calories}',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF4B5563)),
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: tags
-                    .map(
-                      (tag) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colors.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          tag,
-                          style: TextStyle(color: colors.onSurfaceVariant),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-              if (note != null) ...[
-                const SizedBox(height: 12),
+              if ((recipe.note ?? '').isNotEmpty) ...[
+                const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFFBEB),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFF59E0B)),
+                    border: Border.all(color: const Color(0xFFF2C94C)),
                   ),
                   child: Row(
                     children: [
                       const Icon(
                         Icons.sticky_note_2_outlined,
+                        size: 13,
                         color: Color(0xFFD97706),
-                        size: 16,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          note!,
-                          style: const TextStyle(color: Color(0xFF92400E)),
+                          recipe.note!,
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            color: Color(0xFF92400E),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
               ],
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: onEditNote,
-                      icon: const Icon(Icons.edit_note),
-                      label: Text(note == null ? 'Add Note' : 'Edit Note'),
+                      icon: const Icon(Icons.edit_note_outlined, size: 14),
+                      label: Text(
+                        recipe.note == null ? 'Add Note' : 'Edit Note',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(30),
+                        backgroundColor: const Color(0xFFF3F4F6),
+                        foregroundColor: const Color(0xFF374151),
+                        side: const BorderSide(color: Color(0xFFD1D5DB)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  IconButton.filledTonal(
-                    onPressed: onToggleFavorite,
-                    icon: const Icon(Icons.favorite, color: Color(0xFFE11D48)),
+                  SizedBox(
+                    width: 34,
+                    height: 30,
+                    child: OutlinedButton(
+                      onPressed: () {},
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        backgroundColor: const Color(0xFFF9FAFB),
+                        side: const BorderSide(color: Color(0xFFD1D5DB)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.favorite,
+                        color: Color(0xFFE11D48),
+                        size: 15,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -279,6 +373,34 @@ class _FavoriteRecipeCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FavoriteRecipe {
+  const _FavoriteRecipe({
+    required this.name,
+    required this.duration,
+    required this.calories,
+    required this.note,
+  });
+
+  final String name;
+  final String duration;
+  final String calories;
+  final String? note;
+
+  _FavoriteRecipe copyWith({
+    String? name,
+    String? duration,
+    String? calories,
+    String? note,
+  }) {
+    return _FavoriteRecipe(
+      name: name ?? this.name,
+      duration: duration ?? this.duration,
+      calories: calories ?? this.calories,
+      note: note,
     );
   }
 }
