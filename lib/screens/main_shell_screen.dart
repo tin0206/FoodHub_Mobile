@@ -20,6 +20,28 @@ class _MainShellScreenState extends State<MainShellScreen> {
   bool _isDarkMode = false;
   final Map<AppTab, bool> _tabInDetail = {};
 
+  Set<String> _dietaryRestrictions = {
+    'Dairy Free',
+    'Egg Free',
+    'Gluten Free',
+    'Nut Free',
+  };
+  String _primaryGoal = 'Balanced Nutrition';
+
+  void _onDietaryRestrictionToggled(String tag, bool selected) {
+    setState(() {
+      if (selected) {
+        _dietaryRestrictions = {..._dietaryRestrictions, tag};
+      } else {
+        _dietaryRestrictions = _dietaryRestrictions.difference({tag});
+      }
+    });
+  }
+
+  void _onPrimaryGoalChanged(String goal) {
+    setState(() => _primaryGoal = goal);
+  }
+
   bool get _showBottomBar => !(_tabInDetail[_currentTab] ?? false);
 
   void _onTabSelected(AppTab tab) {
@@ -53,7 +75,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
       SearchScreen(
         onDetailModeChanged: (v) => _onDetailModeChanged(AppTab.search, v),
       ),
-      const RecsScreen(),
+      RecsScreen(
+        dietaryRestrictions: _dietaryRestrictions,
+        primaryGoal: _primaryGoal,
+      ),
       FavoritesScreen(
         onDetailModeChanged: (v) => _onDetailModeChanged(AppTab.favorites, v),
       ),
@@ -63,6 +88,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
         onLogout: () => Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
         ),
+        selectedDietaryRestrictions: _dietaryRestrictions,
+        onDietaryRestrictionToggled: _onDietaryRestrictionToggled,
+        primaryGoal: _primaryGoal,
+        onPrimaryGoalChanged: _onPrimaryGoalChanged,
       ),
     ];
 

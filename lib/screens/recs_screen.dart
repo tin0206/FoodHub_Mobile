@@ -4,7 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 class RecsScreen extends StatefulWidget {
-  const RecsScreen({super.key});
+  const RecsScreen({
+    super.key,
+    this.dietaryRestrictions = const {},
+    this.primaryGoal = '',
+  });
+
+  final Set<String> dietaryRestrictions;
+  final String primaryGoal;
 
   @override
   State<RecsScreen> createState() => _RecsScreenState();
@@ -20,6 +27,23 @@ class _RecsScreenState extends State<RecsScreen> {
       isUser: false,
     ),
   ];
+
+  final Set<String> _selectedFilters = {};
+
+  List<String> get _allFilters => [
+    if (widget.primaryGoal.isNotEmpty) widget.primaryGoal,
+    ...widget.dietaryRestrictions,
+  ];
+
+  void _toggleFilter(String tag) {
+    setState(() {
+      if (_selectedFilters.contains(tag)) {
+        _selectedFilters.remove(tag);
+      } else {
+        _selectedFilters.add(tag);
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -39,11 +63,6 @@ class _RecsScreenState extends State<RecsScreen> {
     });
 
     _promptController.clear();
-  }
-
-  void _onQuickPromptTap(String prompt) {
-    _promptController.text = prompt;
-    _onPromptSubmitted();
   }
 
   Future<void> _onAttachIngredients() async {
@@ -259,37 +278,21 @@ class _RecsScreenState extends State<RecsScreen> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _TagChip(
-                          'Dairy Free',
-                          isDarkMode: isDarkMode,
-                          onTap: () => _onQuickPromptTap('Dairy Free'),
-                        ),
-                        _TagChip(
-                          'Egg Free',
-                          isDarkMode: isDarkMode,
-                          onTap: () => _onQuickPromptTap('Egg Free'),
-                        ),
-                        _TagChip(
-                          'Gluten Free',
-                          isDarkMode: isDarkMode,
-                          onTap: () => _onQuickPromptTap('Gluten Free'),
-                        ),
-                        _TagChip(
-                          'Nut Free',
-                          isDarkMode: isDarkMode,
-                          onTap: () => _onQuickPromptTap('Nut Free'),
-                        ),
-                        _TagChip(
-                          '+3',
-                          isDarkMode: isDarkMode,
-                          onTap: () => _onQuickPromptTap('More filters'),
-                        ),
-                      ],
-                    ),
+                    if (_allFilters.isNotEmpty)
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: _allFilters
+                            .map(
+                              (tag) => _TagChip(
+                                tag,
+                                isDarkMode: isDarkMode,
+                                isSelected: _selectedFilters.contains(tag),
+                                onTap: () => _toggleFilter(tag),
+                              ),
+                            )
+                            .toList(),
+                      ),
                     const SizedBox(height: 14),
                     ..._messages.map(
                       (message) => Padding(
@@ -470,11 +473,17 @@ class _RecsScreenState extends State<RecsScreen> {
 }
 
 class _TagChip extends StatelessWidget {
-  const _TagChip(this.label, {required this.isDarkMode, this.onTap});
+  const _TagChip(
+    this.label, {
+    required this.isDarkMode,
+    this.onTap,
+    this.isSelected = false,
+  });
 
   final String label;
   final bool isDarkMode;
   final VoidCallback? onTap;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -484,21 +493,32 @@ class _TagChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF102647) : const Color(0xFFF3F4F6),
+          color: isSelected
+              ? const Color(0xFFD1FAE5)
+              : (isDarkMode
+                    ? const Color(0xFF102647)
+                    : const Color(0xFFF3F4F6)),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: isDarkMode
-                ? const Color(0xFF274A73)
-                : const Color(0xFFD1D5DB),
+            color: isSelected
+                ? const Color(0xFF059669)
+                : (isDarkMode
+                      ? const Color(0xFF274A73)
+                      : const Color(0xFFD1D5DB)),
+            width: isSelected ? 1.5 : 1,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 10.5,
-            color: isDarkMode
-                ? const Color(0xFFCBD5E1)
-                : const Color(0xFF4B5563),
+            fontWeight:
+                isSelected ? FontWeight.w600 : FontWeight.w400,
+            color: isSelected
+                ? const Color(0xFF065F46)
+                : (isDarkMode
+                      ? const Color(0xFFCBD5E1)
+                      : const Color(0xFF4B5563)),
           ),
         ),
       ),
