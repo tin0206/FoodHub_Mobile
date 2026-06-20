@@ -471,6 +471,36 @@ class _RecsScreenState extends State<RecsScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isDarkMode
+                            ? const Color(0xFF64748B)
+                            : const Color(0xFF9CA3AF),
+                      ),
+                      children: const [
+                        TextSpan(
+                          text: 'Ingredients',
+                          style: TextStyle(
+                            color: Color(0xFF059669),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        TextSpan(text: ' — detect what you have  ·  '),
+                        TextSpan(
+                          text: 'Dish photo',
+                          style: TextStyle(
+                            color: Color(0xFFA855F7),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        TextSpan(text: ' — find recipes for a dish you see'),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

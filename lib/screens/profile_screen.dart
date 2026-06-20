@@ -49,6 +49,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final TextEditingController _calorieTargetController;
   late final TextEditingController _proteinTargetController;
 
+  // Snapshot of last-saved values for Cancel
+  late String _snapFullName;
+  late String _snapEmail;
+  late String _snapAge;
+  late String _snapWeight;
+  late String _snapCalorie;
+  late String _snapProtein;
+
   bool _isSaving = false;
   String? _ageError;
   String? _weightError;
@@ -62,12 +70,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _fullNameController = TextEditingController(text: 'John Doe');
-    _emailController = TextEditingController(text: 'john@example.com');
-    _ageController = TextEditingController();
-    _weightController = TextEditingController();
-    _calorieTargetController = TextEditingController(text: '2000');
-    _proteinTargetController = TextEditingController(text: '120');
+    _snapFullName = 'John Doe';
+    _snapEmail = 'john@example.com';
+    _snapAge = '';
+    _snapWeight = '';
+    _snapCalorie = '2000';
+    _snapProtein = '120';
+
+    _fullNameController = TextEditingController(text: _snapFullName);
+    _emailController = TextEditingController(text: _snapEmail);
+    _ageController = TextEditingController(text: _snapAge);
+    _weightController = TextEditingController(text: _snapWeight);
+    _calorieTargetController = TextEditingController(text: _snapCalorie);
+    _proteinTargetController = TextEditingController(text: _snapProtein);
   }
 
   @override
@@ -140,7 +155,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (!mounted) return;
     Navigator.of(context).pop();
-    setState(() => _isSaving = false);
+    setState(() {
+      _isSaving = false;
+      _snapFullName = _fullNameController.text;
+      _snapEmail = _emailController.text;
+      _snapAge = _ageController.text;
+      _snapWeight = _weightController.text;
+      _snapCalorie = _calorieTargetController.text;
+      _snapProtein = _proteinTargetController.text;
+    });
+  }
+
+  void _cancelChanges() {
+    setState(() {
+      _fullNameController.text = _snapFullName;
+      _emailController.text = _snapEmail;
+      _ageController.text = _snapAge;
+      _weightController.text = _snapWeight;
+      _calorieTargetController.text = _snapCalorie;
+      _proteinTargetController.text = _snapProtein;
+      _ageError = null;
+      _weightError = null;
+      _calorieError = null;
+      _proteinError = null;
+    });
   }
 
   Color get _screenBackground =>
@@ -536,19 +574,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           SizedBox(
             height: 44,
-            child: FilledButton(
-              onPressed: _isSaving ? null : _saveChanges,
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF059669),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(999),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isSaving ? null : _cancelChanges,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _primaryText,
+                      side: BorderSide(color: _cardBorder),
+                      backgroundColor: _cardBackground,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              child: const Text(
-                'Save changes',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-              ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _isSaving ? null : _saveChanges,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF059669),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    child: const Text(
+                      'Save changes',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
