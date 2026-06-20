@@ -49,6 +49,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final TextEditingController _calorieTargetController;
   late final TextEditingController _proteinTargetController;
 
+  bool _isSaving = false;
+  String? _ageError;
+  String? _weightError;
+  String? _calorieError;
+  String? _proteinError;
+
   bool _notifyRecommendations = true;
   bool _notifyNewFeatures = true;
   bool _notifyWeeklySummary = true;
@@ -75,14 +81,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  void _saveChanges() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Profile changes saved locally. Backend sync will be added later.',
+  Future<void> _saveChanges() async {
+    if (_isSaving) return;
+
+    String? ageErr, weightErr, calorieErr, proteinErr;
+
+    final ageVal = _ageController.text.trim();
+    if (ageVal.isNotEmpty) {
+      final v = int.tryParse(ageVal);
+      if (v == null || v <= 0) ageErr = 'Must be a positive number';
+    }
+
+    final weightVal = _weightController.text.trim();
+    if (weightVal.isNotEmpty) {
+      final v = double.tryParse(weightVal);
+      if (v == null || v <= 0) weightErr = 'Must be a positive number';
+    }
+
+    final calorieVal = _calorieTargetController.text.trim();
+    if (calorieVal.isNotEmpty) {
+      final v = int.tryParse(calorieVal);
+      if (v == null || v <= 0) calorieErr = 'Must be a positive number';
+    }
+
+    final proteinVal = _proteinTargetController.text.trim();
+    if (proteinVal.isNotEmpty) {
+      final v = int.tryParse(proteinVal);
+      if (v == null || v <= 0) proteinErr = 'Must be a positive number';
+    }
+
+    setState(() {
+      _ageError = ageErr;
+      _weightError = weightErr;
+      _calorieError = calorieErr;
+      _proteinError = proteinErr;
+    });
+
+    if (ageErr != null || weightErr != null || calorieErr != null || proteinErr != null) {
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(28),
+            child: CircularProgressIndicator(color: Color(0xFF059669)),
+          ),
         ),
       ),
     );
+
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    setState(() => _isSaving = false);
   }
 
   Color get _screenBackground =>
@@ -244,6 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         controller: _ageController,
                         keyboardType: TextInputType.number,
                         hintText: 'e.g. 28',
+                        errorText: _ageError,
                         secondaryText: _secondaryText,
                         fillColor: _fieldFill,
                         borderColor: _fieldBorder,
@@ -259,6 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decimal: true,
                         ),
                         hintText: 'e.g. 75',
+                        errorText: _weightError,
                         secondaryText: _secondaryText,
                         fillColor: _fieldFill,
                         borderColor: _fieldBorder,
@@ -348,6 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         label: 'Daily Calorie Target',
                         controller: _calorieTargetController,
                         keyboardType: TextInputType.number,
+                        errorText: _calorieError,
                         secondaryText: _secondaryText,
                         fillColor: _fieldFill,
                         borderColor: _fieldBorder,
@@ -360,6 +421,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         label: 'Target Protein (g/day)',
                         controller: _proteinTargetController,
                         keyboardType: TextInputType.number,
+                        errorText: _proteinError,
                         secondaryText: _secondaryText,
                         fillColor: _fieldFill,
                         borderColor: _fieldBorder,
@@ -475,7 +537,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           SizedBox(
             height: 44,
             child: FilledButton(
-              onPressed: _saveChanges,
+              onPressed: _isSaving ? null : _saveChanges,
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF059669),
                 foregroundColor: Colors.white,
@@ -581,6 +643,7 @@ class _LabeledField extends StatelessWidget {
     required this.isDarkMode,
     this.keyboardType,
     this.hintText,
+    this.errorText,
   });
 
   final String label;
@@ -591,6 +654,7 @@ class _LabeledField extends StatelessWidget {
   final bool isDarkMode;
   final TextInputType? keyboardType;
   final String? hintText;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -614,6 +678,8 @@ class _LabeledField extends StatelessWidget {
             fillColor: fillColor,
             hintText: hintText,
             hintStyle: TextStyle(color: secondaryText, fontSize: 12),
+            errorText: errorText,
+            errorStyle: const TextStyle(fontSize: 10),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 10,
               vertical: 9,

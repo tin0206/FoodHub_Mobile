@@ -66,8 +66,11 @@ class _RecsScreenState extends State<RecsScreen> {
   }
 
   Future<void> _onAttachIngredients() async {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final scannedIngredients = await Navigator.of(context).push<List<String>>(
-      MaterialPageRoute(builder: (_) => const _IngredientsScannerScreen()),
+      MaterialPageRoute(
+        builder: (_) => _IngredientsScannerScreen(isDarkMode: isDarkMode),
+      ),
     );
 
     if (!mounted || scannedIngredients == null || scannedIngredients.isEmpty) {
@@ -145,9 +148,12 @@ class _RecsScreenState extends State<RecsScreen> {
     required String cameraLabel,
     required String galleryLabel,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return showModalBottomSheet<ImageSource>(
       context: context,
       showDragHandle: true,
+      backgroundColor:
+          isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
       builder: (context) {
         return SafeArea(
           child: Padding(
@@ -158,9 +164,12 @@ class _RecsScreenState extends State<RecsScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
+                    color: isDarkMode
+                        ? const Color(0xFFF8FAFC)
+                        : const Color(0xFF111827),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -512,8 +521,7 @@ class _TagChip extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 10.5,
-            fontWeight:
-                isSelected ? FontWeight.w600 : FontWeight.w400,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
             color: isSelected
                 ? const Color(0xFF065F46)
                 : (isDarkMode
@@ -614,7 +622,9 @@ class _ChatBubble extends StatelessWidget {
 }
 
 class _IngredientsScannerScreen extends StatefulWidget {
-  const _IngredientsScannerScreen();
+  const _IngredientsScannerScreen({required this.isDarkMode});
+
+  final bool isDarkMode;
 
   @override
   State<_IngredientsScannerScreen> createState() =>
@@ -650,6 +660,7 @@ class _IngredientsScannerScreenState extends State<_IngredientsScannerScreen> {
       builder: (context) => _DetectedIngredientsSheet(
         initialItems: detected,
         sourceName: image.name,
+        isDarkMode: widget.isDarkMode,
       ),
     );
 
@@ -694,22 +705,51 @@ class _IngredientsScannerScreenState extends State<_IngredientsScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = widget.isDarkMode;
+    final bgColor = isDarkMode ? const Color(0xFF07152D) : Colors.white;
+    final cardColor = isDarkMode
+        ? const Color(0xFF102647)
+        : const Color(0xFFF9FAFB);
+    final borderColor = isDarkMode
+        ? const Color(0xFF274A73)
+        : const Color(0xFFD1D5DB);
+    final primaryText = isDarkMode
+        ? const Color(0xFFF8FAFC)
+        : const Color(0xFF111827);
+    final secondaryText = isDarkMode
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF4B5563);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Ingredient Scanner')),
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        title: Text(
+          'Ingredient Scanner',
+          style: TextStyle(color: primaryText, fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+        iconTheme: IconThemeData(color: primaryText),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Scan ingredients one by one',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: primaryText,
+                ),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Use camera for live capture or upload from gallery. You can scan multiple times and confirm detected ingredients.',
-                style: TextStyle(fontSize: 12.5, color: Color(0xFF4B5563)),
+                style: TextStyle(fontSize: 12.5, color: secondaryText),
               ),
               const SizedBox(height: 12),
               Row(
@@ -719,6 +759,10 @@ class _IngredientsScannerScreenState extends State<_IngredientsScannerScreen> {
                       onPressed: () => _scanWithSource(ImageSource.camera),
                       icon: const Icon(Icons.photo_camera_outlined),
                       label: const Text('Scan with camera'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF059669),
+                        foregroundColor: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -731,14 +775,27 @@ class _IngredientsScannerScreenState extends State<_IngredientsScannerScreen> {
                       onPressed: () => _scanWithSource(ImageSource.gallery),
                       icon: const Icon(Icons.photo_library_outlined),
                       label: const Text('Upload image'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isDarkMode
+                            ? const Color(0xFFCBD5E1)
+                            : const Color(0xFF374151),
+                        side: BorderSide(color: borderColor),
+                        backgroundColor: isDarkMode
+                            ? const Color(0xFF0B1B38)
+                            : const Color(0xFFF3F4F6),
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'Detected ingredients',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: primaryText,
+                ),
               ),
               const SizedBox(height: 8),
               Expanded(
@@ -746,15 +803,15 @@ class _IngredientsScannerScreenState extends State<_IngredientsScannerScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF9FAFB),
+                    color: cardColor,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFD1D5DB)),
+                    border: Border.all(color: borderColor),
                   ),
                   child: _ingredients.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
                             'No ingredients yet. Start scanning.',
-                            style: TextStyle(color: Color(0xFF6B7280)),
+                            style: TextStyle(color: secondaryText),
                           ),
                         )
                       : SingleChildScrollView(
@@ -764,11 +821,17 @@ class _IngredientsScannerScreenState extends State<_IngredientsScannerScreen> {
                             children: _ingredients
                                 .map(
                                   (item) => Chip(
-                                    label: Text(item),
+                                    label: Text(
+                                      item,
+                                      style: TextStyle(color: primaryText),
+                                    ),
+                                    backgroundColor: isDarkMode
+                                        ? const Color(0xFF1E3A5F)
+                                        : null,
+                                    side: BorderSide(color: borderColor),
+                                    deleteIconColor: secondaryText,
                                     onDeleted: () {
-                                      setState(() {
-                                        _ingredients.remove(item);
-                                      });
+                                      setState(() => _ingredients.remove(item));
                                     },
                                   ),
                                 )
@@ -784,6 +847,10 @@ class _IngredientsScannerScreenState extends State<_IngredientsScannerScreen> {
                   onPressed: _ingredients.isEmpty
                       ? null
                       : () => Navigator.of(context).pop(_ingredients),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                    foregroundColor: Colors.white,
+                  ),
                   child: Text(
                     _ingredients.isEmpty
                         ? 'Scan ingredients first'
@@ -803,10 +870,12 @@ class _DetectedIngredientsSheet extends StatefulWidget {
   const _DetectedIngredientsSheet({
     required this.initialItems,
     required this.sourceName,
+    required this.isDarkMode,
   });
 
   final List<String> initialItems;
   final String sourceName;
+  final bool isDarkMode;
 
   @override
   State<_DetectedIngredientsSheet> createState() =>
@@ -824,6 +893,13 @@ class _DetectedIngredientsSheetState extends State<_DetectedIngredientsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = widget.isDarkMode;
+    final primaryText = isDarkMode
+        ? const Color(0xFFF8FAFC)
+        : const Color(0xFF111827);
+    final secondaryText = isDarkMode
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF6B7280);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return SafeArea(
@@ -833,21 +909,26 @@ class _DetectedIngredientsSheetState extends State<_DetectedIngredientsSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Confirm detected ingredients',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: primaryText,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               widget.sourceName,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+              style: TextStyle(fontSize: 12, color: secondaryText),
             ),
             const SizedBox(height: 10),
             ...widget.initialItems.map(
               (item) => CheckboxListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: Text(item),
+                title: Text(item, style: TextStyle(color: primaryText)),
+                activeColor: const Color(0xFF059669),
                 value: _selected.contains(item),
                 onChanged: (value) {
                   setState(() {
@@ -865,6 +946,10 @@ class _DetectedIngredientsSheetState extends State<_DetectedIngredientsSheet> {
               width: double.infinity,
               child: FilledButton(
                 onPressed: () => Navigator.of(context).pop(_selected.toList()),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF059669),
+                  foregroundColor: Colors.white,
+                ),
                 child: const Text('Add selected'),
               ),
             ),
