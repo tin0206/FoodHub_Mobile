@@ -203,7 +203,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     _showCompletionFireworks();
   }
 
-  void _saveEditedRecipe() {
+  Future<void> _saveEditedRecipe() async {
     final ingredients = _ingredientsController.text.trim();
     final steps = _stepsController.text.trim();
     final cookingMinutes = int.tryParse(_cookingMinutesController.text.trim());
@@ -225,6 +225,23 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       return;
     }
 
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(28),
+            child: CircularProgressIndicator(color: Color(0xFF059669)),
+          ),
+        ),
+      ),
+    );
+
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    Navigator.of(context).pop();
+
     final updated = RecipeDetailData(
       name: widget.recipe.name,
       cookingMinutes: cookingMinutes,
@@ -235,26 +252,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     );
 
     widget.onSaveEdited?.call(updated);
-
-    setState(() {
-      _isEditMode = false;
-    });
-
-    showDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: const Text('Recipe updated'),
-        content: const Text('Your changes have been saved successfully.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    setState(() => _isEditMode = false);
   }
 
   void _showCompletionFireworks() {

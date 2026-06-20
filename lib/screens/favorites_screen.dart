@@ -101,6 +101,23 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     if (!mounted || updatedNote == null) return;
 
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(28),
+            child: CircularProgressIndicator(color: Color(0xFF059669)),
+          ),
+        ),
+      ),
+    );
+
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    Navigator.of(context).pop();
+
     setState(() {
       _recipes[index] = current.copyWith(
         note: updatedNote.trim().isEmpty ? null : updatedNote.trim(),

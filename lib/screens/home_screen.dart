@@ -379,6 +379,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
   final _cookingMinutesController = TextEditingController();
   final _caloriesController = TextEditingController();
   final Set<String> _selectedLabels = {};
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -390,7 +391,9 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
+    if (_isSaving) return;
+
     final name = _nameController.text.trim();
     final ingredients = _ingredientsController.text.trim();
     final steps = _stepsController.text.trim();
@@ -410,6 +413,25 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
       return;
     }
 
+    setState(() => _isSaving = true);
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(28),
+            child: CircularProgressIndicator(color: Color(0xFF059669)),
+          ),
+        ),
+      ),
+    );
+
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    Navigator.of(context).pop();
+
     widget.onSave(
       _Recipe(
         name: name,
@@ -422,15 +444,71 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
     );
   }
 
+  Widget _darkField({
+    required TextEditingController controller,
+    required String label,
+    required Color fillColor,
+    required Color textColor,
+    required Color labelColor,
+    required Color borderColor,
+    String? hint,
+    String? suffix,
+    int? maxLines,
+    TextInputType? keyboardType,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines ?? 1,
+      keyboardType: keyboardType,
+      style: TextStyle(fontSize: 13, color: textColor),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        suffixText: suffix,
+        filled: true,
+        fillColor: fillColor,
+        labelStyle: TextStyle(color: labelColor),
+        hintStyle: TextStyle(color: labelColor, fontSize: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF059669)),
+        ),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 10,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDarkMode ? const Color(0xFF0B1B38) : Colors.white;
+    final borderColor =
+        isDarkMode ? const Color(0xFF274A73) : colors.outlineVariant;
+    final fieldFill =
+        isDarkMode ? const Color(0xFF102647) : const Color(0xFFF9FAFB);
+    final textColor =
+        isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF111827);
+    final labelColor =
+        isDarkMode ? const Color(0xFF94A3B8) : colors.onSurfaceVariant;
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.outlineVariant),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         children: [
@@ -449,63 +527,75 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                 const Spacer(),
                 IconButton(
                   onPressed: widget.onCancel,
-                  icon: const Icon(Icons.close, size: 16),
+                  icon: Icon(Icons.close, size: 16, color: colors.onSurface),
                 ),
               ],
             ),
           ),
-          Divider(height: 1, color: colors.outlineVariant),
+          Divider(height: 1, color: borderColor),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
               children: [
-                TextField(
+                _darkField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Recipe Name *'),
+                  label: 'Recipe Name *',
+                  fillColor: fieldFill,
+                  textColor: textColor,
+                  labelColor: labelColor,
+                  borderColor: borderColor,
                 ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
+                      child: _darkField(
                         controller: _cookingMinutesController,
+                        label: 'Cooking time *',
+                        suffix: 'min',
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Cooking time *',
-                          suffixText: 'min',
-                        ),
+                        fillColor: fieldFill,
+                        textColor: textColor,
+                        labelColor: labelColor,
+                        borderColor: borderColor,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: TextField(
+                      child: _darkField(
                         controller: _caloriesController,
+                        label: 'Calories *',
+                        suffix: 'cal',
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Calories *',
-                          suffixText: 'cal',
-                        ),
+                        fillColor: fieldFill,
+                        textColor: textColor,
+                        labelColor: labelColor,
+                        borderColor: borderColor,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                TextField(
+                _darkField(
                   controller: _ingredientsController,
+                  label: 'Ingredients *',
+                  hint: 'One ingredient per line',
                   maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Ingredients *',
-                    hintText: 'One ingredient per line',
-                  ),
+                  fillColor: fieldFill,
+                  textColor: textColor,
+                  labelColor: labelColor,
+                  borderColor: borderColor,
                 ),
                 const SizedBox(height: 10),
-                TextField(
+                _darkField(
                   controller: _stepsController,
+                  label: 'Steps *',
+                  hint: 'One instruction per line',
                   maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Steps *',
-                    hintText: 'One instruction per line',
-                  ),
+                  fillColor: fieldFill,
+                  textColor: textColor,
+                  labelColor: labelColor,
+                  borderColor: borderColor,
                 ),
                 const SizedBox(height: 10),
                 Wrap(
@@ -513,18 +603,18 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                   runSpacing: 6,
                   children: kAvailableLabels.map((label) {
                     final isSelected = _selectedLabels.contains(label);
-
                     return FilterChip(
                       selected: isSelected,
                       selectedColor: const Color(0xFF059669),
                       checkmarkColor: Colors.white,
+                      backgroundColor:
+                          isDarkMode ? const Color(0xFF102647) : Colors.white,
+                      side: BorderSide(color: borderColor),
                       label: Text(
                         label,
                         style: TextStyle(
                           fontSize: 10,
-                          color: isSelected
-                              ? Colors.white
-                              : colors.onSurfaceVariant,
+                          color: isSelected ? Colors.white : labelColor,
                         ),
                       ),
                       onSelected: (selected) {
@@ -547,13 +637,24 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: widget.onCancel,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.onSurface,
+                      side: BorderSide(color: borderColor),
+                      backgroundColor: isDarkMode
+                          ? const Color(0xFF102647)
+                          : null,
+                    ),
                     child: const Text('Cancel'),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: FilledButton(
-                    onPressed: _save,
+                    onPressed: _isSaving ? null : _save,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF059669),
+                      foregroundColor: Colors.white,
+                    ),
                     child: const Text('Save'),
                   ),
                 ),
