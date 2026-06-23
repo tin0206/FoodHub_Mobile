@@ -378,25 +378,10 @@ class AuthSocialButton extends StatelessWidget {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
+                  Image.asset(
+                    'assets/icons/google_icon.png',
                     width: 20,
                     height: 20,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                      color: Colors.white,
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'G',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF4285F4),
-                          height: 1,
-                        ),
-                      ),
-                    ),
                   ),
                   const SizedBox(width: 9),
                   Text(

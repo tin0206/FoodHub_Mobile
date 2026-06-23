@@ -1,14 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 
-const _kRecipeCardColors = [
-  Color(0xFFFFF7ED),
-  Color(0xFFEFF6FF),
-  Color(0xFFF0FDF4),
-  Color(0xFFFDF4FF),
-  Color(0xFFFFF1F2),
-  Color(0xFFFEFCE8),
-];
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onDetailModeChanged});
@@ -129,8 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
           steps: _selectedRecipe!.steps,
           labels: _selectedRecipe!.labels,
         ),
-        cardColor: _kRecipeCardColors[_selectedRecipeCardIndex! %
-            _kRecipeCardColors.length],
+        cardColor: recipeCardTheme(_selectedRecipe!.labels).start,
         onBack: _closeRecipeDetails,
         enableEdit: true,
         onSaveEdited: _onSaveEditedRecipe,
@@ -330,6 +321,37 @@ class _EmptyRecipesView extends StatelessWidget {
   }
 }
 
+// Maps recipe labels to a visual theme (emoji + gradient colors)
+({String emoji, Color start, Color end}) _recipeTheme(List<String> labels) {
+  for (final l in labels) {
+    if (l == 'Vegan' || l == 'Vegetarian') {
+      return (emoji: '🥗', start: const Color(0xFF10B981), end: const Color(0xFF059669));
+    }
+    if (l == 'Italian' || l == 'Comfort Food') {
+      return (emoji: '🍝', start: const Color(0xFFF59E0B), end: const Color(0xFFD97706));
+    }
+    if (l == 'High Protein' || l == 'Keto') {
+      return (emoji: '💪', start: const Color(0xFF3B82F6), end: const Color(0xFF1D4ED8));
+    }
+    if (l == 'Breakfast') {
+      return (emoji: '🌅', start: const Color(0xFFF97316), end: const Color(0xFFEA580C));
+    }
+    if (l == 'Quick Meal') {
+      return (emoji: '⚡', start: const Color(0xFF8B5CF6), end: const Color(0xFF7C3AED));
+    }
+    if (l == 'Healthy') {
+      return (emoji: '🌿', start: const Color(0xFF22C55E), end: const Color(0xFF16A34A));
+    }
+    if (l == 'Pescetarian') {
+      return (emoji: '🐟', start: const Color(0xFF06B6D4), end: const Color(0xFF0891B2));
+    }
+    if (l == 'Meal Prep') {
+      return (emoji: '📦', start: const Color(0xFFF43F5E), end: const Color(0xFFE11D48));
+    }
+  }
+  return (emoji: '🍽️', start: const Color(0xFF10B981), end: const Color(0xFF059669));
+}
+
 class _RecipeCard extends StatelessWidget {
   const _RecipeCard({
     required this.recipe,
@@ -343,111 +365,184 @@ class _RecipeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDarkMode
-        ? const Color(0xFF0B1B38)
-        : _kRecipeCardColors[cardIndex % _kRecipeCardColors.length];
+    final t = _recipeTheme(recipe.labels);
 
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: isDarkMode
-            ? Border.all(color: const Color(0xFF274A73))
-            : null,
+        color: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: isDarkMode ? Border.all(color: const Color(0xFF274A73)) : null,
         boxShadow: isDarkMode
             ? []
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
+                  color: t.start.withValues(alpha: 0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
                 ),
               ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
+          // ── Gradient header ────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDarkMode
+                    ? [
+                        t.start.withValues(alpha: 0.28),
+                        t.end.withValues(alpha: 0.14),
+                      ]
+                    : [t.start, t.end],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(t.emoji, style: const TextStyle(fontSize: 30)),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.schedule_rounded,
+                            size: 11,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${recipe.cookingMinutes}m',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(
+                            Icons.local_fire_department_outlined,
+                            size: 11,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${recipe.calories}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
                   recipe.name,
-                  style: TextStyle(
-                    color: colors.onSurface,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                    letterSpacing: -0.3,
                   ),
                 ),
-              ),
-              FilledButton.tonalIcon(
-                onPressed: onView,
-                icon: const Icon(Icons.arrow_forward_rounded, size: 14),
-                label: const Text('View'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: isDarkMode
-                      ? const Color(0xFF102647)
-                      : const Color(0xFFECFDF5),
-                  foregroundColor: const Color(0xFF059669),
-                  visualDensity: VisualDensity.compact,
-                  textStyle: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            recipe.ingredientsSummary,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: colors.onSurfaceVariant,
-              fontSize: 12,
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: recipe.labels
-                .map(
-                  (tag) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 3,
-                    ),
+
+          // ── Tags + action ──────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: recipe.labels.isEmpty
+                      ? const SizedBox.shrink()
+                      : Wrap(
+                          spacing: 5,
+                          runSpacing: 5,
+                          children: recipe.labels
+                              .map(
+                                (tag) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isDarkMode
+                                        ? t.start.withValues(alpha: 0.15)
+                                        : t.start.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                      color: t.start.withValues(alpha: 0.25),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    tag,
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDarkMode
+                                          ? t.start.withValues(alpha: 0.9)
+                                          : t.end,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: onView,
+                  child: Container(
+                    width: 38,
+                    height: 38,
                     decoration: BoxDecoration(
-                      color: isDarkMode
-                          ? const Color(0xFF102647)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: isDarkMode
-                            ? const Color(0xFF274A73)
-                            : const Color(0xFFE2E8F0),
+                      gradient: LinearGradient(
+                        colors: [t.start, t.end],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: t.start.withValues(alpha: 0.4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      tag,
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w500,
-                        color: isDarkMode
-                            ? const Color(0xFFCBD5E1)
-                            : const Color(0xFF374151),
-                      ),
+                    child: const Icon(
+                      Icons.arrow_forward_rounded,
+                      color: Colors.white,
+                      size: 17,
                     ),
                   ),
-                )
-                .toList(),
+                ),
+              ],
+            ),
           ),
         ],
       ),

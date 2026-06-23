@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 
-const _kFavoriteCardColors = [
-  Color(0xFFFFF7ED),
-  Color(0xFFEFF6FF),
-  Color(0xFFF0FDF4),
-  Color(0xFFFFF1F2),
-];
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key, this.onDetailModeChanged});
@@ -343,9 +337,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     if (_selectedRecipeIndex != null) {
       final recipe = _recipes[_selectedRecipeIndex!];
-      final cardColor =
-          _kFavoriteCardColors[_selectedRecipeIndex! %
-              _kFavoriteCardColors.length];
 
       return RecipeDetailView(
         recipe: RecipeDetailData(
@@ -356,7 +347,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           steps: recipe.instructions,
           labels: recipe.tags,
         ),
-        cardColor: cardColor,
+        cardColor: recipeCardTheme(recipe.tags).start,
         onBack: _closeRecipeDetails,
         isSaved: _savedCurrentRecipe,
         onToggleSave: _toggleSaveInDetail,
@@ -447,10 +438,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               padding: const EdgeInsets.only(bottom: 8),
               child: _FavoriteRecipeCard(
                 recipe: recipe,
-                cardColor: isDarkMode
-                    ? const Color(0xFF0B1B38)
-                    : _kFavoriteCardColors[index % _kFavoriteCardColors.length],
-                isDarkMode: isDarkMode,
                 onTap: () => _openRecipeDetails(index),
                 onEditNote: () => _onEditNote(index),
                 onUnfavorite: () => _onUnfavorite(index),
@@ -518,211 +505,271 @@ class _SummaryCard extends StatelessWidget {
 class _FavoriteRecipeCard extends StatelessWidget {
   const _FavoriteRecipeCard({
     required this.recipe,
-    required this.cardColor,
-    required this.isDarkMode,
     required this.onTap,
     required this.onEditNote,
     required this.onUnfavorite,
   });
 
   final _FavoriteRecipe recipe;
-  final Color cardColor;
-  final bool isDarkMode;
   final VoidCallback onTap;
   final VoidCallback onEditNote;
   final VoidCallback onUnfavorite;
 
   @override
   Widget build(BuildContext context) {
-    final noteBg = isDarkMode
-        ? const Color(0xFF2F2A18)
-        : const Color(0xFFFFFBEB);
-    final noteBorder = isDarkMode
-        ? const Color(0xFF6B5C2B)
-        : const Color(0xFFF2C94C);
-    final noteText = isDarkMode
-        ? const Color(0xFFFDE68A)
-        : const Color(0xFF92400E);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final t = recipeCardTheme(recipe.tags);
+    final noteBg =
+        isDarkMode ? const Color(0xFF2F2A18) : const Color(0xFFFFFBEB);
+    final noteBorder =
+        isDarkMode ? const Color(0xFF6B5C2B) : const Color(0xFFF2C94C);
+    final noteText =
+        isDarkMode ? const Color(0xFFFDE68A) : const Color(0xFF92400E);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF0B1B38) : cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: isDarkMode
-            ? Border.all(color: const Color(0xFF274A73))
-            : null,
-        boxShadow: isDarkMode
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                recipe.name,
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: isDarkMode
-                      ? const Color(0xFFF8FAFC)
-                      : const Color(0xFF111827),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.schedule_outlined,
-                    size: 13,
-                    color: isDarkMode
-                        ? const Color(0xFF94A3B8)
-                        : const Color(0xFF4B5563),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${recipe.duration} min',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDarkMode
-                          ? const Color(0xFF94A3B8)
-                          : const Color(0xFF4B5563),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Icon(
-                    Icons.local_fire_department_outlined,
-                    size: 13,
-                    color: isDarkMode
-                        ? const Color(0xFF94A3B8)
-                        : const Color(0xFF4B5563),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${recipe.calories} cal',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDarkMode
-                          ? const Color(0xFF94A3B8)
-                          : const Color(0xFF4B5563),
-                    ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: isDarkMode
+              ? Border.all(color: const Color(0xFF274A73))
+              : null,
+          boxShadow: isDarkMode
+              ? []
+              : [
+                  BoxShadow(
+                    color: t.start.withValues(alpha: 0.18),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
                   ),
                 ],
+        ),
+        child: Column(
+          children: [
+            // ── Gradient header ──────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDarkMode
+                      ? [
+                          t.start.withValues(alpha: 0.28),
+                          t.end.withValues(alpha: 0.14),
+                        ]
+                      : [t.start, t.end],
+                ),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
               ),
-              if ((recipe.note ?? '').isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: noteBg,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: noteBorder),
-                  ),
-                  child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.sticky_note_2_outlined,
-                        size: 13,
-                        color: noteText,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          recipe.note!,
-                          style: TextStyle(fontSize: 10.5, color: noteText),
+                      Text(t.emoji, style: const TextStyle(fontSize: 30)),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.22),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.schedule_rounded,
+                              size: 11,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${recipe.duration}m',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.local_fire_department_outlined,
+                              size: 11,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${recipe.calories}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: onEditNote,
-                      icon: const Icon(Icons.edit_note_outlined, size: 14),
-                      label: Text(
-                        recipe.note == null ? 'Add Note' : 'Edit Note',
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(30),
-                        backgroundColor: isDarkMode
-                            ? const Color(0xFF102647)
-                            : const Color(0xFFF3F4F6),
-                        foregroundColor: isDarkMode
-                            ? const Color(0xFFCBD5E1)
-                            : const Color(0xFF374151),
-                        side: BorderSide(
-                          color: isDarkMode
-                              ? const Color(0xFF274A73)
-                              : const Color(0xFFD1D5DB),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
+                  const SizedBox(height: 10),
+                  Text(
+                    recipe.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 34,
-                    height: 30,
-                    child: OutlinedButton(
-                      onPressed: onUnfavorite,
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        backgroundColor: isDarkMode
-                            ? const Color(0xFF102647)
-                            : const Color(0xFFF9FAFB),
-                        side: BorderSide(
-                          color: isDarkMode
-                              ? const Color(0xFF274A73)
-                              : const Color(0xFFD1D5DB),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9),
-                        ),
+                  if (recipe.tags.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 5,
+                      runSpacing: 4,
+                      children: recipe.tags
+                          .map(
+                            (tag) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                tag,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // ── Note + actions ───────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(
+                children: [
+                  if ((recipe.note ?? '').isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
                       ),
-                      child: const Icon(
-                        Icons.favorite,
-                        color: Color(0xFFE11D48),
-                        size: 15,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: noteBg,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: noteBorder),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.sticky_note_2_outlined,
+                            size: 13,
+                            color: noteText,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              recipe.note!,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: noteText,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: onEditNote,
+                          icon: const Icon(Icons.edit_note_outlined, size: 14),
+                          label: Text(
+                            recipe.note == null ? 'Add Note' : 'Edit Note',
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(32),
+                            backgroundColor: isDarkMode
+                                ? const Color(0xFF102647)
+                                : const Color(0xFFF3F4F6),
+                            foregroundColor: isDarkMode
+                                ? const Color(0xFFCBD5E1)
+                                : const Color(0xFF374151),
+                            side: BorderSide(
+                              color: isDarkMode
+                                  ? const Color(0xFF274A73)
+                                  : const Color(0xFFD1D5DB),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 34,
+                        height: 32,
+                        child: OutlinedButton(
+                          onPressed: onUnfavorite,
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            backgroundColor: isDarkMode
+                                ? const Color(0xFF102647)
+                                : const Color(0xFFF9FAFB),
+                            side: BorderSide(
+                              color: isDarkMode
+                                  ? const Color(0xFF274A73)
+                                  : const Color(0xFFD1D5DB),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.favorite,
+                            color: Color(0xFFE11D48),
+                            size: 15,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    ),
-  );
+    );
   }
 }
 

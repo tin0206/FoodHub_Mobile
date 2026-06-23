@@ -167,6 +167,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       _isCookingMode = true;
       _isPreparingIngredients = true;
       _currentStepIndex = 0;
+
     });
   }
 
@@ -255,6 +256,209 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     setState(() => _isEditMode = false);
   }
 
+  Widget _buildIngredientChecklist({
+    required List<String> ingredientItems,
+    required Color accentColor,
+    required ColorScheme colors,
+    required bool isDarkMode,
+    required Color panelColor,
+    required Color borderColor,
+  }) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      children: [
+        Text(
+          'Ingredients',
+          style: TextStyle(
+            color: colors.onSurface,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Prepare the following before cooking',
+          style: TextStyle(
+            color: colors.onSurfaceVariant,
+            fontSize: 12.5,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...ingredientItems.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: panelColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: borderColor),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: accentColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      item,
+                      style: TextStyle(
+                        color: colors.onSurface,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCookingStepCard({
+    required String step,
+    required int stepNumber,
+    required int totalSteps,
+    required Color accentColor,
+    required Color borderColor,
+    required ColorScheme colors,
+    required bool isDarkMode,
+  }) {
+    final infoBg = isDarkMode ? const Color(0xFF102647) : const Color(0xFFF8FAFC);
+
+    return Column(
+      children: [
+        // ── Step header strip ────────────────────────────────────────
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+          decoration: BoxDecoration(
+            color: accentColor.withValues(alpha: isDarkMode ? 0.14 : 0.07),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    '$stepNumber',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Step $stepNumber',
+                style: TextStyle(
+                  color: accentColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'of $totalSteps',
+                style: TextStyle(
+                  color: accentColor.withValues(alpha: 0.55),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ── Instruction — vertically centered ────────────────────────
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  step,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    height: 1.45,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // ── Bottom info bar ──────────────────────────────────────────
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          decoration: BoxDecoration(
+            color: infoBg,
+            border: Border(top: BorderSide(color: borderColor)),
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(24),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.schedule_rounded, size: 14, color: accentColor),
+              const SizedBox(width: 5),
+              Text(
+                '~${widget.recipe.estimatedMinutesPerStep} min',
+                style: TextStyle(
+                  color: accentColor,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Container(
+                width: 1,
+                height: 14,
+                color: borderColor,
+              ),
+              const SizedBox(width: 14),
+              const Text('💡', style: TextStyle(fontSize: 13)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'Take your time with this step',
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showCompletionFireworks() {
     showGeneralDialog<void>(
       context: context,
@@ -280,12 +484,6 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     final ingredientItems = widget.recipe.ingredientItems;
     final totalSteps = stepItems.length;
 
-    final totalCookingStages = totalSteps + 1;
-    final currentCookingStage = _isPreparingIngredients
-        ? 1
-        : (_currentStepIndex + 2);
-    final progress = currentCookingStage / totalCookingStages;
-    final progressLabel = '${(progress * 100).round()}%';
     final canFinish =
         !_isPreparingIngredients && _currentStepIndex == totalSteps - 1;
 
@@ -304,26 +502,41 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
         ? const Color(0xFFDC2626)
         : colors.onSurfaceVariant;
 
-    return Container(
-      color: isDarkMode ? const Color(0xFF07152D) : widget.cardColor,
-      child: Column(
-        children: [
+    final emoji = _recipeEmoji(widget.recipe.labels);
+
+    return Column(
+      children: [
+        // ── Header: gradient hero (normal) or flat (cooking) ───────
+        if (_isCookingMode)
           Container(
-            height: 38,
+            height: 48,
             decoration: BoxDecoration(
               color: surfaceColor,
               border: Border(bottom: BorderSide(color: borderColor)),
+              boxShadow: isDarkMode
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
             ),
             child: Row(
               children: [
                 InkWell(
                   onTap: widget.onBack,
-                  child: const Padding(
-                    padding: EdgeInsets.all(6),
-                    child: Icon(Icons.arrow_back, size: 16),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      size: 20,
+                      color: accentColor,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     widget.recipe.name,
@@ -331,238 +544,407 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: colors.onSurface,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
                     ),
                   ),
                 ),
+                const SizedBox(width: 12),
               ],
+            ),
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDarkMode
+                    ? [
+                        accentColor.withValues(alpha: 0.35),
+                        accentColor.withValues(alpha: 0.12),
+                      ]
+                    : [accentColor, accentColor.withValues(alpha: 0.75)],
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 16, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  InkWell(
+                    onTap: widget.onBack,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_rounded,
+                        size: 17,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(emoji, style: const TextStyle(fontSize: 26)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.recipe.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            letterSpacing: -0.3,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.schedule_rounded,
+                              size: 11,
+                              color: Colors.white70,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${widget.recipe.cookingMinutes} min',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            const Icon(
+                              Icons.local_fire_department_outlined,
+                              size: 11,
+                              color: Colors.white70,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${widget.recipe.calories} cal',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (widget.recipe.labels.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 5,
+                            runSpacing: 4,
+                            children: widget.recipe.labels
+                                .map(
+                                  (tag) => Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      tag,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           if (_isCookingMode)
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(15, 12, 15, 12),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: surfaceColor,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: accentColor.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(
-                              _isPreparingIngredients
-                                  ? Icons.shopping_basket_outlined
-                                  : Icons.restaurant_menu,
-                              color: accentColor,
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _isPreparingIngredients
-                                      ? 'Prepare ingredients'
-                                      : 'Cooking step',
-                                  style: TextStyle(
-                                    color: colors.onSurface,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  widget.recipe.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: colors.onSurfaceVariant,
-                                    fontSize: 12,
-                                  ),
-                                ),
+              child: Column(
+                children: [
+                  // ── Phase header strip (gradient) ─────────────────
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: isDarkMode
+                            ? [
+                                accentColor.withValues(alpha: 0.35),
+                                accentColor.withValues(alpha: 0.12),
+                              ]
+                            : [
+                                widget.cardColor,
+                                widget.cardColor.withValues(alpha: 0.7),
                               ],
-                            ),
-                          ),
-                        ],
                       ),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Text(
-                            _isPreparingIngredients
-                                ? 'Preparation'
-                                : 'Step ${_currentStepIndex + 1} of $totalSteps',
-                            style: TextStyle(
-                              color: accentColor,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                _isPreparingIngredients
+                                    ? Icons.shopping_basket_rounded
+                                    : Icons.restaurant_menu_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                             ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            progressLabel,
-                            style: TextStyle(
-                              color: colors.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 8,
-                          backgroundColor: colors.surfaceContainerHighest,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            Color(0xFF059669),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: panelColor,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: borderColor),
-                        ),
-                        child: _isPreparingIngredients
-                            ? Column(
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Ingredients',
-                                    style: TextStyle(
-                                      color: colors.onSurface,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
+                                    _isPreparingIngredients
+                                        ? 'Prepare Ingredients'
+                                        : 'Step ${_currentStepIndex + 1} of $totalSteps',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 15,
                                     ),
                                   ),
-                                  const SizedBox(height: 10),
-                                  ...ingredientItems.map(
-                                    (item) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 8),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Icon(
-                                            Icons.check_circle_outline,
-                                            size: 16,
-                                            color: accentColor,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              item,
-                                              style: TextStyle(
-                                                color: colors.onSurfaceVariant,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
                                   Text(
-                                    stepItems[_currentStepIndex],
+                                    widget.recipe.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: colors.onSurface,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.3,
+                                      color: Colors.white.withValues(alpha: 0.75),
+                                      fontSize: 11.5,
                                     ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.schedule,
-                                        size: 14,
-                                        color: colors.onSurfaceVariant,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Estimated: ${widget.recipe.estimatedMinutesPerStep} min',
-                                        style: TextStyle(
-                                          color: colors.onSurfaceVariant,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
                                   ),
                                 ],
                               ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        _isPreparingIngredients
-                            ? 'Review your ingredients, then tap Next to start cooking.'
-                            : 'Follow this step, then tap Next when you are ready.',
-                        style: TextStyle(
-                          color: colors.onSurfaceVariant,
-                          fontSize: 12,
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 14),
+                        // Animated progress pills
+                        Row(
+                          children: List.generate(totalSteps + 1, (i) {
+                            final currentStage = _isPreparingIngredients
+                                ? 0
+                                : _currentStepIndex + 1;
+                            final isActive = i == currentStage;
+                            final isDone = i < currentStage;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 280),
+                              curve: Curves.easeInOut,
+                              margin: const EdgeInsets.only(right: 5),
+                              width: isActive ? 24 : 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: isDone || isActive
+                                    ? Colors.white
+                                    : Colors.white.withValues(alpha: 0.35),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            );
+                          }),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+
+                  // ── Content card ──────────────────────────────────
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: surfaceColor,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: isDarkMode
+                              ? []
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.08),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                        ),
+                        child: _isPreparingIngredients
+                            ? _buildIngredientChecklist(
+                                ingredientItems: ingredientItems,
+                                accentColor: accentColor,
+                                colors: colors,
+                                isDarkMode: isDarkMode,
+                                panelColor: panelColor,
+                                borderColor: borderColor,
+                              )
+                            : _buildCookingStepCard(
+                                step: stepItems[_currentStepIndex],
+                                stepNumber: _currentStepIndex + 1,
+                                totalSteps: totalSteps,
+                                accentColor: accentColor,
+                                colors: colors,
+                                isDarkMode: isDarkMode,
+                                borderColor: borderColor,
+                              ),
+                      ),
+                    ),
+                  ),
+
+                  // ── Navigation ────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    child: Column(
+                      children: [
+                        Text(
+                          _isPreparingIngredients
+                              ? 'Tap ingredients to check them off'
+                              : 'Take your time — tap Next when ready',
+                          style: TextStyle(
+                            color: isDarkMode
+                                ? Colors.white.withValues(alpha: 0.45)
+                                : widget.cardColor.withValues(alpha: 0.65),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _isPreparingIngredients
+                                    ? null
+                                    : _previousStep,
+                                icon: const Icon(
+                                  Icons.arrow_back_rounded,
+                                  size: 15,
+                                ),
+                                label: const Text('Back'),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(48),
+                                  foregroundColor: isDarkMode
+                                      ? const Color(0xFFCBD5E1)
+                                      : const Color(0xFF374151),
+                                  side: BorderSide(color: borderColor),
+                                  backgroundColor: isDarkMode
+                                      ? const Color(0xFF102647)
+                                      : Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 2,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: isDarkMode
+                                        ? [
+                                            accentColor.withValues(alpha: 0.9),
+                                            accentColor,
+                                          ]
+                                        : [
+                                            widget.cardColor,
+                                            widget.cardColor.withValues(
+                                              alpha: 0.8,
+                                            ),
+                                          ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: widget.cardColor.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton.icon(
+                                  onPressed: canFinish ? _finishCooking : _nextStep,
+                                  icon: Icon(
+                                    canFinish
+                                        ? Icons.check_circle_rounded
+                                        : Icons.arrow_forward_rounded,
+                                    size: 17,
+                                  ),
+                                  label: Text(
+                                    canFinish
+                                        ? 'Finish! 🎉'
+                                        : (_isPreparingIngredients
+                                            ? 'Start Cooking'
+                                            : 'Next'),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    foregroundColor: Colors.white,
+                                    minimumSize: const Size.fromHeight(48),
+                                    textStyle: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             )
           else
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.recipe.name,
-                      style: TextStyle(
-                        color: colors.onSurface,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.schedule,
-                          size: 14,
-                          color: colors.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 4),
-                        if (_isEditMode)
+                    if (_isEditMode) ...[
+                      Row(
+                        children: [
+                          const Icon(Icons.schedule, size: 14),
+                          const SizedBox(width: 6),
                           SizedBox(
-                            width: 65,
+                            width: 70,
                             height: 34,
                             child: TextField(
                               controller: _cookingMinutesController,
@@ -576,25 +958,15 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                 suffixText: 'min',
                               ),
                             ),
-                          )
-                        else
-                          Text(
-                            '${widget.recipe.cookingMinutes} min',
-                            style: TextStyle(
-                              color: colors.onSurfaceVariant,
-                              fontSize: 12,
-                            ),
                           ),
-                        const SizedBox(width: 16),
-                        Icon(
-                          Icons.local_fire_department_outlined,
-                          size: 14,
-                          color: colors.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 4),
-                        if (_isEditMode)
+                          const SizedBox(width: 16),
+                          const Icon(
+                            Icons.local_fire_department_outlined,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 6),
                           SizedBox(
-                            width: 65,
+                            width: 70,
                             height: 34,
                             child: TextField(
                               controller: _caloriesController,
@@ -608,18 +980,11 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                 suffixText: 'cal',
                               ),
                             ),
-                          )
-                        else
-                          Text(
-                            '${widget.recipe.calories} cal',
-                            style: TextStyle(
-                              color: colors.onSurfaceVariant,
-                              fontSize: 12,
-                            ),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     _RecipeDetailSectionCard(
                       title: 'Ingredients',
                       icon: Icons.shopping_basket_outlined,
@@ -805,62 +1170,10 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                 ),
               ),
             ),
+          if (!_isCookingMode)
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 15, 20, 10),
-            child: _isCookingMode
-                ? Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _isPreparingIngredients
-                              ? null
-                              : _previousStep,
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(40),
-                            foregroundColor: colors.onSurface,
-                            side: BorderSide(color: borderColor),
-                            backgroundColor: panelColor,
-                          ),
-                          child: const Text('Previous'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(40),
-                            backgroundColor: const Color(0xFF059669),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                          onPressed: _isPreparingIngredients
-                              ? _nextStep
-                              : (_currentStepIndex < totalSteps - 1
-                                    ? _nextStep
-                                    : null),
-                          child: const Text('Next'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(40),
-                            backgroundColor: const Color(0xFF059669),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                          onPressed: canFinish ? _finishCooking : null,
-                          child: const Text('Finish'),
-                        ),
-                      ),
-                    ],
-                  )
-                : widget.enableEdit
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: widget.enableEdit
                 ? Row(
                     children: [
                       Expanded(
@@ -953,7 +1266,6 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                   ),
           ),
         ],
-      ),
     );
   }
 }
@@ -1055,6 +1367,53 @@ class _FireworksCelebrationState extends State<FireworksCelebration>
       ),
     );
   }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/// Public: used by recipe cards AND detail view to keep colors consistent.
+({String emoji, Color start, Color end}) recipeCardTheme(List<String> labels) {
+  for (final l in labels) {
+    if (l == 'Vegan' || l == 'Vegetarian') {
+      return (emoji: '🥗', start: const Color(0xFF10B981), end: const Color(0xFF059669));
+    }
+    if (l == 'Italian' || l == 'Comfort Food') {
+      return (emoji: '🍝', start: const Color(0xFFF59E0B), end: const Color(0xFFD97706));
+    }
+    if (l == 'High Protein' || l == 'Keto') {
+      return (emoji: '💪', start: const Color(0xFF3B82F6), end: const Color(0xFF1D4ED8));
+    }
+    if (l == 'Breakfast') {
+      return (emoji: '🌅', start: const Color(0xFFF97316), end: const Color(0xFFEA580C));
+    }
+    if (l == 'Quick Meal') {
+      return (emoji: '⚡', start: const Color(0xFF8B5CF6), end: const Color(0xFF7C3AED));
+    }
+    if (l == 'Healthy') {
+      return (emoji: '🌿', start: const Color(0xFF22C55E), end: const Color(0xFF16A34A));
+    }
+    if (l == 'Pescetarian') {
+      return (emoji: '🐟', start: const Color(0xFF06B6D4), end: const Color(0xFF0891B2));
+    }
+    if (l == 'Meal Prep') {
+      return (emoji: '📦', start: const Color(0xFFF43F5E), end: const Color(0xFFE11D48));
+    }
+  }
+  return (emoji: '🍽️', start: const Color(0xFF10B981), end: const Color(0xFF059669));
+}
+
+String _recipeEmoji(List<String> labels) {
+  for (final l in labels) {
+    if (l == 'Vegan' || l == 'Vegetarian') return '🥗';
+    if (l == 'Italian' || l == 'Comfort Food') return '🍝';
+    if (l == 'High Protein' || l == 'Keto') return '💪';
+    if (l == 'Breakfast') return '🌅';
+    if (l == 'Quick Meal') return '⚡';
+    if (l == 'Healthy') return '🌿';
+    if (l == 'Pescetarian') return '🐟';
+    if (l == 'Meal Prep') return '📦';
+  }
+  return '🍽️';
 }
 
 class _RecipeDetailSectionCard extends StatelessWidget {
