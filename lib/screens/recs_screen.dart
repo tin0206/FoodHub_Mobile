@@ -152,8 +152,7 @@ class _RecsScreenState extends State<RecsScreen> {
     return showModalBottomSheet<ImageSource>(
       context: context,
       showDragHandle: true,
-      backgroundColor:
-          isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+      backgroundColor: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
       builder: (context) {
         return SafeArea(
           child: Padding(
@@ -272,15 +271,6 @@ class _RecsScreenState extends State<RecsScreen> {
                                 ),
                               ),
                               SizedBox(height: 2),
-                              Text(
-                                'Powered by LLM',
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  color: isDarkMode
-                                      ? const Color(0xFF94A3B8)
-                                      : const Color(0xFF6B7280),
-                                ),
-                              ),
                             ],
                           ),
                         ),
