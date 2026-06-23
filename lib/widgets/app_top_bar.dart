@@ -10,46 +10,89 @@ class AppTopBar extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    return Material(
+    return Container(
       color: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
       child: SafeArea(
         bottom: false,
         child: Container(
           height: 56,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: colors.outlineVariant.withValues(alpha: 0.55),
-              ),
-            ),
+            color: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+            boxShadow: isDarkMode
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+            border: isDarkMode
+                ? const Border(bottom: BorderSide(color: Color(0xFF1E3A5F)))
+                : null,
           ),
           child: Row(
             children: [
-              InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: onOpenProfile,
-                child: Row(
-                  children: [
-                    Image.asset(
-                      'assets/icons/app_icon.png',
-                      width: 22,
-                      height: 22,
-                      fit: BoxFit.contain,
+              Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF059669),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'FoodHub',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: colors.onSurface,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Image.asset(
+                        'assets/icons/app_icon.png',
+                        fit: BoxFit.contain,
+                        color: Colors.white,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 9),
+                  Text(
+                    'FoodHub',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: colors.onSurface,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
               ),
               const Spacer(),
+              InkWell(
+                onTap: onOpenProfile,
+                borderRadius: BorderRadius.circular(999),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF059669), Color(0xFF047857)],
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF059669).withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.person_rounded,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

@@ -544,22 +544,31 @@ class _FavoriteRecipeCard extends StatelessWidget {
         ? const Color(0xFFFDE68A)
         : const Color(0xFF92400E);
 
-    return Material(
-      color: isDarkMode ? const Color(0xFF07152D) : cardColor,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isDarkMode
-                  ? const Color(0xFF274A73)
-                  : const Color(0xFFD1D5DB),
-            ),
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: isDarkMode ? const Color(0xFF0B1B38) : cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: isDarkMode
+            ? Border.all(color: const Color(0xFF274A73))
+            : null,
+        boxShadow: isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -712,7 +721,8 @@ class _FavoriteRecipeCard extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

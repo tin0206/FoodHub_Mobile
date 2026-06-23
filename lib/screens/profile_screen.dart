@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 const _kDietaryTags = [
   'Dairy Free',
@@ -166,6 +166,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+
+  void _showChangePasswordSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ChangePasswordSheet(
+        isDarkMode: widget.isDarkMode,
+        cardBackground: _cardBackground,
+        cardBorder: _cardBorder,
+        primaryText: _primaryText,
+        secondaryText: _secondaryText,
+        fieldFill: _fieldFill,
+        fieldBorder: _fieldBorder,
+      ),
+    );
+  }
+
   void _cancelChanges() {
     setState(() {
       _fullNameController.text = _snapFullName;
@@ -209,22 +227,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(8, 8, 8, 14),
         children: [
-          Text(
-            'Profile',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: _primaryText,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            decoration: BoxDecoration(
+              color: _cardBackground,
+              borderRadius: BorderRadius.circular(20),
+              border: widget.isDarkMode
+                  ? Border.all(color: _cardBorder)
+                  : null,
+              boxShadow: widget.isDarkMode
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Settings & preferences',
-            style: TextStyle(color: _secondaryText, fontSize: 10.5),
+            child: Column(
+              children: [
+                Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF059669), Color(0xFF047857)],
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF059669).withValues(alpha: 0.35),
+                        blurRadius: 14,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.person_rounded,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _fullNameController.text.isNotEmpty
+                      ? _fullNameController.text
+                      : 'Your Profile',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: _primaryText,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _emailController.text.isNotEmpty
+                      ? _emailController.text
+                      : 'Settings & preferences',
+                  style: TextStyle(color: _secondaryText, fontSize: 12),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
 
-          // ── Appearance ────────────────────────────────────────────────
+          // â”€â”€ Appearance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           _SectionCard(
             backgroundColor: _cardBackground,
             borderColor: _cardBorder,
@@ -286,7 +358,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 10),
 
-          // ── Personal Information ──────────────────────────────────────
+          // â”€â”€ Personal Information â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           _SectionCard(
             backgroundColor: _cardBackground,
             borderColor: _cardBorder,
@@ -370,7 +442,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 10),
 
-          // ── Nutrition Goals ───────────────────────────────────────────
+          // â”€â”€ Nutrition Goals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           _SectionCard(
             backgroundColor: _cardBackground,
             borderColor: _cardBorder,
@@ -523,7 +595,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 10),
 
-          // ── Notifications ─────────────────────────────────────────────
+          // â”€â”€ Security â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          _SectionCard(
+            backgroundColor: _cardBackground,
+            borderColor: _cardBorder,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _IconBadge(
+                      background: const Color(0xFFFFEDD5),
+                      icon: Icons.lock_outline_rounded,
+                      iconColor: const Color(0xFFEA580C),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Security',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: _primaryText,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                _SecurityRow(
+                  icon: Icons.key_rounded,
+                  label: 'Change password',
+                  onTap: _showChangePasswordSheet,
+                  primaryText: _primaryText,
+                  secondaryText: _secondaryText,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // â”€â”€ Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           _SectionCard(
             backgroundColor: _cardBackground,
             borderColor: _cardBorder,
@@ -645,7 +755,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ── Shared section header ─────────────────────────────────────────────────────
+// â”€â”€ Shared section header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
@@ -699,7 +809,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// ── Labeled text field ────────────────────────────────────────────────────────
+// â”€â”€ Labeled text field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _LabeledField extends StatelessWidget {
   const _LabeledField({
@@ -771,7 +881,7 @@ class _LabeledField extends StatelessWidget {
   }
 }
 
-// ── Reusable widgets ──────────────────────────────────────────────────────────
+// â”€â”€ Reusable widgets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _SectionCard extends StatelessWidget {
   const _SectionCard({
@@ -786,13 +896,23 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(16),
+        border: isDarkMode ? Border.all(color: borderColor) : null,
+        boxShadow: isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
       ),
       child: child,
     );
@@ -870,3 +990,325 @@ class _ToggleRow extends StatelessWidget {
     );
   }
 }
+
+// â”€â”€ Change Password Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+class _ChangePasswordSheet extends StatefulWidget {
+  const _ChangePasswordSheet({
+    required this.isDarkMode,
+    required this.cardBackground,
+    required this.cardBorder,
+    required this.primaryText,
+    required this.secondaryText,
+    required this.fieldFill,
+    required this.fieldBorder,
+  });
+
+  final bool isDarkMode;
+  final Color cardBackground;
+  final Color cardBorder;
+  final Color primaryText;
+  final Color secondaryText;
+  final Color fieldFill;
+  final Color fieldBorder;
+
+  @override
+  State<_ChangePasswordSheet> createState() => _ChangePasswordSheetState();
+}
+
+class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
+  final _currentCtrl = TextEditingController();
+  final _newCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+  bool _isSaving = false;
+
+  String? _currentError;
+  String? _newError;
+  String? _confirmError;
+
+  @override
+  void dispose() {
+    _currentCtrl.dispose();
+    _newCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    String? curErr, newErr, confErr;
+    if (_currentCtrl.text.isEmpty) curErr = 'Enter your current password';
+    if (_newCtrl.text.length < 6) newErr = 'Must be at least 6 characters';
+    if (_confirmCtrl.text != _newCtrl.text) confErr = 'Passwords do not match';
+
+    setState(() {
+      _currentError = curErr;
+      _newError = newErr;
+      _confirmError = confErr;
+    });
+    if (curErr != null || newErr != null || confErr != null) return;
+
+    setState(() => _isSaving = true);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(28),
+            child: CircularProgressIndicator(color: Color(0xFF059669)),
+          ),
+        ),
+      ),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.cardBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(20, 8, 20, 20 + bottomInset),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: widget.fieldBorder,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          Text(
+            'Change password',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: widget.primaryText,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Choose a strong password for your account',
+            style: TextStyle(fontSize: 12, color: widget.secondaryText),
+          ),
+          const SizedBox(height: 20),
+          _PwField(
+            controller: _currentCtrl,
+            label: 'Current password',
+            obscure: _obscureCurrent,
+            errorText: _currentError,
+            secondaryText: widget.secondaryText,
+            fillColor: widget.fieldFill,
+            borderColor: widget.fieldBorder,
+            isDarkMode: widget.isDarkMode,
+            onToggle: () => setState(() => _obscureCurrent = !_obscureCurrent),
+            onChanged: (_) => setState(() => _currentError = null),
+          ),
+          const SizedBox(height: 12),
+          _PwField(
+            controller: _newCtrl,
+            label: 'New password',
+            obscure: _obscureNew,
+            errorText: _newError,
+            secondaryText: widget.secondaryText,
+            fillColor: widget.fieldFill,
+            borderColor: widget.fieldBorder,
+            isDarkMode: widget.isDarkMode,
+            onToggle: () => setState(() => _obscureNew = !_obscureNew),
+            onChanged: (_) => setState(() => _newError = null),
+          ),
+          const SizedBox(height: 12),
+          _PwField(
+            controller: _confirmCtrl,
+            label: 'Confirm new password',
+            obscure: _obscureConfirm,
+            errorText: _confirmError,
+            secondaryText: widget.secondaryText,
+            fillColor: widget.fieldFill,
+            borderColor: widget.fieldBorder,
+            isDarkMode: widget.isDarkMode,
+            onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+            onChanged: (_) => setState(() => _confirmError = null),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(46),
+                    foregroundColor: widget.primaryText,
+                    side: BorderSide(color: widget.fieldBorder),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _isSaving ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(46),
+                    backgroundColor: const Color(0xFF059669),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Update', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PwField extends StatelessWidget {
+  const _PwField({
+    required this.controller,
+    required this.label,
+    required this.obscure,
+    required this.onToggle,
+    required this.onChanged,
+    required this.secondaryText,
+    required this.fillColor,
+    required this.borderColor,
+    required this.isDarkMode,
+    this.errorText,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final bool obscure;
+  final VoidCallback onToggle;
+  final ValueChanged<String> onChanged;
+  final Color secondaryText;
+  final Color fillColor;
+  final Color borderColor;
+  final bool isDarkMode;
+  final String? errorText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: secondaryText,
+          ),
+        ),
+        const SizedBox(height: 5),
+        TextField(
+          controller: controller,
+          obscureText: obscure,
+          onChanged: onChanged,
+          style: TextStyle(
+            fontSize: 13,
+            color: isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF374151),
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            filled: true,
+            fillColor: fillColor,
+            errorText: errorText,
+            errorStyle: const TextStyle(fontSize: 10),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            suffixIcon: IconButton(
+              icon: Icon(
+                obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                size: 17,
+                color: secondaryText,
+              ),
+              onPressed: onToggle,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: borderColor),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFF059669)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+class _SecurityRow extends StatelessWidget {
+  const _SecurityRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.primaryText,
+    required this.secondaryText,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color primaryText;
+  final Color secondaryText;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            Icon(icon, size: 15, color: secondaryText),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: primaryText,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 18, color: secondaryText),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

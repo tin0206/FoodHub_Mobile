@@ -9,14 +9,14 @@ const _kSearchCardColors = [
 ];
 
 const _kSearchCategories = [
-  'Breakfast',
-  'Lunch',
-  'Dinner',
-  'Vegan',
-  'Quick Meals',
-  'High Protein',
-  'Gluten Free',
-  'Keto',
+  ('🌅', 'Breakfast'),
+  ('🥗', 'Lunch'),
+  ('🍝', 'Dinner'),
+  ('🌱', 'Vegan'),
+  ('⚡', 'Quick Meals'),
+  ('💪', 'High Protein'),
+  ('🌾', 'Gluten Free'),
+  ('🥑', 'Keto'),
 ];
 
 class SearchScreen extends StatefulWidget {
@@ -228,12 +228,14 @@ class _SearchScreenState extends State<SearchScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _kSearchCategories.map((category) {
-            final isSelected = _selectedCategory == category;
+          children: _kSearchCategories.map((entry) {
+            final (emoji, label) = entry;
+            final isSelected = _selectedCategory == label;
             return InkWell(
-              onTap: () => _toggleCategory(category),
+              onTap: () => _toggleCategory(label),
               borderRadius: BorderRadius.circular(999),
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 7,
@@ -249,18 +251,40 @@ class _SearchScreenState extends State<SearchScreen> {
                         : (isDarkMode
                               ? const Color(0xFF274A73)
                               : colors.outlineVariant),
+                    width: isSelected ? 1.5 : 1,
                   ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF059669).withValues(
+                              alpha: 0.3,
+                            ),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : [],
                 ),
-                child: Text(
-                  category,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isSelected
-                        ? Colors.white
-                        : (isDarkMode
-                              ? const Color(0xFFCBD5E1)
-                              : colors.onSurfaceVariant),
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(emoji, style: const TextStyle(fontSize: 13)),
+                    const SizedBox(width: 5),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        color: isSelected
+                            ? Colors.white
+                            : (isDarkMode
+                                  ? const Color(0xFFCBD5E1)
+                                  : colors.onSurfaceVariant),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );
@@ -317,17 +341,26 @@ class _SearchRecipeCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF07152D) : cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF274A73) : colors.outlineVariant,
-        ),
+        color: isDarkMode ? const Color(0xFF0B1B38) : cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: isDarkMode
+            ? Border.all(color: const Color(0xFF274A73))
+            : null,
+        boxShadow: isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: InkWell(
         onTap: onPressed,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
           child: Row(
             children: [
               Expanded(

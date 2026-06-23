@@ -74,6 +74,13 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  String get _greeting {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning 🌅';
+    if (h < 17) return 'Good afternoon ☀️';
+    return 'Good evening 🌙';
+  }
+
   void _openRecipeDetails(_Recipe recipe, int cardIndex) {
     widget.onDetailModeChanged?.call(true);
     setState(() {
@@ -112,8 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
     if (_selectedRecipe != null && _selectedRecipeCardIndex != null) {
       return RecipeDetailView(
         recipe: RecipeDetailData(
@@ -146,44 +151,96 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ]
             : [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.menu_book_outlined,
-                      color: Color(0xFF059669),
+                // ── Greeting hero ─────────────────────────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF059669), Color(0xFF047857)],
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'My Recipes',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: colors.onSurface,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF059669).withValues(alpha: 0.3),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
                       ),
-                    ),
-                    const Spacer(),
-                    FilledButton.icon(
-                      onPressed: _onAddRecipePressed,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF059669),
-                        foregroundColor: Colors.white,
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _greeting,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'My Recipes',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '${_recipes.length} recipe${_recipes.length == 1 ? '' : 's'}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      InkWell(
+                        onTap: _onAddRecipePressed,
+                        borderRadius: BorderRadius.circular(999),
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.add_rounded,
+                            color: Colors.white,
+                            size: 26,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Your personal recipe collection',
-                  style: TextStyle(color: colors.onSurfaceVariant),
-                ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 12),
                 Expanded(
                   child: _recipes.isEmpty
                       ? _EmptyRecipesView(onAddFirstRecipe: _onAddRecipePressed)
                       : ListView.separated(
-                          padding: const EdgeInsets.only(top: 15),
+                          padding: EdgeInsets.zero,
                           itemCount: _recipes.length,
                           separatorBuilder: (_, _) =>
                               const SizedBox(height: 10),
@@ -293,13 +350,22 @@ class _RecipeCard extends StatelessWidget {
         : _kRecipeCardColors[cardIndex % _kRecipeCardColors.length];
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF274A73) : colors.outlineVariant,
-        ),
+        borderRadius: BorderRadius.circular(16),
+        border: isDarkMode
+            ? Border.all(color: const Color(0xFF274A73))
+            : null,
+        boxShadow: isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,44 +378,71 @@ class _RecipeCard extends StatelessWidget {
                   style: TextStyle(
                     color: colors.onSurface,
                     fontWeight: FontWeight.w700,
+                    fontSize: 14,
                   ),
                 ),
               ),
-              TextButton.icon(
+              FilledButton.tonalIcon(
                 onPressed: onView,
-                icon: const Icon(Icons.visibility_outlined, size: 16),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 14),
                 label: const Text('View'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: isDarkMode
+                      ? const Color(0xFF102647)
+                      : const Color(0xFFECFDF5),
+                  foregroundColor: const Color(0xFF059669),
+                  visualDensity: VisualDensity.compact,
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
               ),
             ],
           ),
+          const SizedBox(height: 4),
           Text(
             recipe.ingredientsSummary,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: colors.onSurfaceVariant),
+            style: TextStyle(
+              color: colors.onSurfaceVariant,
+              fontSize: 12,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: recipe.labels
                 .map(
-                  (tag) => Chip(
-                    backgroundColor: isDarkMode
-                        ? const Color(0xFF102647)
-                        : Colors.white,
-                    side: BorderSide(
-                      color: isDarkMode
-                          ? const Color(0xFF274A73)
-                          : colors.outlineVariant,
+                  (tag) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 3,
                     ),
-                    label: Text(
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? const Color(0xFF102647)
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: isDarkMode
+                            ? const Color(0xFF274A73)
+                            : const Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    child: Text(
                       tag,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w500,
                         color: isDarkMode
                             ? const Color(0xFFCBD5E1)
-                            : colors.onSurfaceVariant,
+                            : const Color(0xFF374151),
                       ),
                     ),
                   ),
