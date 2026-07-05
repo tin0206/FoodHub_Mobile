@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/services/api_exception.dart';
+import 'package:foodhub_mobile/services/auth_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -14,6 +16,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _isSubmitting = false;
   bool _emailSent = false;
 
+  final _authService = AuthService();
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -24,12 +28,25 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
-    await Future<void>.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-    setState(() {
-      _isSubmitting = false;
-      _emailSent = true;
-    });
+    try {
+      await _authService.forgotPassword(
+        email: _emailController.text.trim(),
+      );
+      if (!mounted) return;
+      setState(() => _emailSent = true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to send reset link.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override

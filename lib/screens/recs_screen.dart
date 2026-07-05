@@ -1,6 +1,9 @@
-import 'dart:math';
+import 'dart:math' show max;
 
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/models/ai.dart';
+import 'package:foodhub_mobile/services/ai_service.dart';
+import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:image_picker/image_picker.dart';
 
 class RecsScreen extends StatefulWidget {
@@ -20,30 +23,19 @@ class RecsScreen extends StatefulWidget {
 class _RecsScreenState extends State<RecsScreen> {
   final TextEditingController _promptController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
+  final AiService _aiService = AiService();
+  final List<ChatMessageModel> _conversationHistory = [];
+  List<String>? _pendingIngredients;
+  DishRecognitionModel? _pendingDish;
+  bool _isSending = false;
+  bool _isDetectingDish = false;
   final List<_ChatMessage> _messages = [
     const _ChatMessage(
       text:
-          "Hello! I'm your AI recipe assistant. Tell me what you're craving, or use the buttons below to upload a photo.",
+          "Hello! I'm your AI recipe assistant. Tell me what you're craving, or attach ingredients / a dish photo as context — then press send.",
       isUser: false,
     ),
   ];
-
-  final Set<String> _selectedFilters = {};
-
-  List<String> get _allFilters => [
-    if (widget.primaryGoal.isNotEmpty) widget.primaryGoal,
-    ...widget.dietaryRestrictions,
-  ];
-
-  void _toggleFilter(String tag) {
-    setState(() {
-      if (_selectedFilters.contains(tag)) {
-        _selectedFilters.remove(tag);
-      } else {
-        _selectedFilters.add(tag);
-      }
-    });
-  }
 
   @override
   void dispose() {
@@ -51,18 +43,181 @@ class _RecsScreenState extends State<RecsScreen> {
     super.dispose();
   }
 
-  void _onPromptSubmitted() {
-    final prompt = _promptController.text.trim();
-    if (prompt.isEmpty) return;
+  List<DishResultModel> get _pendingDishResults {
+    final dish = _pendingDish;
+    if (dish == null) return const [];
+    if (dish.results.isNotEmpty) {
+      return dish.results.take(5).toList();
+    }
+    if (dish.dishName.isNotEmpty) {
+      return [
+        DishResultModel(rank: 1, dishName: dish.dishName, confidence: 1),
+      ];
+    }
+    return dish.suggestedRecipes
+        .take(5)
+        .map(
+          (name) => DishResultModel(
+            rank: 0,
+            dishName: name,
+            confidence: 0,
+          ),
+        )
+        .toList();
+  }
+
+  bool get _hasPendingContext =>
+      (_pendingIngredients?.isNotEmpty ?? false) || _pendingDish != null;
+
+  String _buildApiMessage(String userPrompt) {
+    final dishes = _pendingDishResults
+        .map((r) => r.dishName)
+        .where((name) => name.isNotEmpty)
+        .toList();
+    if (dishes.isEmpty) return userPrompt;
+    return 'Recognized dishes (possible matches): ${dishes.join(', ')}.\n$userPrompt';
+  }
+
+  void _clearPendingContext() {
+    _pendingIngredients = null;
+    _pendingDish = null;
+  }
+
+  List<String> _dishNamesFrom(DishRecognitionModel? dish) {
+    if (dish == null) return const [];
+    if (dish.results.isNotEmpty) {
+      return dish.results
+          .take(5)
+          .map((r) => r.dishName)
+          .where((name) => name.isNotEmpty)
+          .toList();
+    }
+    if (dish.dishName.isNotEmpty) return [dish.dishName];
+    return dish.suggestedRecipes.take(5).toList();
+  }
+
+  Future<void> _resetChat() async {
+    if (_isSending) return;
+
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+        title: Text(
+          'Reset chat?',
+          style: TextStyle(
+            color: isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827),
+          ),
+        ),
+        content: Text(
+          'This clears the conversation and attached context. Your profile preferences stay the same.',
+          style: TextStyle(
+            color: isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF059669),
+            ),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
 
     setState(() {
-      _messages.add(_ChatMessage(text: prompt, isUser: true));
-      _messages.add(
-        _ChatMessage(text: _buildDefaultReply(prompt), isUser: false),
-      );
+      _messages
+        ..clear()
+        ..add(
+          const _ChatMessage(
+            text:
+                "Hello! I'm your AI recipe assistant. Tell me what you're craving, or attach ingredients / a dish photo as context — then press send.",
+            isUser: false,
+          ),
+        );
+      _conversationHistory.clear();
+      _clearPendingContext();
+      _promptController.clear();
     });
+  }
 
+  Future<void> _onPromptSubmitted() async {
+    final prompt = _promptController.text.trim();
+    if (prompt.isEmpty || _isSending) return;
+
+    final apiMessage = _buildApiMessage(prompt);
+    final ingredients = List<String>.from(_pendingIngredients ?? const []);
+    final dishNames = _dishNamesFrom(_pendingDish);
+
+    setState(() {
+      _messages.add(
+        _ChatMessage(
+          text: prompt,
+          isUser: true,
+          attachedIngredients: ingredients,
+          attachedDishes: dishNames,
+        ),
+      );
+      _isSending = true;
+    });
     _promptController.clear();
+
+    final dietary = widget.dietaryRestrictions.toList();
+
+    try {
+      final response = await _aiService.chat(
+        message: apiMessage,
+        conversationHistory: _conversationHistory,
+        dietaryRestrictions: dietary,
+        primaryGoal: widget.primaryGoal,
+        ingredients: ingredients,
+      );
+
+      _conversationHistory
+        ..add(ChatMessageModel(role: 'user', content: apiMessage))
+        ..add(ChatMessageModel(role: 'assistant', content: response.reply));
+
+      var reply = response.reply;
+      if (response.recipes.isNotEmpty) {
+        reply +=
+            '\n\nSuggested recipes:\n${response.recipes.map((r) => '• ${r.title}').join('\n')}';
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _messages.add(_ChatMessage(text: reply, isUser: false));
+        _isSending = false;
+        _clearPendingContext();
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _messages.add(
+          _ChatMessage(text: e.message, isUser: false),
+        );
+        _isSending = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _messages.add(
+          const _ChatMessage(
+            text: 'Unable to reach AI assistant. Please try again.',
+            isUser: false,
+          ),
+        );
+        _isSending = false;
+      });
+    }
   }
 
   Future<void> _onAttachIngredients() async {
@@ -77,22 +232,50 @@ class _RecsScreenState extends State<RecsScreen> {
       return;
     }
 
-    final ingredientText = scannedIngredients.join(', ');
-    setState(() {
-      _messages.add(
-        _ChatMessage(
-          text: 'Ingredients scanned: $ingredientText',
-          isUser: true,
-        ),
-      );
-      _messages.add(
-        _ChatMessage(
-          text:
-              'Awesome, I detected ${scannedIngredients.length} ingredients. I can build recipe ideas from these now: ${scannedIngredients.take(6).join(', ')}. Want quick recipes or full meal prep?',
-          isUser: false,
-        ),
-      );
-    });
+    setState(() => _pendingIngredients = scannedIngredients);
+  }
+
+  void _showIngredientsContextDetail() {
+    final items = _pendingIngredients;
+    if (items == null || items.isEmpty) return;
+
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+      builder: (context) => _IngredientsContextSheet(
+        ingredients: items,
+        isDarkMode: isDarkMode,
+        onClear: () {
+          setState(() => _pendingIngredients = null);
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
+  void _showDishContextDetail() {
+    final dish = _pendingDish;
+    if (dish == null) return;
+
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+      builder: (context) => _DishContextSheet(
+        results: _pendingDishResults,
+        suggestedRecipes: dish.suggestedRecipes,
+        isDarkMode: isDarkMode,
+        onClear: () {
+          setState(() => _pendingDish = null);
+          Navigator.of(context).pop();
+        },
+      ),
+    );
   }
 
   Future<void> _onAttachPhoto() async {
@@ -110,37 +293,35 @@ class _RecsScreenState extends State<RecsScreen> {
     );
     if (!mounted || file == null) return;
 
-    final recipeReply = _buildDishPhotoReply(file);
-    setState(() {
-      _messages.add(
-        _ChatMessage(
-          text: 'I uploaded a dish photo (${file.name}).',
-          isUser: true,
+    setState(() => _isDetectingDish = true);
+
+    try {
+      final bytes = await file.readAsBytes();
+      final result = await _aiService.recognizeDish(
+        bytes: bytes,
+        filename: file.name,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _pendingDish = result;
+        _isDetectingDish = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _isDetectingDish = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isDetectingDish = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Dish recognition failed. Please try another photo.'),
         ),
       );
-      _messages.add(_ChatMessage(text: recipeReply, isUser: false));
-    });
-  }
-
-  String _buildDefaultReply(String prompt) {
-    final lower = prompt.toLowerCase();
-
-    if (lower.contains('quick') ||
-        lower.contains('15') ||
-        lower.contains('fast')) {
-      return 'Got it. I can suggest 3 quick recipes under 20 minutes using simple ingredients. Want breakfast, lunch, or dinner options first?';
     }
-
-    if (lower.contains('vegan') ||
-        lower.contains('vegetarian') ||
-        lower.contains('gluten') ||
-        lower.contains('dairy') ||
-        lower.contains('egg') ||
-        lower.contains('nut')) {
-      return 'Great preference. I will prioritize recipes that match your dietary restrictions and keep them balanced. Want low-calorie, high-protein, or budget-friendly choices?';
-    }
-
-    return 'Nice request. I can generate recipe ideas with ingredient list, cook time, and step-by-step instructions. Tell me your preferred meal type and total cooking time.';
   }
 
   Future<ImageSource?> _showImageSourcePicker({
@@ -192,37 +373,6 @@ class _RecsScreenState extends State<RecsScreen> {
     );
   }
 
-  String _buildDishPhotoReply(XFile file) {
-    final name = file.name.toLowerCase();
-
-    if (name.contains('pizza')) {
-      return 'This looks like pizza. Recommended recipes: Margherita Pizza, Mushroom Pizza, and Spicy Pepperoni Pizza. Want the easiest one first?';
-    }
-
-    if (name.contains('salad')) {
-      return 'This dish looks like a fresh salad. You can try Greek Salad, Chicken Caesar Salad, or Quinoa Avocado Salad.';
-    }
-
-    if (name.contains('pasta') || name.contains('spaghetti')) {
-      return 'This looks like a pasta dish. Recipe ideas: Creamy Mushroom Pasta, Aglio e Olio, and Tomato Basil Spaghetti.';
-    }
-
-    const fallbackRecipes = [
-      'Garlic Butter Chicken Bowl',
-      'One-pan Veggie Stir-fry',
-      'Tomato Herb Rice with Protein',
-      'Quick Soup and Toast Combo',
-    ];
-    final seed = file.name.hashCode.abs();
-    final random = Random(seed);
-    final picks = <String>{};
-    while (picks.length < 3) {
-      picks.add(fallbackRecipes[random.nextInt(fallbackRecipes.length)]);
-    }
-
-    return 'Dish recognized. Suggested matching recipes: ${picks.join(', ')}. If you want, I can narrow these by calories or cooking time.';
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -270,28 +420,22 @@ class _RecsScreenState extends State<RecsScreen> {
                                       : const Color(0xFF111827),
                                 ),
                               ),
-                              SizedBox(height: 2),
                             ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _isSending ? null : _resetChat,
+                          tooltip: 'Reset chat',
+                          icon: Icon(
+                            Icons.restart_alt_rounded,
+                            size: 22,
+                            color: isDarkMode
+                                ? const Color(0xFFCBD5E1)
+                                : const Color(0xFF6B7280),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    if (_allFilters.isNotEmpty)
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: _allFilters
-                            .map(
-                              (tag) => _TagChip(
-                                tag,
-                                isDarkMode: isDarkMode,
-                                isSelected: _selectedFilters.contains(tag),
-                                onTap: () => _toggleFilter(tag),
-                              ),
-                            )
-                            .toList(),
-                      ),
                     const SizedBox(height: 14),
                     ..._messages.map(
                       (message) => Padding(
@@ -395,8 +539,51 @@ class _RecsScreenState extends State<RecsScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  if (_isDetectingDish)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: _ContextLoadingRow(
+                        label: 'Recognizing dish...',
+                        color: Color(0xFFA855F7),
+                      ),
+                    ),
+                  if (_hasPendingContext)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (_pendingIngredients != null &&
+                              _pendingIngredients!.isNotEmpty)
+                            _ContextPreviewChip(
+                              icon: Icons.shopping_basket_outlined,
+                              label:
+                                  '${_pendingIngredients!.length} ingredient${_pendingIngredients!.length == 1 ? '' : 's'}',
+                              subtitle: 'Tap for details',
+                              accentColor: const Color(0xFF059669),
+                              isDarkMode: isDarkMode,
+                              onTap: _showIngredientsContextDetail,
+                              onRemove: () =>
+                                  setState(() => _pendingIngredients = null),
+                            ),
+                          if (_pendingDish != null)
+                            _ContextPreviewChip(
+                              icon: Icons.image_outlined,
+                              label:
+                                  '${_pendingDishResults.length} dish${_pendingDishResults.length == 1 ? '' : 'es'} recognized',
+                              subtitle: 'Tap for details',
+                              accentColor: const Color(0xFFA855F7),
+                              isDarkMode: isDarkMode,
+                              onTap: _showDishContextDetail,
+                              onRemove: () =>
+                                  setState(() => _pendingDish = null),
+                            ),
+                        ],
+                      ),
+                    ),
                   Container(
-                    height: 38,
+                    constraints: const BoxConstraints(minHeight: 38),
                     decoration: BoxDecoration(
                       color: isDarkMode
                           ? const Color(0xFF102647)
@@ -441,7 +628,7 @@ class _RecsScreenState extends State<RecsScreen> {
                         Padding(
                           padding: const EdgeInsets.only(right: 6),
                           child: InkWell(
-                            onTap: _onPromptSubmitted,
+                            onTap: _isSending ? null : _onPromptSubmitted,
                             borderRadius: BorderRadius.circular(999),
                             child: Container(
                               width: 24,
@@ -479,7 +666,7 @@ class _RecsScreenState extends State<RecsScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        TextSpan(text: ' — detect what you have  ·  '),
+                        TextSpan(text: ' — attach as context  ·  '),
                         TextSpan(
                           text: 'Dish photo',
                           style: TextStyle(
@@ -487,7 +674,7 @@ class _RecsScreenState extends State<RecsScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        TextSpan(text: ' — find recipes for a dish you see'),
+                        TextSpan(text: ' — attach as context, then send'),
                       ],
                     ),
                   ),
@@ -501,64 +688,18 @@ class _RecsScreenState extends State<RecsScreen> {
   }
 }
 
-class _TagChip extends StatelessWidget {
-  const _TagChip(
-    this.label, {
-    required this.isDarkMode,
-    this.onTap,
-    this.isSelected = false,
-  });
-
-  final String label;
-  final bool isDarkMode;
-  final VoidCallback? onTap;
-  final bool isSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFD1FAE5)
-              : (isDarkMode
-                    ? const Color(0xFF102647)
-                    : const Color(0xFFF3F4F6)),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFF059669)
-                : (isDarkMode
-                      ? const Color(0xFF274A73)
-                      : const Color(0xFFD1D5DB)),
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 10.5,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            color: isSelected
-                ? const Color(0xFF065F46)
-                : (isDarkMode
-                      ? const Color(0xFFCBD5E1)
-                      : const Color(0xFF4B5563)),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _ChatMessage {
-  const _ChatMessage({required this.text, required this.isUser});
+  const _ChatMessage({
+    required this.text,
+    required this.isUser,
+    this.attachedIngredients = const [],
+    this.attachedDishes = const [],
+  });
 
   final String text;
   final bool isUser;
+  final List<String> attachedIngredients;
+  final List<String> attachedDishes;
 }
 
 class _ChatBubble extends StatelessWidget {
@@ -601,13 +742,38 @@ class _ChatBubble extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Text(
-                  message.text,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.4,
-                    color: Colors.white,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (message.attachedIngredients.isNotEmpty)
+                      _SentContextBlock(
+                        icon: Icons.shopping_basket_outlined,
+                        title: 'Ingredients attached',
+                        items: message.attachedIngredients,
+                      ),
+                    if (message.attachedDishes.isNotEmpty) ...[
+                      if (message.attachedIngredients.isNotEmpty)
+                        const SizedBox(height: 8),
+                      _SentContextBlock(
+                        icon: Icons.image_outlined,
+                        title: 'Dishes recognized',
+                        items: message.attachedDishes,
+                      ),
+                    ],
+                    if (message.text.isNotEmpty) ...[
+                      if (message.attachedIngredients.isNotEmpty ||
+                          message.attachedDishes.isNotEmpty)
+                        const SizedBox(height: 8),
+                      Text(
+                        message.text,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.4,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
@@ -685,6 +851,75 @@ class _ChatBubble extends StatelessWidget {
   }
 }
 
+class _SentContextBlock extends StatelessWidget {
+  const _SentContextBlock({
+    required this.icon,
+    required this.title,
+    required this.items,
+  });
+
+  final IconData icon;
+  final String title;
+  final List<String> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 13, color: Colors.white.withValues(alpha: 0.9)),
+              const SizedBox(width: 5),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.92),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 5,
+            runSpacing: 5,
+            children: items
+                .map(
+                  (item) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      item,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.white.withValues(alpha: 0.95),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _IngredientsScannerScreen extends StatefulWidget {
   const _IngredientsScannerScreen({required this.isDarkMode});
 
@@ -697,6 +932,7 @@ class _IngredientsScannerScreen extends StatefulWidget {
 
 class _IngredientsScannerScreenState extends State<_IngredientsScannerScreen> {
   final ImagePicker _picker = ImagePicker();
+  final AiService _aiService = AiService();
   final List<String> _ingredients = <String>[];
 
   Future<void> _scanWithSource(ImageSource source) async {
@@ -707,7 +943,28 @@ class _IngredientsScannerScreenState extends State<_IngredientsScannerScreen> {
     );
     if (!mounted || image == null) return;
 
-    final detected = _mockDetectIngredients(image.name);
+    List<String> detected;
+    try {
+      final bytes = await image.readAsBytes();
+      final result = await _aiService.detectIngredients(
+        bytes: bytes,
+        filename: image.name,
+      );
+      detected = result.ingredients;
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ingredients detection failed.')),
+      );
+      return;
+    }
+
     if (detected.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -737,34 +994,6 @@ class _IngredientsScannerScreenState extends State<_IngredientsScannerScreen> {
         }
       }
     });
-  }
-
-  List<String> _mockDetectIngredients(String name) {
-    final lower = name.toLowerCase();
-    final output = <String>[];
-
-    void addIf(bool condition, String ingredient) {
-      if (condition) output.add(ingredient);
-    }
-
-    addIf(lower.contains('egg'), 'Egg');
-    addIf(lower.contains('tomato'), 'Tomato');
-    addIf(lower.contains('onion'), 'Onion');
-    addIf(lower.contains('chicken'), 'Chicken');
-    addIf(lower.contains('beef'), 'Beef');
-    addIf(lower.contains('rice'), 'Rice');
-    addIf(lower.contains('milk'), 'Milk');
-    addIf(lower.contains('cheese'), 'Cheese');
-    addIf(lower.contains('carrot'), 'Carrot');
-    addIf(lower.contains('potato'), 'Potato');
-    addIf(lower.contains('tofu'), 'Tofu');
-    addIf(lower.contains('shrimp'), 'Shrimp');
-
-    if (output.isEmpty) {
-      output.addAll(const ['Tomato', 'Onion', 'Garlic']);
-    }
-
-    return output;
   }
 
   @override
@@ -918,7 +1147,7 @@ class _IngredientsScannerScreenState extends State<_IngredientsScannerScreen> {
                   child: Text(
                     _ingredients.isEmpty
                         ? 'Scan ingredients first'
-                        : 'Use ${_ingredients.length} ingredients',
+                        : 'Attach ${_ingredients.length} ingredients',
                   ),
                 ),
               ),
@@ -1015,6 +1244,348 @@ class _DetectedIngredientsSheetState extends State<_DetectedIngredientsSheet> {
                   foregroundColor: Colors.white,
                 ),
                 child: const Text('Add selected'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ContextLoadingRow extends StatelessWidget {
+  const _ContextLoadingRow({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(strokeWidth: 2, color: color),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11.5, color: color, fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
+  }
+}
+
+class _ContextPreviewChip extends StatelessWidget {
+  const _ContextPreviewChip({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.accentColor,
+    required this.isDarkMode,
+    required this.onTap,
+    required this.onRemove,
+  });
+
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final Color accentColor;
+  final bool isDarkMode;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 8, 6, 8),
+          decoration: BoxDecoration(
+            color: isDarkMode
+                ? accentColor.withValues(alpha: 0.12)
+                : accentColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: accentColor.withValues(alpha: 0.35)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: accentColor),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDarkMode
+                          ? const Color(0xFFF8FAFC)
+                          : const Color(0xFF111827),
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isDarkMode
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 4),
+              InkWell(
+                onTap: onRemove,
+                borderRadius: BorderRadius.circular(999),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: isDarkMode
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF9CA3AF),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _IngredientsContextSheet extends StatelessWidget {
+  const _IngredientsContextSheet({
+    required this.ingredients,
+    required this.isDarkMode,
+    required this.onClear,
+  });
+
+  final List<String> ingredients;
+  final bool isDarkMode;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText =
+        isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
+    final secondaryText =
+        isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Attached ingredients',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: primaryText,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Sent with your next message as context.',
+              style: TextStyle(fontSize: 12, color: secondaryText),
+            ),
+            const SizedBox(height: 12),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.45,
+              ),
+              child: SingleChildScrollView(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: ingredients
+                      .map(
+                        (item) => Chip(
+                          label: Text(item),
+                          backgroundColor: isDarkMode
+                              ? const Color(0xFF102647)
+                              : const Color(0xFFECFDF5),
+                          side: const BorderSide(color: Color(0xFF059669)),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: onClear,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFDC2626),
+                  side: const BorderSide(color: Color(0xFFFCA5A5)),
+                ),
+                child: const Text('Remove attachment'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DishContextSheet extends StatelessWidget {
+  const _DishContextSheet({
+    required this.results,
+    required this.suggestedRecipes,
+    required this.isDarkMode,
+    required this.onClear,
+  });
+
+  final List<DishResultModel> results;
+  final List<String> suggestedRecipes;
+  final bool isDarkMode;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText =
+        isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
+    final secondaryText =
+        isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final cardBg =
+        isDarkMode ? const Color(0xFF102647) : const Color(0xFFFAF5FF);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Recognized dishes',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: primaryText,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'All matches below are equally possible — sent with your next message.',
+              style: TextStyle(fontSize: 12, color: secondaryText, height: 1.35),
+            ),
+            const SizedBox(height: 12),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.45,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: results.map((item) {
+                    final confidence = item.confidence > 0
+                        ? '${(item.confidence * 100).round()}% match'
+                        : 'Possible match';
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFFA855F7).withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.restaurant_menu_rounded,
+                            size: 18,
+                            color: Color(0xFFA855F7),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.dishName,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: primaryText,
+                                  ),
+                                ),
+                                Text(
+                                  confidence,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: secondaryText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            if (suggestedRecipes.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Related recipe ideas',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: primaryText,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: suggestedRecipes
+                    .map(
+                      (name) => Chip(
+                        label: Text(name, style: const TextStyle(fontSize: 11)),
+                        backgroundColor: cardBg,
+                        side: BorderSide(
+                          color: const Color(0xFFA855F7).withValues(alpha: 0.3),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: onClear,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFDC2626),
+                  side: const BorderSide(color: Color(0xFFFCA5A5)),
+                ),
+                child: const Text('Remove attachment'),
               ),
             ),
           ],

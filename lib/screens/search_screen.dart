@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/models/recipe.dart';
+import 'package:foodhub_mobile/services/api_exception.dart';
+import 'package:foodhub_mobile/services/favorite_service.dart';
+import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 
 
@@ -24,55 +28,87 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final List<_SearchRecipe> _recipes = const [
-    _SearchRecipe(
-      name: 'Quinoa Buddha Bowl',
-      duration: 25,
-      calories: 420,
-      ingredients:
-          '2 cups quinoa\n1 cup chickpeas\n1/2 avocado\nTahini dressing\nMixed greens',
-      instructions:
-          'Cook quinoa per package.\nRoast chickpeas at 200°C for 20 min.\nAssemble bowl with greens, quinoa, chickpeas.\nTop with avocado and tahini.',
-      tags: ['Vegetarian', 'Healthy'],
-      categories: ['Lunch', 'Vegan', 'Quick Meals'],
-    ),
-    _SearchRecipe(
-      name: 'Classic Italian Pasta',
-      duration: 30,
-      calories: 580,
-      ingredients: '200g pasta\nTomato sauce\nGarlic\nParmesan\nFresh basil',
-      instructions:
-          'Boil pasta until al dente.\nSimmer sauce with garlic.\nToss pasta with sauce.\nTop with parmesan and basil.',
-      tags: ['Italian'],
-      categories: ['Dinner'],
-    ),
-    _SearchRecipe(
-      name: 'Grilled Chicken & Veggies',
-      duration: 35,
-      calories: 450,
-      ingredients:
-          '2 chicken breasts\nBell pepper\nZucchini\nOlive oil\nSalt and pepper',
-      instructions:
-          'Season the chicken.\nGrill chicken and vegetables.\nSlice chicken.\nServe warm with veggies.',
-      tags: ['High Protein'],
-      categories: ['Lunch', 'High Protein', 'Keto'],
-    ),
-    _SearchRecipe(
-      name: 'Fresh Garden Salad',
-      duration: 15,
-      calories: 280,
-      ingredients: 'Lettuce\nCucumber\nCherry tomatoes\nOlive oil\nLemon juice',
-      instructions:
-          'Wash vegetables.\nChop all ingredients.\nMix dressing.\nToss and serve.',
-      tags: ['Vegan'],
-      categories: ['Lunch', 'Quick Meals', 'Gluten Free'],
-    ),
-  ];
+  final _recipeService = RecipeService();
+  final _favoriteService = FavoriteService();
+
+  List<RecipeModel> _recipes = [];
+  Map<int, int> _favoriteIdsByRecipeId = {};
+  bool _isLoading = false;
+  String? _loadError;
 
   String _query = '';
   String? _selectedCategory;
   int? _selectedRecipeIndex;
   bool _savedCurrentRecipe = false;
+
+  static const _dietaryCategories = {
+    'Vegan',
+    'Gluten Free',
+    'High Protein',
+    'Keto',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecipes();
+    _loadFavoriteIds();
+  }
+
+  Future<void> _loadFavoriteIds() async {
+    try {
+      final favorites = await _favoriteService.listFavorites();
+      if (!mounted) return;
+      setState(() {
+        _favoriteIdsByRecipeId = {
+          for (final f in favorites) f.recipeId: f.id,
+        };
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _loadRecipes() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+
+    try {
+      final dietary = _selectedCategory != null &&
+              _dietaryCategories.contains(_selectedCategory)
+          ? _selectedCategory
+          : null;
+      final query = _query.isNotEmpty
+          ? _query
+          : (_selectedCategory != null && dietary == null
+              ? _selectedCategory
+              : null);
+
+      final results = await _recipeService.searchRecipes(
+        query: query,
+        dietaryRestriction: dietary,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _recipes = results;
+        _isLoading = false;
+        _selectedRecipeIndex = null;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.message;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Unable to search recipes.';
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -81,25 +117,23 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _onSearchChanged(String value) {
-    setState(() {
-      _query = value.trim().toLowerCase();
-      _selectedRecipeIndex = null;
-    });
+    setState(() => _query = value.trim().toLowerCase());
+    _loadRecipes();
   }
 
   void _toggleCategory(String category) {
     setState(() {
       _selectedCategory = _selectedCategory == category ? null : category;
-      _selectedRecipeIndex = null;
     });
+    _loadRecipes();
   }
 
-  void _openRecipeDetails(_SearchRecipe recipe) {
-    final index = _recipes.indexOf(recipe);
+  void _openRecipeDetails(RecipeModel recipe) {
+    final index = _recipes.indexWhere((r) => r.id == recipe.id);
     widget.onDetailModeChanged?.call(true);
     setState(() {
-      _selectedRecipeIndex = index;
-      _savedCurrentRecipe = false;
+      _selectedRecipeIndex = index >= 0 ? index : 0;
+      _savedCurrentRecipe = _favoriteIdsByRecipeId.containsKey(recipe.id);
     });
   }
 
@@ -110,24 +144,37 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  void _toggleSave() {
-    setState(() {
-      _savedCurrentRecipe = !_savedCurrentRecipe;
-    });
+  Future<void> _toggleSave() async {
+    final index = _selectedRecipeIndex;
+    if (index == null || index < 0 || index >= _recipes.length) return;
+    final recipe = _recipes[index];
+
+    try {
+      if (_savedCurrentRecipe) {
+        final favoriteId = _favoriteIdsByRecipeId[recipe.id];
+        if (favoriteId != null) {
+          await _favoriteService.deleteFavorite(favoriteId);
+          setState(() {
+            _favoriteIdsByRecipeId.remove(recipe.id);
+            _savedCurrentRecipe = false;
+          });
+        }
+      } else {
+        final favorite = await _favoriteService.addFavorite(recipeId: recipe.id);
+        setState(() {
+          _favoriteIdsByRecipeId[recipe.id] = favorite.id;
+          _savedCurrentRecipe = true;
+        });
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    }
   }
 
-  List<_SearchRecipe> get _filteredRecipes {
-    return _recipes.where((recipe) {
-      final matchesQuery =
-          _query.isEmpty ||
-          recipe.name.toLowerCase().contains(_query) ||
-          recipe.ingredients.toLowerCase().contains(_query);
-      final matchesCategory =
-          _selectedCategory == null ||
-          recipe.categories.contains(_selectedCategory);
-      return matchesQuery && matchesCategory;
-    }).toList();
-  }
+  List<RecipeModel> get _filteredRecipes => _recipes;
 
   @override
   Widget build(BuildContext context) {
@@ -135,21 +182,16 @@ class _SearchScreenState extends State<SearchScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final visibleRecipes = _filteredRecipes;
 
-    if (_selectedRecipeIndex != null) {
+    if (_selectedRecipeIndex != null &&
+        _selectedRecipeIndex! >= 0 &&
+        _selectedRecipeIndex! < _recipes.length) {
       final recipe = _recipes[_selectedRecipeIndex!];
       return RecipeDetailView(
-        recipe: RecipeDetailData(
-          name: recipe.name,
-          cookingMinutes: recipe.duration,
-          calories: recipe.calories,
-          ingredients: recipe.ingredients,
-          steps: recipe.instructions,
-          labels: recipe.tags,
-        ),
-        cardColor: recipeCardTheme(recipe.tags).start,
+        recipe: recipe.toDetailData(),
+        cardColor: recipeCardTheme(recipe.labels).start,
         onBack: _closeRecipeDetails,
         isSaved: _savedCurrentRecipe,
-        onToggleSave: _toggleSave,
+        onToggleSave: () => _toggleSave(),
       );
     }
 
@@ -298,10 +340,31 @@ class _SearchScreenState extends State<SearchScreen> {
           ],
         ),
         const SizedBox(height: 10),
-        ...visibleRecipes.map((recipe) => _SearchRecipeCard(
-          recipe: recipe,
-          onPressed: () => _openRecipeDetails(recipe),
-        )),
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(
+              child: CircularProgressIndicator(color: Color(0xFF059669)),
+            ),
+          )
+        else if (_loadError != null)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Text(_loadError!, textAlign: TextAlign.center),
+                const SizedBox(height: 8),
+                OutlinedButton(onPressed: _loadRecipes, child: const Text('Retry')),
+              ],
+            ),
+          )
+        else
+          ...visibleRecipes.map(
+            (recipe) => _SearchRecipeCard(
+              recipe: recipe,
+              onPressed: () => _openRecipeDetails(recipe),
+            ),
+          ),
       ],
     );
   }
@@ -313,13 +376,13 @@ class _SearchRecipeCard extends StatelessWidget {
     required this.onPressed,
   });
 
-  final _SearchRecipe recipe;
+  final RecipeModel recipe;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final t = recipeCardTheme(recipe.tags);
+    final t = recipeCardTheme(recipe.labels);
 
     return GestureDetector(
       onTap: onPressed,
@@ -379,7 +442,7 @@ class _SearchRecipeCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 3),
                             Text(
-                              '${recipe.duration}m',
+                              '${recipe.cookingMinutes}m',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
@@ -424,12 +487,12 @@ class _SearchRecipeCard extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: recipe.tags.isEmpty
+                    child: recipe.labels.isEmpty
                         ? const SizedBox.shrink()
                         : Wrap(
                             spacing: 5,
                             runSpacing: 5,
-                            children: recipe.tags
+                            children: recipe.labels
                                 .map(
                                   (tag) => Container(
                                     padding: const EdgeInsets.symmetric(
@@ -493,30 +556,4 @@ class _SearchRecipeCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _SearchRecipe {
-  const _SearchRecipe({
-    required this.name,
-    required this.duration,
-    required this.calories,
-    required this.ingredients,
-    required this.instructions,
-    required this.tags,
-    required this.categories,
-  });
-
-  final String name;
-  final int duration;
-  final int calories;
-  final String ingredients;
-  final String instructions;
-  final List<String> tags;
-  final List<String> categories;
-
-  List<String> get ingredientItems => ingredients
-      .split('\n')
-      .map((item) => item.trim())
-      .where((item) => item.isNotEmpty)
-      .toList();
 }

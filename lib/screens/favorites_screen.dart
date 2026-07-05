@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/models/favorite.dart';
+import 'package:foodhub_mobile/services/api_exception.dart';
+import 'package:foodhub_mobile/services/favorite_service.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 
 
@@ -12,38 +15,52 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
-  final List<_FavoriteRecipe> _recipes = [
-    const _FavoriteRecipe(
-      name: 'Quinoa Buddha Bowl',
-      duration: 25,
-      calories: 420,
-      note: 'Great for meal prep! Double the tahini dressing.',
-      ingredients:
-          '2 cups quinoa\n1 cup chickpeas\n1/2 avocado\nTahini dressing\nMixed greens',
-      instructions:
-          'Cook quinoa per package.\nRoast chickpeas at 200°C for 20 min.\nAssemble bowl with greens, quinoa, chickpeas.\nTop with avocado and tahini.',
-      tags: ['Vegetarian', 'Healthy'],
-    ),
-    const _FavoriteRecipe(
-      name: 'Grilled Chicken & Veggies',
-      duration: 35,
-      calories: 450,
-      note: null,
-      ingredients:
-          '2 chicken breasts\nBell pepper\nZucchini\nOlive oil\nSalt and pepper',
-      instructions:
-          'Season the chicken.\nGrill chicken and vegetables.\nSlice chicken.\nServe warm with veggies.',
-      tags: ['High Protein', 'Keto'],
-    ),
-  ];
+  final _favoriteService = FavoriteService();
+  List<FavoriteModel> _favorites = [];
+  bool _isLoading = true;
+  String? _loadError;
 
   int? _selectedRecipeIndex;
   bool _savedCurrentRecipe = true;
   bool _isUnfavoriteDialogOpen = false;
   bool _isNoteDialogOpen = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+
+    try {
+      final favorites = await _favoriteService.listFavorites();
+      if (!mounted) return;
+      setState(() {
+        _favorites = favorites;
+        _isLoading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.message;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Unable to load favorites.';
+        _isLoading = false;
+      });
+    }
+  }
+
   void _openRecipeDetails(int index) {
-    if (index < 0 || index >= _recipes.length) return;
+    if (index < 0 || index >= _favorites.length) return;
     widget.onDetailModeChanged?.call(true);
     setState(() {
       _selectedRecipeIndex = index;
@@ -51,17 +68,28 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     });
   }
 
-  void _closeRecipeDetails() {
+  Future<void> _closeRecipeDetails() async {
     if (_selectedRecipeIndex == null) return;
 
     final index = _selectedRecipeIndex!;
-    final removedName = _recipes[index].name;
+    final favorite = _favorites[index];
+    final removedName = favorite.recipe.name;
 
-    if (!_savedCurrentRecipe && index < _recipes.length) {
-      _recipes.removeAt(index);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$removedName removed from favorites.')),
-      );
+    if (!_savedCurrentRecipe) {
+      try {
+        await _favoriteService.deleteFavorite(favorite.id);
+        if (!mounted) return;
+        setState(() => _favorites.removeAt(index));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$removedName removed from favorites.')),
+        );
+      } on ApiException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+        return;
+      }
     }
 
     widget.onDetailModeChanged?.call(false);
@@ -71,10 +99,25 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     });
   }
 
-  void _toggleSaveInDetail() {
-    setState(() {
-      _savedCurrentRecipe = !_savedCurrentRecipe;
-    });
+  Future<void> _toggleSaveInDetail() async {
+    final index = _selectedRecipeIndex;
+    if (index == null || index >= _favorites.length) return;
+
+    if (_savedCurrentRecipe) {
+      setState(() => _savedCurrentRecipe = false);
+      return;
+    }
+
+    try {
+      await _favoriteService.addFavorite(recipeId: _favorites[index].recipeId);
+      if (!mounted) return;
+      setState(() => _savedCurrentRecipe = true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    }
   }
 
   Future<void> _onEditNote(int index) async {
@@ -87,7 +130,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       return;
     }
 
-    final current = _recipes[index];
+    final current = _favorites[index];
     final updatedNote = await _showEditNoteDialog(
       initialNote: current.note ?? '',
     );
@@ -112,11 +155,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     if (!mounted) return;
     Navigator.of(context).pop();
 
-    setState(() {
-      _recipes[index] = current.copyWith(
-        note: updatedNote.trim().isEmpty ? null : updatedNote.trim(),
+    try {
+      final updated = await _favoriteService.updateFavorite(
+        favoriteId: current.id,
+        note: updatedNote.trim().isEmpty ? '' : updatedNote.trim(),
       );
-    });
+      if (!mounted) return;
+      setState(() {
+        _favorites[index] = updated;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    }
   }
 
   Future<void> _onUnfavorite(int index) async {
@@ -129,7 +182,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       return;
     }
 
-    final recipe = _recipes[index];
+    final favorite = _favorites[index];
+    final recipe = favorite.recipe;
     final shouldRemove = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -190,13 +244,19 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
     if (shouldRemove != true || !mounted) return;
 
-    setState(() {
-      _recipes.removeAt(index);
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${recipe.name} removed from favorites.')),
-    );
+    try {
+      await _favoriteService.deleteFavorite(favorite.id);
+      if (!mounted) return;
+      setState(() => _favorites.removeAt(index));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${recipe.name} removed from favorites.')),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    }
   }
 
   Future<String?> _showEditNoteDialog({required String initialNote}) async {
@@ -326,31 +386,44 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     return result;
   }
 
-  int get _savedCount => _recipes.length;
+  int get _savedCount => _favorites.length;
 
   int get _noteCount =>
-      _recipes.where((r) => (r.note ?? '').trim().isNotEmpty).length;
+      _favorites.where((r) => (r.note ?? '').trim().isNotEmpty).length;
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     if (_selectedRecipeIndex != null) {
-      final recipe = _recipes[_selectedRecipeIndex!];
+      final favorite = _favorites[_selectedRecipeIndex!];
+      final recipe = favorite.recipe;
 
       return RecipeDetailView(
-        recipe: RecipeDetailData(
-          name: recipe.name,
-          cookingMinutes: recipe.duration,
-          calories: recipe.calories,
-          ingredients: recipe.ingredients,
-          steps: recipe.instructions,
-          labels: recipe.tags,
-        ),
-        cardColor: recipeCardTheme(recipe.tags).start,
+        recipe: recipe.toDetailData(),
+        cardColor: recipeCardTheme(recipe.labels).start,
         onBack: _closeRecipeDetails,
         isSaved: _savedCurrentRecipe,
         onToggleSave: _toggleSaveInDetail,
+      );
+    }
+
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF059669)),
+      );
+    }
+
+    if (_loadError != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_loadError!),
+            const SizedBox(height: 8),
+            FilledButton(onPressed: _loadFavorites, child: const Text('Retry')),
+          ],
+        ),
       );
     }
 
@@ -406,7 +479,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          if (_recipes.isEmpty)
+          if (_favorites.isEmpty)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
               decoration: BoxDecoration(
@@ -432,12 +505,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 ],
               ),
             ),
-          ...List.generate(_recipes.length, (index) {
-            final recipe = _recipes[index];
+          ...List.generate(_favorites.length, (index) {
+            final favorite = _favorites[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: _FavoriteRecipeCard(
-                recipe: recipe,
+                favorite: favorite,
                 onTap: () => _openRecipeDetails(index),
                 onEditNote: () => _onEditNote(index),
                 onUnfavorite: () => _onUnfavorite(index),
@@ -504,21 +577,22 @@ class _SummaryCard extends StatelessWidget {
 
 class _FavoriteRecipeCard extends StatelessWidget {
   const _FavoriteRecipeCard({
-    required this.recipe,
+    required this.favorite,
     required this.onTap,
     required this.onEditNote,
     required this.onUnfavorite,
   });
 
-  final _FavoriteRecipe recipe;
+  final FavoriteModel favorite;
   final VoidCallback onTap;
   final VoidCallback onEditNote;
   final VoidCallback onUnfavorite;
 
   @override
   Widget build(BuildContext context) {
+    final recipe = favorite.recipe;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final t = recipeCardTheme(recipe.tags);
+    final t = recipeCardTheme(recipe.labels);
     final noteBg =
         isDarkMode ? const Color(0xFF2F2A18) : const Color(0xFFFFFBEB);
     final noteBorder =
@@ -591,7 +665,7 @@ class _FavoriteRecipeCard extends StatelessWidget {
                             ),
                             const SizedBox(width: 3),
                             Text(
-                              '${recipe.duration}m',
+                              '${recipe.cookingMinutes}m',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
@@ -628,12 +702,12 @@ class _FavoriteRecipeCard extends StatelessWidget {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  if (recipe.tags.isNotEmpty) ...[
+                  if (recipe.labels.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 5,
                       runSpacing: 4,
-                      children: recipe.tags
+                      children: recipe.labels
                           .map(
                             (tag) => Container(
                               padding: const EdgeInsets.symmetric(
@@ -666,7 +740,7 @@ class _FavoriteRecipeCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
               child: Column(
                 children: [
-                  if ((recipe.note ?? '').isNotEmpty) ...[
+                  if ((favorite.note ?? '').isNotEmpty) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
@@ -689,7 +763,7 @@ class _FavoriteRecipeCard extends StatelessWidget {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              recipe.note!,
+                              favorite.note!,
                               style: TextStyle(
                                 fontSize: 10.5,
                                 color: noteText,
@@ -707,7 +781,7 @@ class _FavoriteRecipeCard extends StatelessWidget {
                           onPressed: onEditNote,
                           icon: const Icon(Icons.edit_note_outlined, size: 14),
                           label: Text(
-                            recipe.note == null ? 'Add Note' : 'Edit Note',
+                            favorite.note == null ? 'Add Note' : 'Edit Note',
                           ),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(32),
@@ -769,58 +843,6 @@ class _FavoriteRecipeCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _FavoriteRecipe {
-  const _FavoriteRecipe({
-    required this.name,
-    required this.duration,
-    required this.calories,
-    required this.note,
-    required this.ingredients,
-    required this.instructions,
-    required this.tags,
-  });
-
-  final String name;
-  final int duration;
-  final int calories;
-  final String? note;
-  final String ingredients;
-  final String instructions;
-  final List<String> tags;
-
-  List<String> get ingredientItems => ingredients
-      .split('\n')
-      .map((item) => item.trim())
-      .where((item) => item.isNotEmpty)
-      .toList();
-
-  List<String> get stepItems => instructions
-      .split('\n')
-      .map((item) => item.trim())
-      .where((item) => item.isNotEmpty)
-      .toList();
-
-  _FavoriteRecipe copyWith({
-    String? name,
-    int? duration,
-    int? calories,
-    String? note,
-    String? ingredients,
-    String? instructions,
-    List<String>? tags,
-  }) {
-    return _FavoriteRecipe(
-      name: name ?? this.name,
-      duration: duration ?? this.duration,
-      calories: calories ?? this.calories,
-      note: note,
-      ingredients: ingredients ?? this.ingredients,
-      instructions: instructions ?? this.instructions,
-      tags: tags ?? this.tags,
     );
   }
 }

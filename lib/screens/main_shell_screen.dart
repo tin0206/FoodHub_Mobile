@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/screens/favorites_screen.dart';
 import 'package:foodhub_mobile/screens/home_screen.dart';
 import 'package:foodhub_mobile/screens/login_screen.dart';
 import 'package:foodhub_mobile/screens/profile_screen.dart';
 import 'package:foodhub_mobile/screens/recs_screen.dart';
 import 'package:foodhub_mobile/screens/search_screen.dart';
+import 'package:foodhub_mobile/services/auth_service.dart';
 import 'package:foodhub_mobile/widgets/app_bottom_bar.dart';
 import 'package:foodhub_mobile/widgets/app_top_bar.dart';
 
 class MainShellScreen extends StatefulWidget {
-  const MainShellScreen({super.key});
+  const MainShellScreen({super.key, required this.initialUser});
+
+  final UserModel initialUser;
 
   @override
   State<MainShellScreen> createState() => _MainShellScreenState();
@@ -19,14 +23,29 @@ class _MainShellScreenState extends State<MainShellScreen> {
   AppTab _currentTab = AppTab.home;
   bool _isDarkMode = false;
   final Map<AppTab, bool> _tabInDetail = {};
+  late UserModel _user;
+  final _authService = AuthService();
 
-  Set<String> _dietaryRestrictions = {
-    'Dairy Free',
-    'Egg Free',
-    'Gluten Free',
-    'Nut Free',
-  };
-  String _primaryGoal = 'Balanced Nutrition';
+  late Set<String> _dietaryRestrictions;
+  late String _primaryGoal;
+
+  @override
+  void initState() {
+    super.initState();
+    _user = widget.initialUser;
+    _dietaryRestrictions = {..._user.dietaryRestrictions};
+    _primaryGoal = _user.primaryGoal ?? 'Balanced Nutrition';
+  }
+
+  void _onUserUpdated(UserModel user) {
+    setState(() {
+      _user = user;
+      _dietaryRestrictions = {...user.dietaryRestrictions};
+      if (user.primaryGoal != null && user.primaryGoal!.isNotEmpty) {
+        _primaryGoal = user.primaryGoal!;
+      }
+    });
+  }
 
   void _onDietaryRestrictionToggled(String tag, bool selected) {
     setState(() {
@@ -66,6 +85,14 @@ class _MainShellScreenState extends State<MainShellScreen> {
     _onTabSelected(AppTab.profile);
   }
 
+  Future<void> _logout() async {
+    await _authService.signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screens = [
@@ -83,15 +110,15 @@ class _MainShellScreenState extends State<MainShellScreen> {
         onDetailModeChanged: (v) => _onDetailModeChanged(AppTab.favorites, v),
       ),
       ProfileScreen(
+        user: _user,
         isDarkMode: _isDarkMode,
         onToggleTheme: _toggleTheme,
-        onLogout: () => Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        ),
+        onLogout: _logout,
         selectedDietaryRestrictions: _dietaryRestrictions,
         onDietaryRestrictionToggled: _onDietaryRestrictionToggled,
         primaryGoal: _primaryGoal,
         onPrimaryGoalChanged: _onPrimaryGoalChanged,
+        onUserUpdated: _onUserUpdated,
       ),
     ];
 

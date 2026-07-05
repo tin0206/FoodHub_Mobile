@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/models/recipe.dart';
+import 'package:foodhub_mobile/services/api_exception.dart';
+import 'package:foodhub_mobile/services/recipe_service.dart';
+import 'package:foodhub_mobile/services/session_service.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 
 
@@ -12,40 +16,55 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<_Recipe> _recipes = [
-    const _Recipe(
-      name: 'Quinoa Buddha Bowl',
-      ingredients: '1 cup quinoa\n1 avocado\n1 carrot\nSpinach\nTahini sauce',
-      steps:
-          'Cook quinoa.\nSlice vegetables.\nAssemble bowl and drizzle sauce.',
-      labels: ['Vegetarian', 'Healthy'],
-      cookingMinutes: 25,
-      calories: 420,
-    ),
-    const _Recipe(
-      name: 'Classic Italian Pasta',
-      ingredients: '200g pasta\nTomato sauce\nGarlic\nParmesan\nBasil',
-      steps:
-          'Boil pasta.\nSimmer sauce with garlic.\nToss and top with parmesan.',
-      labels: ['Italian', 'Comfort Food'],
-      cookingMinutes: 30,
-      calories: 550,
-    ),
-    const _Recipe(
-      name: 'Grilled Chicken & Veggies',
-      ingredients:
-          '2 chicken breasts\nBell pepper\nZucchini\nOlive oil\nSalt & pepper',
-      steps:
-          'Season chicken.\nGrill chicken and veggies.\nSlice and serve warm.',
-      labels: ['High Protein', 'Keto'],
-      cookingMinutes: 35,
-      calories: 600,
-    ),
-  ];
+  final _recipeService = RecipeService();
+  final List<RecipeModel> _recipes = [];
+  bool _isLoading = true;
+  String? _loadError;
 
   bool _isAddingRecipe = false;
-  _Recipe? _selectedRecipe;
+  RecipeModel? _selectedRecipe;
   int? _selectedRecipeCardIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecipes();
+  }
+
+  Future<void> _loadRecipes() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+
+    try {
+      final userId = SessionService.instance.currentUser?.id;
+      final all = await _recipeService.listRecipes();
+      if (!mounted) return;
+      setState(() {
+        _recipes
+          ..clear()
+          ..addAll(
+            userId == null
+                ? all
+                : all.where((r) => r.createdBy == userId),
+          );
+        _isLoading = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.message;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = 'Unable to load recipes.';
+        _isLoading = false;
+      });
+    }
+  }
 
   void _onAddRecipePressed() {
     setState(() {
@@ -59,21 +78,14 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isAddingRecipe = false);
   }
 
-  void _onSaveRecipe(_Recipe recipe) {
+  void _onSaveRecipe(RecipeModel recipe) {
     setState(() {
       _recipes.add(recipe);
       _isAddingRecipe = false;
     });
   }
 
-  String get _greeting {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'Good morning 🌅';
-    if (h < 17) return 'Good afternoon ☀️';
-    return 'Good evening 🌙';
-  }
-
-  void _openRecipeDetails(_Recipe recipe, int cardIndex) {
+  void _openRecipeDetails(RecipeModel recipe, int cardIndex) {
     widget.onDetailModeChanged?.call(true);
     setState(() {
       _isAddingRecipe = false;
@@ -90,41 +102,75 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _onSaveEditedRecipe(RecipeDetailData data) {
+  String get _greeting {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning 🌅';
+    if (h < 17) return 'Good afternoon ☀️';
+    return 'Good evening 🌙';
+  }
+
+  Future<void> _onSaveEditedRecipe(RecipeDetailData data) async {
     final index = _selectedRecipeCardIndex;
-    if (index == null || index < 0 || index >= _recipes.length) return;
+    final current = _selectedRecipe;
+    if (index == null ||
+        current == null ||
+        index < 0 ||
+        index >= _recipes.length) {
+      return;
+    }
 
-    final updated = _Recipe(
-      name: data.name,
-      ingredients: data.ingredients,
-      steps: data.steps,
-      labels: data.labels,
-      cookingMinutes: data.cookingMinutes,
-      calories: data.calories,
-    );
-
-    setState(() {
-      _recipes[index] = updated;
-      _selectedRecipe = updated;
-    });
+    try {
+      final updated = await _recipeService.updateRecipe(
+        current.id,
+        ingredients: RecipeModel.splitLines(data.ingredients),
+        directions: RecipeModel.splitLines(data.steps),
+        dietaryRestrictions: data.labels,
+      );
+      if (!mounted) return;
+      setState(() {
+        _recipes[index] = updated;
+        _selectedRecipe = updated;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_selectedRecipe != null && _selectedRecipeCardIndex != null) {
       return RecipeDetailView(
-        recipe: RecipeDetailData(
-          name: _selectedRecipe!.name,
-          cookingMinutes: _selectedRecipe!.cookingMinutes,
-          calories: _selectedRecipe!.calories,
-          ingredients: _selectedRecipe!.ingredients,
-          steps: _selectedRecipe!.steps,
-          labels: _selectedRecipe!.labels,
-        ),
+        recipe: _selectedRecipe!.toDetailData(),
         cardColor: recipeCardTheme(_selectedRecipe!.labels).start,
         onBack: _closeRecipeDetails,
         enableEdit: true,
-        onSaveEdited: _onSaveEditedRecipe,
+        onSaveEdited: (data) => _onSaveEditedRecipe(data),
+      );
+    }
+
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFF059669)),
+        ),
+      );
+    }
+
+    if (_loadError != null) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(_loadError!, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: _loadRecipes, child: const Text('Retry')),
+          ],
+        ),
       );
     }
 
@@ -359,7 +405,7 @@ class _RecipeCard extends StatelessWidget {
     required this.onView,
   });
 
-  final _Recipe recipe;
+  final RecipeModel recipe;
   final int cardIndex;
   final VoidCallback onView;
 
@@ -554,13 +600,14 @@ class _AddRecipePanel extends StatefulWidget {
   const _AddRecipePanel({required this.onCancel, required this.onSave});
 
   final VoidCallback onCancel;
-  final ValueChanged<_Recipe> onSave;
+  final ValueChanged<RecipeModel> onSave;
 
   @override
   State<_AddRecipePanel> createState() => _AddRecipePanelState();
 }
 
 class _AddRecipePanelState extends State<_AddRecipePanel> {
+  final _recipeService = RecipeService();
   final _nameController = TextEditingController();
   final _ingredientsController = TextEditingController();
   final _stepsController = TextEditingController();
@@ -616,20 +663,32 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
       ),
     );
 
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-    Navigator.of(context).pop();
-
-    widget.onSave(
-      _Recipe(
-        name: name,
-        ingredients: ingredients,
-        steps: steps,
-        labels: _selectedLabels.toList(),
-        cookingMinutes: cookingMinutes,
-        calories: calories,
-      ),
-    );
+    try {
+      final created = await _recipeService.createRecipe(
+        title: name,
+        ingredients: RecipeModel.splitLines(ingredients),
+        directions: RecipeModel.splitLines(steps),
+        dietaryRestrictions: _selectedLabels.toList(),
+        estimatedServings: (calories / 200).round().clamp(1, 12),
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      widget.onSave(created);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to save recipe.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   Widget _darkField({
@@ -852,41 +911,5 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
         ],
       ),
     );
-  }
-}
-
-class _Recipe {
-  const _Recipe({
-    required this.name,
-    required this.ingredients,
-    required this.steps,
-    required this.labels,
-    required this.cookingMinutes,
-    required this.calories,
-  });
-
-  final String name;
-  final String ingredients;
-  final String steps;
-  final List<String> labels;
-  final int cookingMinutes;
-  final int calories;
-
-  List<String> get ingredientItems => ingredients
-      .split('\n')
-      .map((item) => item.trim())
-      .where((item) => item.isNotEmpty)
-      .toList();
-
-  List<String> get stepItems => steps
-      .split('\n')
-      .map((item) => item.trim())
-      .where((item) => item.isNotEmpty)
-      .toList();
-
-  String get ingredientsSummary {
-    if (ingredientItems.isEmpty) return '';
-    if (ingredientItems.length <= 3) return ingredientItems.join(', ');
-    return '${ingredientItems.take(3).join(', ')}, ...';
   }
 }

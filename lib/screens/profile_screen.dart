@@ -1,4 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/models/user.dart';
+import 'package:foodhub_mobile/services/api_exception.dart';
+import 'package:foodhub_mobile/services/auth_service.dart';
 
 const _kDietaryTags = [
   'Dairy Free',
@@ -20,6 +23,7 @@ const _kPrimaryGoals = [
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     super.key,
+    required this.user,
     required this.isDarkMode,
     required this.onToggleTheme,
     required this.onLogout,
@@ -27,8 +31,10 @@ class ProfileScreen extends StatefulWidget {
     required this.onDietaryRestrictionToggled,
     required this.primaryGoal,
     required this.onPrimaryGoalChanged,
+    required this.onUserUpdated,
   });
 
+  final UserModel user;
   final bool isDarkMode;
   final VoidCallback onToggleTheme;
   final VoidCallback onLogout;
@@ -36,18 +42,20 @@ class ProfileScreen extends StatefulWidget {
   final void Function(String tag, bool selected) onDietaryRestrictionToggled;
   final String primaryGoal;
   final ValueChanged<String> onPrimaryGoalChanged;
+  final ValueChanged<UserModel> onUserUpdated;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  late final TextEditingController _fullNameController;
-  late final TextEditingController _emailController;
-  late final TextEditingController _ageController;
-  late final TextEditingController _weightController;
-  late final TextEditingController _calorieTargetController;
-  late final TextEditingController _proteinTargetController;
+  final _userService = UserService();
+  late TextEditingController _fullNameController;
+  late TextEditingController _emailController;
+  late TextEditingController _ageController;
+  late TextEditingController _weightController;
+  late TextEditingController _calorieTargetController;
+  late TextEditingController _proteinTargetController;
 
   // Snapshot of last-saved values for Cancel
   late String _snapFullName;
@@ -70,19 +78,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _snapFullName = 'John Doe';
-    _snapEmail = 'john@example.com';
-    _snapAge = '';
-    _snapWeight = '';
-    _snapCalorie = '2000';
-    _snapProtein = '120';
-
+    _applyUser(widget.user);
     _fullNameController = TextEditingController(text: _snapFullName);
     _emailController = TextEditingController(text: _snapEmail);
     _ageController = TextEditingController(text: _snapAge);
     _weightController = TextEditingController(text: _snapWeight);
     _calorieTargetController = TextEditingController(text: _snapCalorie);
     _proteinTargetController = TextEditingController(text: _snapProtein);
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user != widget.user) {
+      _applyUser(widget.user);
+      _fullNameController.text = _snapFullName;
+      _emailController.text = _snapEmail;
+      _ageController.text = _snapAge;
+      _weightController.text = _snapWeight;
+      _calorieTargetController.text = _snapCalorie;
+      _proteinTargetController.text = _snapProtein;
+    }
+  }
+
+  void _applyUser(UserModel user) {
+    _snapFullName = user.fullName ?? '';
+    _snapEmail = user.email;
+    _snapAge = user.age?.toString() ?? '';
+    _snapWeight = user.weight?.toString() ?? '';
+    _snapCalorie = user.calorieTarget?.toString() ?? '';
+    _snapProtein = user.proteinTarget?.toString() ?? '';
+    _notifyRecommendations = user.notifyRecommendations;
+    _notifyNewFeatures = user.notifyNewFeatures;
+    _notifyWeeklySummary = user.notifyWeeklySummary;
   }
 
   @override
@@ -151,19 +179,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
 
-    await Future<void>.delayed(const Duration(milliseconds: 700));
+    try {
+      final updated = await _userService.updateMe({
+        'full_name': _fullNameController.text.trim(),
+        if (ageVal.isNotEmpty) 'age': int.parse(ageVal),
+        if (weightVal.isNotEmpty) 'weight': double.parse(weightVal),
+        if (calorieVal.isNotEmpty) 'calorie_target': int.parse(calorieVal),
+        if (proteinVal.isNotEmpty) 'protein_target': int.parse(proteinVal),
+        'dietary_restrictions': widget.selectedDietaryRestrictions.toList(),
+        'primary_goal': widget.primaryGoal,
+        'notify_recommendations': _notifyRecommendations,
+        'notify_new_features': _notifyNewFeatures,
+        'notify_weekly_summary': _notifyWeeklySummary,
+      });
 
-    if (!mounted) return;
-    Navigator.of(context).pop();
-    setState(() {
-      _isSaving = false;
-      _snapFullName = _fullNameController.text;
-      _snapEmail = _emailController.text;
-      _snapAge = _ageController.text;
-      _snapWeight = _weightController.text;
-      _snapCalorie = _calorieTargetController.text;
-      _snapProtein = _proteinTargetController.text;
-    });
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      setState(() {
+        _isSaving = false;
+        _applyUser(updated);
+        _fullNameController.text = _snapFullName;
+        _emailController.text = _snapEmail;
+        _ageController.text = _snapAge;
+        _weightController.text = _snapWeight;
+        _calorieTargetController.text = _snapCalorie;
+        _proteinTargetController.text = _snapProtein;
+      });
+      widget.onUserUpdated(updated);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully.')),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to save profile.')),
+      );
+    }
   }
 
 
@@ -394,6 +454,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         label: 'Email',
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
+                        readOnly: true,
                         secondaryText: _secondaryText,
                         fillColor: _fieldFill,
                         borderColor: _fieldBorder,
@@ -822,6 +883,7 @@ class _LabeledField extends StatelessWidget {
     this.keyboardType,
     this.hintText,
     this.errorText,
+    this.readOnly = false,
   });
 
   final String label;
@@ -833,6 +895,7 @@ class _LabeledField extends StatelessWidget {
   final TextInputType? keyboardType;
   final String? hintText;
   final String? errorText;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -844,6 +907,7 @@ class _LabeledField extends StatelessWidget {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
+          readOnly: readOnly,
           style: TextStyle(
             fontSize: 12,
             color: isDarkMode
@@ -1052,22 +1116,29 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
     if (curErr != null || newErr != null || confErr != null) return;
 
     setState(() => _isSaving = true);
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(28),
-            child: CircularProgressIndicator(color: Color(0xFF059669)),
-          ),
-        ),
-      ),
-    );
-    await Future<void>.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    Navigator.of(context).pop();
-    Navigator.of(context).pop();
+    try {
+      await AuthService().changePassword(
+        currentPassword: _currentCtrl.text,
+        newPassword: _newCtrl.text,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password updated successfully.')),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to update password.')),
+      );
+    }
   }
 
   @override
