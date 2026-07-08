@@ -4,6 +4,7 @@ class RecipeModel {
   const RecipeModel({
     required this.id,
     required this.title,
+    this.imageUrl,
     this.ingredients = const [],
     this.directions = const [],
     this.ner = const [],
@@ -14,6 +15,7 @@ class RecipeModel {
 
   final int id;
   final String title;
+  final String? imageUrl;
   final List<String> ingredients;
   final List<String> directions;
   final List<String> ner;
@@ -40,9 +42,13 @@ class RecipeModel {
   String get stepsText => directions.join('\n');
 
   factory RecipeModel.fromJson(Map<String, dynamic> json) {
+    final rawImageUrl = json['image_url'] as String?;
     return RecipeModel(
       id: json['id'] as int,
       title: json['title'] as String,
+      imageUrl: rawImageUrl != null && rawImageUrl.isNotEmpty
+          ? rawImageUrl
+          : null,
       ingredients: _parseStringList(json['ingredients']),
       directions: _parseStringList(json['directions']),
       ner: _parseStringList(json['ner']),
@@ -90,6 +96,7 @@ class RecipeModel {
   RecipeDetailData toDetailData() {
     return RecipeDetailData(
       name: title,
+      imageUrl: imageUrl,
       cookingMinutes: cookingMinutes,
       calories: calories,
       ingredients: ingredientsText,

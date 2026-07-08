@@ -1,3 +1,21 @@
+enum AiCaptureMode { ingredients, dish }
+
+sealed class AiCaptureResult {
+  const AiCaptureResult();
+}
+
+class AiCaptureIngredientsResult extends AiCaptureResult {
+  const AiCaptureIngredientsResult(this.ingredients);
+
+  final List<String> ingredients;
+}
+
+class AiCaptureDishResult extends AiCaptureResult {
+  const AiCaptureDishResult(this.dish);
+
+  final DishRecognitionModel dish;
+}
+
 class ChatMessageModel {
   const ChatMessageModel({required this.role, required this.content});
 

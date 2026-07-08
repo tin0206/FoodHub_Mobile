@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/config/app_theme.dart';
 import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/screens/favorites_screen.dart';
 import 'package:foodhub_mobile/screens/home_screen.dart';
@@ -122,19 +123,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
       ),
     ];
 
-    final scheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF059669),
-      brightness: _isDarkMode ? Brightness.dark : Brightness.light,
-    );
-
     return Theme(
-      data: ThemeData(
-        useMaterial3: true,
-        colorScheme: scheme,
-        scaffoldBackgroundColor: _isDarkMode
-            ? const Color(0xFF07152D)
-            : const Color(0xFFF3F4F6),
-      ),
+      data: _isDarkMode ? AppTheme.dark : AppTheme.light,
       child: Scaffold(
         body: Column(
           children: [

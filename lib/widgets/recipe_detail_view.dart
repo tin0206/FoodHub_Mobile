@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/config/api_config.dart';
+import 'package:foodhub_mobile/widgets/recipe_image.dart';
 
 const kAvailableLabels = [
   'Dairy Free',
@@ -24,6 +26,7 @@ const kAvailableLabels = [
 class RecipeDetailData {
   const RecipeDetailData({
     required this.name,
+    this.imageUrl,
     required this.cookingMinutes,
     required this.calories,
     required this.ingredients,
@@ -32,6 +35,7 @@ class RecipeDetailData {
   });
 
   final String name;
+  final String? imageUrl;
   final int cookingMinutes;
   final int calories;
   final String ingredients;
@@ -62,6 +66,7 @@ class RecipeDetailData {
     if (identical(this, other)) return true;
     return other is RecipeDetailData &&
         other.name == name &&
+        other.imageUrl == imageUrl &&
         other.cookingMinutes == cookingMinutes &&
         other.calories == calories &&
         other.ingredients == ingredients &&
@@ -72,6 +77,7 @@ class RecipeDetailData {
   @override
   int get hashCode => Object.hash(
     name,
+    imageUrl,
     cookingMinutes,
     calories,
     ingredients,
@@ -503,6 +509,9 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
         : colors.onSurfaceVariant;
 
     final emoji = _recipeEmoji(widget.recipe.labels);
+    final hasImage = widget.recipe.imageUrl != null &&
+        widget.recipe.imageUrl!.isNotEmpty &&
+        ApiConfig.resolveImageUrl(widget.recipe.imageUrl).isNotEmpty;
 
     return Column(
       children: [
@@ -553,6 +562,59 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
               ],
             ),
           )
+        else if (hasImage)
+          Stack(
+            children: [
+              RecipeImageHeader(
+                imageUrl: widget.recipe.imageUrl,
+                labels: widget.recipe.labels,
+                height: 200,
+                borderRadius: BorderRadius.zero,
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.35),
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.65),
+                      ],
+                      stops: const [0, 0.35, 1],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 10,
+                left: 12,
+                child: InkWell(
+                  onTap: widget.onBack,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.arrow_back_rounded,
+                      size: 17,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 12,
+                right: 16,
+                bottom: 12,
+                child: _DetailHeaderInfo(recipe: widget.recipe),
+              ),
+            ],
+          )
         else
           Container(
             decoration: BoxDecoration(
@@ -591,89 +653,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                   const SizedBox(width: 12),
                   Text(emoji, style: const TextStyle(fontSize: 26)),
                   const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.recipe.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                            letterSpacing: -0.3,
-                            height: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.schedule_rounded,
-                              size: 11,
-                              color: Colors.white70,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              '${widget.recipe.cookingMinutes} min',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            const Icon(
-                              Icons.local_fire_department_outlined,
-                              size: 11,
-                              color: Colors.white70,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              '${widget.recipe.calories} cal',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (widget.recipe.labels.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 5,
-                            runSpacing: 4,
-                            children: widget.recipe.labels
-                                .map(
-                                  (tag) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                    child: Text(
-                                      tag,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+                  Expanded(child: _DetailHeaderInfo(recipe: widget.recipe)),
                 ],
               ),
             ),
@@ -1365,6 +1345,96 @@ class _FireworksCelebrationState extends State<FireworksCelebration>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DetailHeaderInfo extends StatelessWidget {
+  const _DetailHeaderInfo({required this.recipe});
+
+  final RecipeDetailData recipe;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          recipe.name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+            letterSpacing: -0.3,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Row(
+          children: [
+            const Icon(
+              Icons.schedule_rounded,
+              size: 11,
+              color: Colors.white70,
+            ),
+            const SizedBox(width: 3),
+            Text(
+              '${recipe.cookingMinutes} min',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Icon(
+              Icons.local_fire_department_outlined,
+              size: 11,
+              color: Colors.white70,
+            ),
+            const SizedBox(width: 3),
+            Text(
+              '${recipe.calories} cal',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        if (recipe.labels.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 5,
+            runSpacing: 4,
+            children: recipe.labels
+                .map(
+                  (tag) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      tag,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ],
     );
   }
 }

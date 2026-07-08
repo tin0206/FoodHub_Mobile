@@ -13,4 +13,11 @@ class ApiConfig {
     if (Platform.isAndroid) return 'http://10.0.2.2:8000/api/v1';
     return 'http://localhost:8000/api/v1';
   }
+
+  static String resolveImageUrl(String? url) {
+    if (url == null || url.isEmpty) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    final origin = baseUrl.replaceFirst(RegExp(r'/api/v1/?$'), '');
+    return url.startsWith('/') ? '$origin$url' : '$origin/$url';
+  }
 }

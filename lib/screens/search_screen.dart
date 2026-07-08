@@ -3,6 +3,7 @@ import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/favorite_service.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
+import 'package:foodhub_mobile/widgets/recipe_card.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 
 
@@ -360,200 +361,14 @@ class _SearchScreenState extends State<SearchScreen> {
           )
         else
           ...visibleRecipes.map(
-            (recipe) => _SearchRecipeCard(
+            (recipe) => RecipeCard(
               recipe: recipe,
-              onPressed: () => _openRecipeDetails(recipe),
+              onTap: () => _openRecipeDetails(recipe),
+              onAction: () => _openRecipeDetails(recipe),
+              margin: const EdgeInsets.only(bottom: 10),
             ),
           ),
       ],
-    );
-  }
-}
-
-class _SearchRecipeCard extends StatelessWidget {
-  const _SearchRecipeCard({
-    required this.recipe,
-    required this.onPressed,
-  });
-
-  final RecipeModel recipe;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final t = recipeCardTheme(recipe.labels);
-
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: isDarkMode ? Border.all(color: const Color(0xFF274A73)) : null,
-          boxShadow: isDarkMode
-              ? []
-              : [
-                  BoxShadow(
-                    color: t.start.withValues(alpha: 0.18),
-                    blurRadius: 18,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isDarkMode
-                      ? [t.start.withValues(alpha: 0.28), t.end.withValues(alpha: 0.14)]
-                      : [t.start, t.end],
-                ),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(t.emoji, style: const TextStyle(fontSize: 30)),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.22),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.schedule_rounded,
-                              size: 11,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              '${recipe.cookingMinutes}m',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.local_fire_department_outlined,
-                              size: 11,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              '${recipe.calories}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    recipe.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: recipe.labels.isEmpty
-                        ? const SizedBox.shrink()
-                        : Wrap(
-                            spacing: 5,
-                            runSpacing: 5,
-                            children: recipe.labels
-                                .map(
-                                  (tag) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isDarkMode
-                                          ? t.start.withValues(alpha: 0.15)
-                                          : t.start.withValues(alpha: 0.08),
-                                      borderRadius: BorderRadius.circular(999),
-                                      border: Border.all(
-                                        color: t.start.withValues(alpha: 0.25),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      tag,
-                                      style: TextStyle(
-                                        fontSize: 10.5,
-                                        fontWeight: FontWeight.w500,
-                                        color: isDarkMode
-                                            ? t.start.withValues(alpha: 0.9)
-                                            : t.end,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [t.start, t.end],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: t.start.withValues(alpha: 0.4),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.arrow_forward_rounded,
-                      color: Colors.white,
-                      size: 17,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

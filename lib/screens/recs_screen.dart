@@ -1,10 +1,8 @@
-import 'dart:math' show max;
-
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/models/ai.dart';
 import 'package:foodhub_mobile/services/ai_service.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:foodhub_mobile/widgets/ai_capture_overlay.dart';
 
 class RecsScreen extends StatefulWidget {
   const RecsScreen({
@@ -22,17 +20,15 @@ class RecsScreen extends StatefulWidget {
 
 class _RecsScreenState extends State<RecsScreen> {
   final TextEditingController _promptController = TextEditingController();
-  final ImagePicker _imagePicker = ImagePicker();
   final AiService _aiService = AiService();
   final List<ChatMessageModel> _conversationHistory = [];
   List<String>? _pendingIngredients;
   DishRecognitionModel? _pendingDish;
   bool _isSending = false;
-  bool _isDetectingDish = false;
   final List<_ChatMessage> _messages = [
     const _ChatMessage(
       text:
-          "Hello! I'm your AI recipe assistant. Tell me what you're craving, or attach ingredients / a dish photo as context — then press send.",
+          "Hello! I'm your AI recipe assistant. Tell me what you're craving, or tap the camera icon to scan ingredients or a dish — then press send.",
       isUser: false,
     ),
   ];
@@ -140,7 +136,7 @@ class _RecsScreenState extends State<RecsScreen> {
         ..add(
           const _ChatMessage(
             text:
-                "Hello! I'm your AI recipe assistant. Tell me what you're craving, or attach ingredients / a dish photo as context — then press send.",
+                "Hello! I'm your AI recipe assistant. Tell me what you're craving, or tap the camera icon to scan ingredients or a dish — then press send.",
             isUser: false,
           ),
         );
@@ -220,19 +216,18 @@ class _RecsScreenState extends State<RecsScreen> {
     }
   }
 
-  Future<void> _onAttachIngredients() async {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final scannedIngredients = await Navigator.of(context).push<List<String>>(
-      MaterialPageRoute(
-        builder: (_) => _IngredientsScannerScreen(isDarkMode: isDarkMode),
-      ),
-    );
+  Future<void> _openCaptureOverlay() async {
+    final result = await AiCaptureScreen.show(context);
+    if (!mounted || result == null) return;
 
-    if (!mounted || scannedIngredients == null || scannedIngredients.isEmpty) {
-      return;
-    }
-
-    setState(() => _pendingIngredients = scannedIngredients);
+    setState(() {
+      switch (result) {
+        case AiCaptureIngredientsResult(:final ingredients):
+          _pendingIngredients = ingredients;
+        case AiCaptureDishResult(:final dish):
+          _pendingDish = dish;
+      }
+    });
   }
 
   void _showIngredientsContextDetail() {
@@ -275,101 +270,6 @@ class _RecsScreenState extends State<RecsScreen> {
           Navigator.of(context).pop();
         },
       ),
-    );
-  }
-
-  Future<void> _onAttachPhoto() async {
-    final source = await _showImageSourcePicker(
-      title: 'Dish Photo',
-      cameraLabel: 'Take photo',
-      galleryLabel: 'Upload from gallery',
-    );
-    if (source == null) return;
-
-    final file = await _imagePicker.pickImage(
-      source: source,
-      imageQuality: 86,
-      maxWidth: 1600,
-    );
-    if (!mounted || file == null) return;
-
-    setState(() => _isDetectingDish = true);
-
-    try {
-      final bytes = await file.readAsBytes();
-      final result = await _aiService.recognizeDish(
-        bytes: bytes,
-        filename: file.name,
-      );
-
-      if (!mounted) return;
-      setState(() {
-        _pendingDish = result;
-        _isDetectingDish = false;
-      });
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() => _isDetectingDish = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _isDetectingDish = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Dish recognition failed. Please try another photo.'),
-        ),
-      );
-    }
-  }
-
-  Future<ImageSource?> _showImageSourcePicker({
-    required String title,
-    required String cameraLabel,
-    required String galleryLabel,
-  }) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    return showModalBottomSheet<ImageSource>(
-      context: context,
-      showDragHandle: true,
-      backgroundColor: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: isDarkMode
-                        ? const Color(0xFFF8FAFC)
-                        : const Color(0xFF111827),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.photo_camera_outlined),
-                  title: Text(cameraLabel),
-                  onTap: () => Navigator.of(context).pop(ImageSource.camera),
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.photo_library_outlined),
-                  title: Text(galleryLabel),
-                  onTap: () => Navigator.of(context).pop(ImageSource.gallery),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -466,87 +366,6 @@ class _RecsScreenState extends State<RecsScreen> {
               ),
               child: Column(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _onAttachIngredients,
-                          icon: const Icon(
-                            Icons.shopping_basket_outlined,
-                            size: 18,
-                          ),
-                          label: const Text('Ingredients'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(44),
-                            backgroundColor: isDarkMode
-                                ? const Color(0xFF0B1B38)
-                                : const Color(0xFFF3F4F6),
-                            foregroundColor: isDarkMode
-                                ? const Color(0xFFCBD5E1)
-                                : const Color(0xFF374151),
-                            side: BorderSide(
-                              color: isDarkMode
-                                  ? const Color(0xFF274A73)
-                                  : const Color(0xFFD1D5DB),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 0,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _onAttachPhoto,
-                          icon: const Icon(Icons.image_outlined, size: 18),
-                          label: const Text('Dish photo'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(44),
-                            backgroundColor: isDarkMode
-                                ? const Color(0xFF0B1B38)
-                                : const Color(0xFFF3F4F6),
-                            foregroundColor: isDarkMode
-                                ? const Color(0xFFCBD5E1)
-                                : const Color(0xFF374151),
-                            side: BorderSide(
-                              color: isDarkMode
-                                  ? const Color(0xFF274A73)
-                                  : const Color(0xFFD1D5DB),
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 0,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  if (_isDetectingDish)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 8),
-                      child: _ContextLoadingRow(
-                        label: 'Recognizing dish...',
-                        color: Color(0xFFA855F7),
-                      ),
-                    ),
                   if (_hasPendingContext)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
@@ -583,7 +402,7 @@ class _RecsScreenState extends State<RecsScreen> {
                       ),
                     ),
                   Container(
-                    constraints: const BoxConstraints(minHeight: 38),
+                    constraints: const BoxConstraints(minHeight: 44),
                     decoration: BoxDecoration(
                       color: isDarkMode
                           ? const Color(0xFF102647)
@@ -597,11 +416,31 @@ class _RecsScreenState extends State<RecsScreen> {
                     ),
                     child: Row(
                       children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: InkWell(
+                            onTap: _isSending ? null : _openCaptureOverlay,
+                            borderRadius: BorderRadius.circular(999),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF059669),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.photo_camera_outlined,
+                                size: 18,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
                         Expanded(
                           child: TextField(
                             controller: _promptController,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 14,
                               color: isDarkMode
                                   ? const Color(0xFFE2E8F0)
                                   : const Color(0xFF111827),
@@ -609,7 +448,7 @@ class _RecsScreenState extends State<RecsScreen> {
                             decoration: InputDecoration(
                               hintText: 'Ask for recipes...',
                               hintStyle: TextStyle(
-                                fontSize: 12,
+                                fontSize: 14,
                                 color: isDarkMode
                                     ? const Color(0xFF94A3B8)
                                     : const Color(0xFF6B7280),
@@ -618,8 +457,8 @@ class _RecsScreenState extends State<RecsScreen> {
                               filled: false,
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
+                                horizontal: 10,
+                                vertical: 12,
                               ),
                             ),
                             onSubmitted: (_) => _onPromptSubmitted(),
@@ -631,50 +470,20 @@ class _RecsScreenState extends State<RecsScreen> {
                             onTap: _isSending ? null : _onPromptSubmitted,
                             borderRadius: BorderRadius.circular(999),
                             child: Container(
-                              width: 24,
-                              height: 24,
+                              width: 28,
+                              height: 28,
                               decoration: const BoxDecoration(
                                 color: Color(0xFF059669),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
                                 Icons.send,
-                                size: 14,
+                                size: 15,
                                 color: Colors.white,
                               ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isDarkMode
-                            ? const Color(0xFF64748B)
-                            : const Color(0xFF9CA3AF),
-                      ),
-                      children: const [
-                        TextSpan(
-                          text: 'Ingredients',
-                          style: TextStyle(
-                            color: Color(0xFF059669),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        TextSpan(text: ' — attach as context  ·  '),
-                        TextSpan(
-                          text: 'Dish photo',
-                          style: TextStyle(
-                            color: Color(0xFFA855F7),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        TextSpan(text: ' — attach as context, then send'),
                       ],
                     ),
                   ),
@@ -916,364 +725,6 @@ class _SentContextBlock extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _IngredientsScannerScreen extends StatefulWidget {
-  const _IngredientsScannerScreen({required this.isDarkMode});
-
-  final bool isDarkMode;
-
-  @override
-  State<_IngredientsScannerScreen> createState() =>
-      _IngredientsScannerScreenState();
-}
-
-class _IngredientsScannerScreenState extends State<_IngredientsScannerScreen> {
-  final ImagePicker _picker = ImagePicker();
-  final AiService _aiService = AiService();
-  final List<String> _ingredients = <String>[];
-
-  Future<void> _scanWithSource(ImageSource source) async {
-    final image = await _picker.pickImage(
-      source: source,
-      imageQuality: 86,
-      maxWidth: 1600,
-    );
-    if (!mounted || image == null) return;
-
-    List<String> detected;
-    try {
-      final bytes = await image.readAsBytes();
-      final result = await _aiService.detectIngredients(
-        bytes: bytes,
-        filename: image.name,
-      );
-      detected = result.ingredients;
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
-      return;
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingredients detection failed.')),
-      );
-      return;
-    }
-
-    if (detected.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No ingredients detected. Try another photo.'),
-        ),
-      );
-      return;
-    }
-
-    final selected = await showModalBottomSheet<List<String>>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => _DetectedIngredientsSheet(
-        initialItems: detected,
-        sourceName: image.name,
-        isDarkMode: widget.isDarkMode,
-      ),
-    );
-
-    if (!mounted || selected == null || selected.isEmpty) return;
-
-    setState(() {
-      for (final item in selected) {
-        if (!_ingredients.contains(item)) {
-          _ingredients.add(item);
-        }
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDarkMode = widget.isDarkMode;
-    final bgColor = isDarkMode ? const Color(0xFF07152D) : Colors.white;
-    final cardColor = isDarkMode
-        ? const Color(0xFF102647)
-        : const Color(0xFFF9FAFB);
-    final borderColor = isDarkMode
-        ? const Color(0xFF274A73)
-        : const Color(0xFFD1D5DB);
-    final primaryText = isDarkMode
-        ? const Color(0xFFF8FAFC)
-        : const Color(0xFF111827);
-    final secondaryText = isDarkMode
-        ? const Color(0xFF94A3B8)
-        : const Color(0xFF4B5563);
-
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        title: Text(
-          'Ingredient Scanner',
-          style: TextStyle(color: primaryText, fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
-        iconTheme: IconThemeData(color: primaryText),
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Scan ingredients one by one',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: primaryText,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Use camera for live capture or upload from gallery. You can scan multiple times and confirm detected ingredients.',
-                style: TextStyle(fontSize: 12.5, color: secondaryText),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: () => _scanWithSource(ImageSource.camera),
-                      icon: const Icon(Icons.photo_camera_outlined),
-                      label: const Text('Scan with camera'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF059669),
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _scanWithSource(ImageSource.gallery),
-                      icon: const Icon(Icons.photo_library_outlined),
-                      label: const Text('Upload image'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: isDarkMode
-                            ? const Color(0xFFCBD5E1)
-                            : const Color(0xFF374151),
-                        side: BorderSide(color: borderColor),
-                        backgroundColor: isDarkMode
-                            ? const Color(0xFF0B1B38)
-                            : const Color(0xFFF3F4F6),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Detected ingredients',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: primaryText,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: _ingredients.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No ingredients yet. Start scanning.',
-                            style: TextStyle(color: secondaryText),
-                          ),
-                        )
-                      : SingleChildScrollView(
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _ingredients
-                                .map(
-                                  (item) => Chip(
-                                    label: Text(
-                                      item,
-                                      style: TextStyle(color: primaryText),
-                                    ),
-                                    backgroundColor: isDarkMode
-                                        ? const Color(0xFF1E3A5F)
-                                        : null,
-                                    side: BorderSide(color: borderColor),
-                                    deleteIconColor: secondaryText,
-                                    onDeleted: () {
-                                      setState(() => _ingredients.remove(item));
-                                    },
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _ingredients.isEmpty
-                      ? null
-                      : () => Navigator.of(context).pop(_ingredients),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF059669),
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text(
-                    _ingredients.isEmpty
-                        ? 'Scan ingredients first'
-                        : 'Attach ${_ingredients.length} ingredients',
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DetectedIngredientsSheet extends StatefulWidget {
-  const _DetectedIngredientsSheet({
-    required this.initialItems,
-    required this.sourceName,
-    required this.isDarkMode,
-  });
-
-  final List<String> initialItems;
-  final String sourceName;
-  final bool isDarkMode;
-
-  @override
-  State<_DetectedIngredientsSheet> createState() =>
-      _DetectedIngredientsSheetState();
-}
-
-class _DetectedIngredientsSheetState extends State<_DetectedIngredientsSheet> {
-  late final Set<String> _selected;
-
-  @override
-  void initState() {
-    super.initState();
-    _selected = widget.initialItems.toSet();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDarkMode = widget.isDarkMode;
-    final primaryText = isDarkMode
-        ? const Color(0xFFF8FAFC)
-        : const Color(0xFF111827);
-    final secondaryText = isDarkMode
-        ? const Color(0xFF94A3B8)
-        : const Color(0xFF6B7280);
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(14, 4, 14, max(bottomInset, 12)),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Confirm detected ingredients',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: primaryText,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              widget.sourceName,
-              style: TextStyle(fontSize: 12, color: secondaryText),
-            ),
-            const SizedBox(height: 10),
-            ...widget.initialItems.map(
-              (item) => CheckboxListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(item, style: TextStyle(color: primaryText)),
-                activeColor: const Color(0xFF059669),
-                value: _selected.contains(item),
-                onChanged: (value) {
-                  setState(() {
-                    if (value == true) {
-                      _selected.add(item);
-                    } else {
-                      _selected.remove(item);
-                    }
-                  });
-                },
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () => Navigator.of(context).pop(_selected.toList()),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF059669),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Add selected'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ContextLoadingRow extends StatelessWidget {
-  const _ContextLoadingRow({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 14,
-          height: 14,
-          child: CircularProgressIndicator(strokeWidth: 2, color: color),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(fontSize: 11.5, color: color, fontWeight: FontWeight.w500),
-        ),
-      ],
     );
   }
 }
