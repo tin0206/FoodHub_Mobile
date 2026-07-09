@@ -46,19 +46,11 @@ class _RecsScreenState extends State<RecsScreen> {
       return dish.results.take(5).toList();
     }
     if (dish.dishName.isNotEmpty) {
-      return [
-        DishResultModel(rank: 1, dishName: dish.dishName, confidence: 1),
-      ];
+      return [DishResultModel(rank: 1, dishName: dish.dishName, confidence: 1)];
     }
     return dish.suggestedRecipes
         .take(5)
-        .map(
-          (name) => DishResultModel(
-            rank: 0,
-            dishName: name,
-            confidence: 0,
-          ),
-        )
+        .map((name) => DishResultModel(rank: 0, dishName: name, confidence: 0))
         .toList();
   }
 
@@ -103,13 +95,17 @@ class _RecsScreenState extends State<RecsScreen> {
         title: Text(
           'Reset chat?',
           style: TextStyle(
-            color: isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827),
+            color: isDarkMode
+                ? const Color(0xFFF8FAFC)
+                : const Color(0xFF111827),
           ),
         ),
         content: Text(
           'This clears the conversation and attached context. Your profile preferences stay the same.',
           style: TextStyle(
-            color: isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
+            color: isDarkMode
+                ? const Color(0xFF94A3B8)
+                : const Color(0xFF6B7280),
           ),
         ),
         actions: [
@@ -197,9 +193,7 @@ class _RecsScreenState extends State<RecsScreen> {
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
-        _messages.add(
-          _ChatMessage(text: e.message, isUser: false),
-        );
+        _messages.add(_ChatMessage(text: e.message, isUser: false));
         _isSending = false;
       });
     } catch (_) {
@@ -437,31 +431,34 @@ class _RecsScreenState extends State<RecsScreen> {
                           ),
                         ),
                         Expanded(
-                          child: TextField(
-                            controller: _promptController,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDarkMode
-                                  ? const Color(0xFFE2E8F0)
-                                  : const Color(0xFF111827),
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Ask for recipes...',
-                              hintStyle: TextStyle(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
+                            child: TextField(
+                              controller: _promptController,
+                              style: TextStyle(
                                 fontSize: 14,
                                 color: isDarkMode
-                                    ? const Color(0xFF94A3B8)
-                                    : const Color(0xFF6B7280),
+                                    ? const Color(0xFFE2E8F0)
+                                    : const Color(0xFF111827),
                               ),
-                              isDense: true,
-                              filled: false,
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 12,
+                              decoration: InputDecoration(
+                                hintText: 'Ask for recipes...',
+                                hintStyle: TextStyle(
+                                  fontSize: 14,
+                                  color: isDarkMode
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF6B7280),
+                                ),
+                                isDense: true,
+                                filled: false,
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 12,
+                                ),
                               ),
+                              onSubmitted: (_) => _onPromptSubmitted(),
                             ),
-                            onSubmitted: (_) => _onPromptSubmitted(),
                           ),
                         ),
                         Padding(
@@ -829,10 +826,12 @@ class _IngredientsContextSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText =
-        isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
-    final secondaryText =
-        isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final primaryText = isDarkMode
+        ? const Color(0xFFF8FAFC)
+        : const Color(0xFF111827);
+    final secondaryText = isDarkMode
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF6B7280);
 
     return SafeArea(
       child: Padding(
@@ -911,12 +910,15 @@ class _DishContextSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryText =
-        isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
-    final secondaryText =
-        isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
-    final cardBg =
-        isDarkMode ? const Color(0xFF102647) : const Color(0xFFFAF5FF);
+    final primaryText = isDarkMode
+        ? const Color(0xFFF8FAFC)
+        : const Color(0xFF111827);
+    final secondaryText = isDarkMode
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF6B7280);
+    final cardBg = isDarkMode
+        ? const Color(0xFF102647)
+        : const Color(0xFFFAF5FF);
 
     return SafeArea(
       child: Padding(
@@ -936,7 +938,11 @@ class _DishContextSheet extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'All matches below are equally possible — sent with your next message.',
-              style: TextStyle(fontSize: 12, color: secondaryText, height: 1.35),
+              style: TextStyle(
+                fontSize: 12,
+                color: secondaryText,
+                height: 1.35,
+              ),
             ),
             const SizedBox(height: 12),
             ConstrainedBox(
@@ -960,7 +966,9 @@ class _DishContextSheet extends StatelessWidget {
                         color: cardBg,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: const Color(0xFFA855F7).withValues(alpha: 0.35),
+                          color: const Color(
+                            0xFFA855F7,
+                          ).withValues(alpha: 0.35),
                         ),
                       ),
                       child: Row(

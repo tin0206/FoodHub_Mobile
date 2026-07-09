@@ -45,26 +45,13 @@ class RecipeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            children: [
-              RecipeImageHeader(
-                imageUrl: recipe.imageUrl,
-                labels: recipe.labels,
-              ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: _MetaPill(
-                  cookingMinutes: recipe.cookingMinutes,
-                  calories: recipe.calories,
-                  onImage: recipe.imageUrl != null &&
-                      recipe.imageUrl!.isNotEmpty,
-                ),
-              ),
-            ],
+          RecipeImageHeader(
+            imageUrl: recipe.imageUrl,
+            labels: recipe.labels,
+            height: 120,
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -115,8 +102,10 @@ class RecipeCard extends StatelessWidget {
                     ],
                   ],
                 ),
+                const SizedBox(height: 5),
+                _StatsRow(recipe: recipe, isDarkMode: isDarkMode),
                 if (recipe.labels.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 5),
                   Wrap(
                     spacing: 5,
                     runSpacing: 5,
@@ -176,61 +165,57 @@ class RecipeCard extends StatelessWidget {
   }
 }
 
-class _MetaPill extends StatelessWidget {
-  const _MetaPill({
-    required this.cookingMinutes,
-    required this.calories,
-    required this.onImage,
-  });
+class _StatsRow extends StatelessWidget {
+  const _StatsRow({required this.recipe, required this.isDarkMode});
 
-  final int cookingMinutes;
-  final int calories;
-  final bool onImage;
+  final RecipeModel recipe;
+  final bool isDarkMode;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: onImage
-            ? Colors.black.withValues(alpha: 0.45)
-            : Colors.white.withValues(alpha: 0.22),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.schedule_rounded,
-            size: 11,
-            color: Colors.white.withValues(alpha: onImage ? 0.95 : 1),
+    final textColor =
+        isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final divColor =
+        isDarkMode ? const Color(0xFF374151) : const Color(0xFFE5E7EB);
+    final iconColor =
+        isDarkMode ? const Color(0xFF64748B) : const Color(0xFF9CA3AF);
+
+    Widget dot() => Container(
+          width: 1,
+          height: 10,
+          margin: const EdgeInsets.symmetric(horizontal: 7),
+          color: divColor,
+        );
+
+    return Row(
+      children: [
+        Icon(Icons.schedule_rounded, size: 12, color: iconColor),
+        const SizedBox(width: 3),
+        Text(
+          '${recipe.cookingMinutes} min',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: textColor,
           ),
-          const SizedBox(width: 3),
-          Text(
-            '${cookingMinutes}m',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
+        ),
+        dot(),
+        Icon(
+          Icons.local_fire_department_outlined,
+          size: 12,
+          color: const Color(0xFFEF4444).withValues(alpha: 0.8),
+        ),
+        const SizedBox(width: 3),
+        Text(
+          '${recipe.calories} kcal',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: textColor,
           ),
-          const SizedBox(width: 8),
-          Icon(
-            Icons.local_fire_department_outlined,
-            size: 11,
-            color: Colors.white.withValues(alpha: onImage ? 0.95 : 1),
-          ),
-          const SizedBox(width: 3),
-          Text(
-            '$calories',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
+

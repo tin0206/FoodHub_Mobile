@@ -380,18 +380,26 @@ class _AddRecipePanel extends StatefulWidget {
 class _AddRecipePanelState extends State<_AddRecipePanel> {
   final _recipeService = RecipeService();
   final _nameController = TextEditingController();
-  final _ingredientsController = TextEditingController();
-  final _stepsController = TextEditingController();
   final _cookingMinutesController = TextEditingController();
   final _caloriesController = TextEditingController();
+  final List<TextEditingController> _ingredientControllers = [
+    TextEditingController(),
+  ];
+  final List<TextEditingController> _stepControllers = [
+    TextEditingController(),
+  ];
   final Set<String> _selectedLabels = {};
   bool _isSaving = false;
 
   @override
   void dispose() {
     _nameController.dispose();
-    _ingredientsController.dispose();
-    _stepsController.dispose();
+    for (final c in _ingredientControllers) {
+      c.dispose();
+    }
+    for (final c in _stepControllers) {
+      c.dispose();
+    }
     _cookingMinutesController.dispose();
     _caloriesController.dispose();
     super.dispose();
@@ -401,8 +409,14 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
     if (_isSaving) return;
 
     final name = _nameController.text.trim();
-    final ingredients = _ingredientsController.text.trim();
-    final steps = _stepsController.text.trim();
+    final ingredients = _ingredientControllers
+        .map((c) => c.text.trim())
+        .where((s) => s.isNotEmpty)
+        .join('\n');
+    final steps = _stepControllers
+        .map((c) => c.text.trim())
+        .where((s) => s.isNotEmpty)
+        .join('\n');
     final cookingMinutes = int.tryParse(_cookingMinutesController.text.trim());
     final calories = int.tryParse(_caloriesController.text.trim());
 
@@ -594,26 +608,42 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                _darkField(
-                  controller: _ingredientsController,
+                _DynamicListSection(
                   label: 'Ingredients *',
-                  hint: 'One ingredient per line',
-                  maxLines: 4,
-                  fillColor: fieldFill,
+                  controllers: _ingredientControllers,
+                  isNumbered: false,
+                  hint: 'e.g. 2 cups flour',
+                  onAdd: () => setState(
+                    () => _ingredientControllers.add(TextEditingController()),
+                  ),
+                  onRemove: (i) => setState(() {
+                    _ingredientControllers[i].dispose();
+                    _ingredientControllers.removeAt(i);
+                  }),
+                  fieldFill: fieldFill,
                   textColor: textColor,
                   labelColor: labelColor,
                   borderColor: borderColor,
+                  isDarkMode: isDarkMode,
                 ),
                 const SizedBox(height: 10),
-                _darkField(
-                  controller: _stepsController,
+                _DynamicListSection(
                   label: 'Steps *',
-                  hint: 'One instruction per line',
-                  maxLines: 4,
-                  fillColor: fieldFill,
+                  controllers: _stepControllers,
+                  isNumbered: true,
+                  hint: 'Describe this step',
+                  onAdd: () => setState(
+                    () => _stepControllers.add(TextEditingController()),
+                  ),
+                  onRemove: (i) => setState(() {
+                    _stepControllers[i].dispose();
+                    _stepControllers.removeAt(i);
+                  }),
+                  fieldFill: fieldFill,
                   textColor: textColor,
                   labelColor: labelColor,
                   borderColor: borderColor,
+                  isDarkMode: isDarkMode,
                 ),
                 const SizedBox(height: 10),
                 Wrap(
@@ -681,6 +711,176 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DynamicListSection extends StatelessWidget {
+  const _DynamicListSection({
+    required this.label,
+    required this.controllers,
+    required this.isNumbered,
+    required this.hint,
+    required this.onAdd,
+    required this.onRemove,
+    required this.fieldFill,
+    required this.textColor,
+    required this.labelColor,
+    required this.borderColor,
+    required this.isDarkMode,
+  });
+
+  final String label;
+  final List<TextEditingController> controllers;
+  final bool isNumbered;
+  final String hint;
+  final VoidCallback onAdd;
+  final void Function(int) onRemove;
+  final Color fieldFill;
+  final Color textColor;
+  final Color labelColor;
+  final Color borderColor;
+  final bool isDarkMode;
+
+  @override
+  Widget build(BuildContext context) {
+    const accentColor = Color(0xFF059669);
+    final removeBg =
+        isDarkMode ? const Color(0xFF1E293B) : const Color(0xFFF3F4F6);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: labelColor,
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: onAdd,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add, size: 12, color: accentColor),
+                    SizedBox(width: 3),
+                    Text(
+                      'Add',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: accentColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ...controllers.asMap().entries.map((entry) {
+          final i = entry.key;
+          final controller = entry.value;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              children: [
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.1),
+                    shape: isNumbered ? BoxShape.rectangle : BoxShape.circle,
+                    borderRadius: isNumbered ? BorderRadius.circular(6) : null,
+                  ),
+                  alignment: Alignment.center,
+                  child: isNumbered
+                      ? Text(
+                          '${i + 1}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: accentColor,
+                          ),
+                        )
+                      : Container(
+                          width: 5,
+                          height: 5,
+                          decoration: const BoxDecoration(
+                            color: accentColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    maxLines: isNumbered ? null : 1,
+                    minLines: 1,
+                    textInputAction: TextInputAction.next,
+                    style: TextStyle(fontSize: 13, color: textColor),
+                    decoration: InputDecoration(
+                      hintText: isNumbered ? 'Step ${i + 1}…' : hint,
+                      hintStyle: TextStyle(color: labelColor, fontSize: 12),
+                      filled: true,
+                      fillColor: fieldFill,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF059669)),
+                      ),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                ),
+                if (controllers.length > 1) ...[
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () => onRemove(i),
+                    child: Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        color: removeBg,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        size: 14,
+                        color: Color(0xFF9CA3AF),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 }

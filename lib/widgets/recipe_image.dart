@@ -83,41 +83,77 @@ class _PlaceholderHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDarkMode
-              ? [
-                  theme.start.withValues(alpha: 0.28),
-                  theme.end.withValues(alpha: 0.14),
-                ]
-              : [theme.start, theme.end],
-        ),
-        borderRadius: borderRadius,
-      ),
-      child: showShimmer
-          ? Center(
-              child: SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: Colors.white.withValues(alpha: 0.85),
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: SizedBox(
+        height: height,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDarkMode
+                      ? [
+                          theme.start.withValues(alpha: 0.28),
+                          theme.end.withValues(alpha: 0.14),
+                        ]
+                      : [theme.start, theme.end],
                 ),
               ),
-            )
-          : showEmoji
-              ? Center(
-                  child: Text(
-                    theme.emoji,
-                    style: const TextStyle(fontSize: 48),
+            ),
+            Positioned(
+              top: -(height * 0.28),
+              right: -(height * 0.1),
+              child: Container(
+                width: height * 0.9,
+                height: height * 0.9,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(
+                    alpha: isDarkMode ? 0.05 : 0.13,
                   ),
-                )
-              : null,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -(height * 0.2),
+              left: -(height * 0.08),
+              child: Container(
+                width: height * 0.62,
+                height: height * 0.62,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(
+                    alpha: isDarkMode ? 0.03 : 0.08,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            if (showShimmer)
+              Center(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                ),
+              )
+            else if (showEmoji)
+              Center(
+                child: Text(
+                  theme.emoji,
+                  style: const TextStyle(fontSize: 48),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

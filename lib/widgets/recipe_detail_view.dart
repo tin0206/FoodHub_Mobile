@@ -120,8 +120,8 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   bool _isPreparingIngredients = true;
   int _currentStepIndex = 0;
 
-  late TextEditingController _ingredientsController;
-  late TextEditingController _stepsController;
+  late List<TextEditingController> _ingredientControllers;
+  late List<TextEditingController> _stepControllers;
   late TextEditingController _cookingMinutesController;
   late TextEditingController _caloriesController;
   late Set<String> _selectedEditLabels;
@@ -129,10 +129,18 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   @override
   void initState() {
     super.initState();
-    _ingredientsController = TextEditingController(
-      text: widget.recipe.ingredients,
-    );
-    _stepsController = TextEditingController(text: widget.recipe.steps);
+    _ingredientControllers = widget.recipe.ingredientItems
+        .map((s) => TextEditingController(text: s))
+        .toList();
+    if (_ingredientControllers.isEmpty) {
+      _ingredientControllers.add(TextEditingController());
+    }
+    _stepControllers = widget.recipe.stepItems
+        .map((s) => TextEditingController(text: s))
+        .toList();
+    if (_stepControllers.isEmpty) {
+      _stepControllers.add(TextEditingController());
+    }
     _cookingMinutesController = TextEditingController(
       text: widget.recipe.cookingMinutes.toString(),
     );
@@ -146,8 +154,24 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   void didUpdateWidget(covariant RecipeDetailView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.recipe != widget.recipe) {
-      _ingredientsController.text = widget.recipe.ingredients;
-      _stepsController.text = widget.recipe.steps;
+      for (final c in _ingredientControllers) {
+        c.dispose();
+      }
+      _ingredientControllers = widget.recipe.ingredientItems
+          .map((s) => TextEditingController(text: s))
+          .toList();
+      if (_ingredientControllers.isEmpty) {
+        _ingredientControllers.add(TextEditingController());
+      }
+      for (final c in _stepControllers) {
+        c.dispose();
+      }
+      _stepControllers = widget.recipe.stepItems
+          .map((s) => TextEditingController(text: s))
+          .toList();
+      if (_stepControllers.isEmpty) {
+        _stepControllers.add(TextEditingController());
+      }
       _cookingMinutesController.text = widget.recipe.cookingMinutes.toString();
       _caloriesController.text = widget.recipe.calories.toString();
       _selectedEditLabels = widget.recipe.labels.toSet();
@@ -160,8 +184,12 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
 
   @override
   void dispose() {
-    _ingredientsController.dispose();
-    _stepsController.dispose();
+    for (final c in _ingredientControllers) {
+      c.dispose();
+    }
+    for (final c in _stepControllers) {
+      c.dispose();
+    }
     _cookingMinutesController.dispose();
     _caloriesController.dispose();
     super.dispose();
@@ -211,8 +239,14 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   }
 
   Future<void> _saveEditedRecipe() async {
-    final ingredients = _ingredientsController.text.trim();
-    final steps = _stepsController.text.trim();
+    final ingredients = _ingredientControllers
+        .map((c) => c.text.trim())
+        .where((s) => s.isNotEmpty)
+        .join('\n');
+    final steps = _stepControllers
+        .map((c) => c.text.trim())
+        .where((s) => s.isNotEmpty)
+        .join('\n');
     final cookingMinutes = int.tryParse(_cookingMinutesController.text.trim());
     final calories = int.tryParse(_caloriesController.text.trim());
 
@@ -260,6 +294,169 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
 
     widget.onSaveEdited?.call(updated);
     setState(() => _isEditMode = false);
+  }
+
+  List<Widget> _buildIngredientEditList({
+    required Color accentColor,
+    required ColorScheme colors,
+  }) {
+    return [
+      ..._ingredientControllers.asMap().entries.map((entry) {
+        final i = entry.key;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: entry.value,
+                  maxLines: 1,
+                  textInputAction: TextInputAction.next,
+                  style: TextStyle(fontSize: 13, color: colors.onSurface),
+                  decoration: InputDecoration(
+                    hintText: 'Ingredient ${i + 1}',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 7,
+                    ),
+                  ),
+                ),
+              ),
+              if (_ingredientControllers.length > 1) ...[
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: () => setState(() {
+                    _ingredientControllers[i].dispose();
+                    _ingredientControllers.removeAt(i);
+                  }),
+                  child: Icon(
+                    Icons.close,
+                    size: 16,
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      }),
+      TextButton.icon(
+        onPressed: () =>
+            setState(() => _ingredientControllers.add(TextEditingController())),
+        icon: const Icon(Icons.add, size: 14),
+        label: const Text('Add ingredient'),
+        style: TextButton.styleFrom(
+          foregroundColor: accentColor,
+          textStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _buildStepEditList({
+    required Color accentColor,
+    required ColorScheme colors,
+    required bool isDarkMode,
+  }) {
+    return [
+      ..._stepControllers.asMap().entries.map((entry) {
+        final i = entry.key;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: isDarkMode
+                      ? const Color(0xFF274A73)
+                      : widget.cardColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${i + 1}',
+                  style: TextStyle(
+                    color: accentColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: entry.value,
+                  maxLines: null,
+                  minLines: 1,
+                  textInputAction: TextInputAction.next,
+                  style: TextStyle(fontSize: 13, color: colors.onSurface),
+                  decoration: InputDecoration(
+                    hintText: 'Step ${i + 1}…',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 7,
+                    ),
+                  ),
+                ),
+              ),
+              if (_stepControllers.length > 1) ...[
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: () => setState(() {
+                    _stepControllers[i].dispose();
+                    _stepControllers.removeAt(i);
+                  }),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Icon(
+                      Icons.close,
+                      size: 16,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      }),
+      TextButton.icon(
+        onPressed: () =>
+            setState(() => _stepControllers.add(TextEditingController())),
+        icon: const Icon(Icons.add, size: 14),
+        label: const Text('Add step'),
+        style: TextButton.styleFrom(
+          foregroundColor: accentColor,
+          textStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
+    ];
   }
 
   Widget _buildIngredientChecklist({
@@ -971,15 +1168,10 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                       backgroundColor: panelColor,
                       iconColor: accentColor,
                       children: _isEditMode
-                          ? [
-                              TextField(
-                                controller: _ingredientsController,
-                                maxLines: 6,
-                                decoration: const InputDecoration(
-                                  hintText: 'One ingredient per line',
-                                ),
-                              ),
-                            ]
+                          ? _buildIngredientEditList(
+                              accentColor: accentColor,
+                              colors: colors,
+                            )
                           : ingredientItems
                                 .map(
                                   (item) => Padding(
@@ -1013,15 +1205,11 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                       backgroundColor: panelColor,
                       iconColor: accentColor,
                       children: _isEditMode
-                          ? [
-                              TextField(
-                                controller: _stepsController,
-                                maxLines: 7,
-                                decoration: const InputDecoration(
-                                  hintText: 'One instruction per line',
-                                ),
-                              ),
-                            ]
+                          ? _buildStepEditList(
+                              accentColor: accentColor,
+                              colors: colors,
+                              isDarkMode: isDarkMode,
+                            )
                           : stepItems
                                 .asMap()
                                 .entries
