@@ -18,21 +18,14 @@ class AppBottomBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
-        boxShadow: isDarkMode
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-        border: isDarkMode
-            ? const Border(
-                top: BorderSide(color: Color(0xFF1E3A5F)),
-              )
-            : null,
+        color: isDarkMode ? const Color(0xFF141414) : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.5 : 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
@@ -71,14 +64,6 @@ class AppBottomBar extends StatelessWidget {
                 isSelected: currentTab == AppTab.favorites,
                 isDarkMode: isDarkMode,
                 onTap: () => onTabSelected(AppTab.favorites),
-              ),
-              _BottomTabItem(
-                label: 'Profile',
-                icon: Icons.person_outline_rounded,
-                selectedIcon: Icons.person_rounded,
-                isSelected: currentTab == AppTab.profile,
-                isDarkMode: isDarkMode,
-                onTap: () => onTabSelected(AppTab.profile),
               ),
             ],
           ),

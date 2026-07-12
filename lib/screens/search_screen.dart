@@ -208,7 +208,20 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        TextField(
+        DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: isDarkMode ? 0.35 : 0.07,
+                ),
+                blurRadius: isDarkMode ? 10 : 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: TextField(
           controller: _searchController,
           onChanged: _onSearchChanged,
           style: TextStyle(
@@ -231,27 +244,20 @@ class _SearchScreenState extends State<SearchScreen> {
                   : colors.onSurfaceVariant,
             ),
             filled: true,
-            fillColor: isDarkMode ? const Color(0xFF102647) : Colors.white,
+            fillColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(
-                color: isDarkMode
-                    ? const Color(0xFF274A73)
-                    : colors.outlineVariant,
-              ),
+              borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(
-                color: isDarkMode
-                    ? const Color(0xFF274A73)
-                    : colors.outlineVariant,
-              ),
+              borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: Color(0xFF059669)),
             ),
+          ),
           ),
         ),
         const SizedBox(height: 18),
@@ -278,16 +284,14 @@ class _SearchScreenState extends State<SearchScreen> {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? const Color(0xFF059669)
-                      : (isDarkMode ? const Color(0xFF102647) : Colors.white),
+                      : (isDarkMode ? const Color(0xFF1E1E1E) : Colors.white),
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFF059669)
-                        : (isDarkMode
-                              ? const Color(0xFF274A73)
-                              : colors.outlineVariant),
-                    width: isSelected ? 1.5 : 1,
-                  ),
+                  border: isSelected
+                      ? Border.all(
+                          color: const Color(0xFF059669),
+                          width: 1.5,
+                        )
+                      : null,
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
@@ -298,7 +302,15 @@ class _SearchScreenState extends State<SearchScreen> {
                             offset: const Offset(0, 3),
                           ),
                         ]
-                      : [],
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: isDarkMode ? 0.3 : 0.06,
+                            ),
+                            blurRadius: isDarkMode ? 8 : 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

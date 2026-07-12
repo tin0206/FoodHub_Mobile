@@ -132,8 +132,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
 
     final current = _favorites[index];
+    final cardColor = recipeCardTheme(current.recipe.labels).start;
     final updatedNote = await _showEditNoteDialog(
       initialNote: current.note ?? '',
+      accentColor: cardColor,
     );
     _isNoteDialogOpen = false;
 
@@ -260,7 +262,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
   }
 
-  Future<String?> _showEditNoteDialog({required String initialNote}) async {
+  Future<String?> _showEditNoteDialog({
+    required String initialNote,
+    required Color accentColor,
+  }) async {
     final controller = TextEditingController(text: initialNote);
 
     final result = await showDialog<String>(
@@ -268,7 +273,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       builder: (context) {
         final isDarkMode = Theme.of(context).brightness == Brightness.dark;
         return Dialog(
-          backgroundColor: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+          backgroundColor: isDarkMode ? const Color(0xFF141414) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -292,14 +297,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 Container(
                   decoration: BoxDecoration(
                     color: isDarkMode
-                        ? const Color(0xFF102647)
+                        ? const Color(0xFF1E1E1E)
                         : const Color(0xFFF9FAFB),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isDarkMode
-                          ? const Color(0xFF274A73)
-                          : const Color(0xFFD1D5DB),
-                    ),
+                    border: isDarkMode
+                        ? null
+                        : Border.all(color: const Color(0xFFD1D5DB)),
                   ),
                   child: TextField(
                     controller: controller,
@@ -333,16 +336,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size.fromHeight(34),
                           backgroundColor: isDarkMode
-                              ? const Color(0xFF102647)
+                              ? const Color(0xFF1E1E1E)
                               : const Color(0xFFF3F4F6),
                           foregroundColor: isDarkMode
                               ? const Color(0xFFCBD5E1)
                               : const Color(0xFF374151),
-                          side: BorderSide(
-                            color: isDarkMode
-                                ? const Color(0xFF274A73)
-                                : const Color(0xFFD1D5DB),
-                          ),
+                          side: BorderSide.none,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(9),
                           ),
@@ -361,7 +360,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             Navigator.of(context).pop(controller.text),
                         style: FilledButton.styleFrom(
                           minimumSize: const Size.fromHeight(34),
-                          backgroundColor: const Color(0xFF059669),
+                          backgroundColor: accentColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(9),
@@ -429,7 +428,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
 
     return Container(
-      color: isDarkMode ? const Color(0xFF07152D) : const Color(0xFFE5E7EB),
+      color: isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFE5E7EB),
       child: ListView(
         padding: const EdgeInsets.all(8),
         children: [
@@ -578,16 +577,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size.fromHeight(32),
                               backgroundColor: isDarkMode
-                                  ? const Color(0xFF102647)
+                                  ? const Color(0xFF1E1E1E)
                                   : const Color(0xFFF3F4F6),
                               foregroundColor: isDarkMode
                                   ? const Color(0xFFCBD5E1)
                                   : const Color(0xFF374151),
-                              side: BorderSide(
-                                color: isDarkMode
-                                    ? const Color(0xFF274A73)
-                                    : const Color(0xFFD1D5DB),
-                              ),
+                              side: isDarkMode
+                                  ? BorderSide.none
+                                  : const BorderSide(
+                                      color: Color(0xFFD1D5DB),
+                                    ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(9),
                               ),
@@ -610,13 +609,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             style: OutlinedButton.styleFrom(
                               padding: EdgeInsets.zero,
                               backgroundColor: isDarkMode
-                                  ? const Color(0xFF102647)
+                                  ? const Color(0xFF1E1E1E)
                                   : const Color(0xFFF9FAFB),
-                              side: BorderSide(
-                                color: isDarkMode
-                                    ? const Color(0xFF274A73)
-                                    : const Color(0xFFD1D5DB),
-                              ),
+                              side: isDarkMode
+                                  ? BorderSide.none
+                                  : const BorderSide(
+                                      color: Color(0xFFD1D5DB),
+                                    ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(9),
                               ),
@@ -657,11 +656,15 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF0B1B38) : const Color(0xFFF3F4F6),
+        color: isDarkMode ? const Color(0xFF141414) : const Color(0xFFF3F4F6),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isDarkMode ? const Color(0xFF274A73) : const Color(0xFFD1D5DB),
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.35 : 0.04),
+            blurRadius: isDarkMode ? 8 : 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -260,13 +260,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Color get _screenBackground =>
-      widget.isDarkMode ? const Color(0xFF07152D) : const Color(0xFFE5E7EB);
+      widget.isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFE5E7EB);
 
   Color get _cardBackground =>
-      widget.isDarkMode ? const Color(0xFF0B1B38) : const Color(0xFFF3F4F6);
+      widget.isDarkMode ? const Color(0xFF141414) : const Color(0xFFF3F4F6);
 
   Color get _cardBorder =>
-      widget.isDarkMode ? const Color(0xFF1E3A5F) : const Color(0xFFD1D5DB);
+      widget.isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFD1D5DB);
 
   Color get _primaryText =>
       widget.isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
@@ -275,10 +275,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       widget.isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
 
   Color get _fieldFill =>
-      widget.isDarkMode ? const Color(0xFF1A2B49) : Colors.white;
+      widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
 
   Color get _fieldBorder =>
-      widget.isDarkMode ? const Color(0xFF274A73) : const Color(0xFFD1D5DB);
+      widget.isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFD1D5DB);
 
   @override
   Widget build(BuildContext context) {
@@ -293,18 +293,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             decoration: BoxDecoration(
               color: _cardBackground,
               borderRadius: BorderRadius.circular(20),
-              border: widget.isDarkMode
-                  ? Border.all(color: _cardBorder)
-                  : null,
-              boxShadow: widget.isDarkMode
-                  ? []
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 14,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: widget.isDarkMode ? 0.4 : 0.06,
+                  ),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Column(
               children: [
@@ -366,7 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   'Appearance',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: _primaryText,
                   ),
@@ -380,13 +377,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Text(
                             'Theme',
-                            style: TextStyle(fontSize: 11, color: _primaryText),
+                            style: TextStyle(fontSize: 13, color: _primaryText),
                           ),
                           const SizedBox(height: 1),
                           Text(
                             widget.isDarkMode ? 'Dark mode' : 'Light mode',
                             style: TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 11,
                               color: _secondaryText,
                             ),
                           ),
@@ -402,11 +399,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         activeTrackColor: const Color(0xFF10B981),
                         inactiveThumbColor: const Color(0xFFE5E7EB),
                         inactiveTrackColor: widget.isDarkMode
-                            ? const Color(0xFF274A73)
+                            ? const Color(0xFF2A2A2A)
                             : const Color(0xFFF3F4F6),
                         trackOutlineColor: WidgetStatePropertyAll(
                           widget.isDarkMode
-                              ? const Color(0xFF274A73)
+                              ? const Color(0xFF3A3A3A)
                               : const Color(0xFFD1D5DB),
                         ),
                       ),
@@ -522,7 +519,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 10),
                 Text(
                   'Primary Goal',
-                  style: TextStyle(fontSize: 10.5, color: _secondaryText),
+                  style: TextStyle(fontSize: 11, color: _secondaryText),
                 ),
                 const SizedBox(height: 6),
                 GridView.count(
@@ -543,21 +540,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: isSelected
                               ? const Color(0xFFD1FAE5)
                               : (widget.isDarkMode
-                                    ? const Color(0xFF102647)
+                                    ? const Color(0xFF1E1E1E)
                                     : Colors.white),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isSelected
-                                ? const Color(0xFF059669)
-                                : _fieldBorder,
-                            width: isSelected ? 1.5 : 1,
-                          ),
+                          border: isSelected
+                              ? Border.all(
+                                  color: const Color(0xFF059669),
+                                  width: 1.5,
+                                )
+                              : widget.isDarkMode
+                                  ? null
+                                  : Border.all(color: _fieldBorder),
                         ),
                         child: Text(
                           goal,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: isSelected
                                 ? FontWeight.w600
                                 : FontWeight.w400,
@@ -625,20 +624,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: isSelected
                               ? const Color(0xFFD1FAE5)
                               : (widget.isDarkMode
-                                    ? const Color(0xFF102647)
+                                    ? const Color(0xFF1E1E1E)
                                     : Colors.white),
                           borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: isSelected
-                                ? const Color(0xFF10B981)
-                                : _fieldBorder,
-                            width: isSelected ? 1.5 : 1,
-                          ),
+                          border: isSelected
+                              ? Border.all(
+                                  color: const Color(0xFF10B981),
+                                  width: 1.5,
+                                )
+                              : widget.isDarkMode
+                                  ? null
+                                  : Border.all(color: _fieldBorder),
                         ),
                         child: Text(
                           tag,
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 11,
                             fontWeight: isSelected
                                 ? FontWeight.w600
                                 : FontWeight.w400,
@@ -674,7 +675,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Text(
                       'Security',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: _primaryText,
                       ),
@@ -712,7 +713,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Text(
                       'Notifications',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: _primaryText,
                       ),
@@ -752,7 +753,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: _isSaving ? null : _cancelChanges,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _primaryText,
-                      side: BorderSide(color: _cardBorder),
+                      side: BorderSide.none,
                       backgroundColor: _cardBackground,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(999),
@@ -761,7 +762,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: const Text(
                       'Cancel',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -781,7 +782,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: const Text(
                       'Save changes',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -802,7 +803,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFFDC2626),
-                side: const BorderSide(color: Color(0xFFFCA5A5)),
+                side: BorderSide.none,
                 backgroundColor: const Color(0xFFFFF1F2),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(999),
@@ -854,14 +855,14 @@ class _SectionHeader extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: primaryText,
               ),
             ),
             Text(
               subtitle,
-              style: TextStyle(fontSize: 10, color: secondaryText),
+              style: TextStyle(fontSize: 11, color: secondaryText),
             ),
           ],
         ),
@@ -902,14 +903,14 @@ class _LabeledField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 10.5, color: secondaryText)),
+        Text(label, style: TextStyle(fontSize: 11, color: secondaryText)),
         const SizedBox(height: 4),
         TextField(
           controller: controller,
           keyboardType: keyboardType,
           readOnly: readOnly,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 13,
             color: isDarkMode
                 ? const Color(0xFFE2E8F0)
                 : const Color(0xFF374151),
@@ -919,7 +920,7 @@ class _LabeledField extends StatelessWidget {
             filled: true,
             fillColor: fillColor,
             hintText: hintText,
-            hintStyle: TextStyle(color: secondaryText, fontSize: 12),
+            hintStyle: TextStyle(color: secondaryText, fontSize: 13),
             errorText: errorText,
             errorStyle: const TextStyle(fontSize: 10),
             contentPadding: const EdgeInsets.symmetric(
@@ -928,11 +929,15 @@ class _LabeledField extends StatelessWidget {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: borderColor),
+              borderSide: isDarkMode
+                  ? BorderSide.none
+                  : BorderSide(color: borderColor),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: borderColor),
+              borderSide: isDarkMode
+                  ? BorderSide.none
+                  : BorderSide(color: borderColor),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -963,20 +968,17 @@ class _SectionCard extends StatelessWidget {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(16),
-        border: isDarkMode ? Border.all(color: borderColor) : null,
-        boxShadow: isDarkMode
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 12,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.38 : 0.05),
+            blurRadius: isDarkMode ? 10 : 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: child,
     );
@@ -1033,7 +1035,7 @@ class _ToggleRow extends StatelessWidget {
             child: Text(
               title,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 13,
                 color: isDarkMode ? const Color(0xFFE2E8F0) : colors.onSurface,
               ),
             ),
@@ -1226,7 +1228,10 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(46),
                     foregroundColor: widget.primaryText,
-                    side: BorderSide(color: widget.fieldBorder),
+                    side: BorderSide.none,
+                    backgroundColor: widget.isDarkMode
+                        ? const Color(0xFF1E1E1E)
+                        : null,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -1321,11 +1326,15 @@ class _PwField extends StatelessWidget {
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: borderColor),
+              borderSide: isDarkMode
+                  ? BorderSide.none
+                  : BorderSide(color: borderColor),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: borderColor),
+              borderSide: isDarkMode
+                  ? BorderSide.none
+                  : BorderSide(color: borderColor),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
