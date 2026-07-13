@@ -220,6 +220,9 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
     );
   }
 
+  bool get _cameraReady =>
+      _controller != null && _controller!.value.isInitialized;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -231,19 +234,14 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
             const Center(
               child: CircularProgressIndicator(color: Color(0xFF059669)),
             )
-          else if (_initError != null)
-            _ErrorView(message: _initError!, onClose: () => Navigator.pop(context))
-          else if (_controller != null && _controller!.value.isInitialized)
+          else if (_cameraReady)
             CameraPreview(_controller!)
           else
-            const Center(
-              child: Text(
-                'Camera unavailable',
-                style: TextStyle(color: Colors.white),
-              ),
+            _CameraUnavailableBackdrop(
+              message: _initError ?? 'Camera unavailable',
             ),
 
-          if (!_isInitializing && _initError == null) ...[
+          if (!_isInitializing) ...[
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -268,7 +266,10 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                       children: [
                         IconButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close_rounded, color: Colors.white),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.white,
+                          ),
                         ),
                         const Spacer(),
                         if (_mode == AiCaptureMode.ingredients &&
@@ -290,7 +291,9 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
-                      _hintText,
+                      _cameraReady
+                          ? _hintText
+                          : 'Upload a photo from your gallery',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.9),
@@ -338,39 +341,61 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        IconButton(
-                          onPressed: _isProcessing ? null : _pickFromGallery,
-                          icon: Icon(
-                            Icons.photo_library_outlined,
-                            color: Colors.white.withValues(alpha: 0.9),
-                            size: 28,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: _isProcessing ? null : _capturePhoto,
-                          child: Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 4),
+                        if (_cameraReady) ...[
+                          IconButton(
+                            onPressed:
+                                _isProcessing ? null : _pickFromGallery,
+                            tooltip: 'Upload from gallery',
+                            icon: Icon(
+                              Icons.photo_library_outlined,
+                              color: Colors.white.withValues(alpha: 0.9),
+                              size: 28,
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: _isProcessing
-                                      ? Colors.white38
-                                      : _accentColor,
-                                  shape: BoxShape.circle,
+                          ),
+                          const SizedBox(width: 28),
+                          GestureDetector(
+                            onTap: _isProcessing ? null : _capturePhoto,
+                            child: Container(
+                              width: 72,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 4,
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: _isProcessing
+                                        ? Colors.white38
+                                        : _accentColor,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 48),
+                          const SizedBox(width: 76),
+                        ] else
+                          FilledButton.icon(
+                            onPressed:
+                                _isProcessing ? null : _pickFromGallery,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: _accentColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 22,
+                                vertical: 14,
+                              ),
+                            ),
+                            icon: const Icon(Icons.upload_rounded, size: 20),
+                            label: const Text('Upload photo'),
+                          ),
                       ],
                     ),
                   ),
@@ -484,31 +509,44 @@ class _ModeButton extends StatelessWidget {
   }
 }
 
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onClose});
+class _CameraUnavailableBackdrop extends StatelessWidget {
+  const _CameraUnavailableBackdrop({required this.message});
 
   final String message;
-  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.no_photography_outlined,
-                color: Colors.white54, size: 48),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onClose, child: const Text('Close')),
-          ],
+    return ColoredBox(
+      color: const Color(0xFF0B1220),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(32, 80, 32, 160),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.no_photography_outlined,
+                color: Colors.white54,
+                size: 48,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70, height: 1.35),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Use the upload button below to choose a photo.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 13,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
