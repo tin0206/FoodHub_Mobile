@@ -66,14 +66,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late String _snapProtein;
 
   bool _isSaving = false;
+  bool _notifyRecommendations = true;
+  bool _notifyNewFeatures = true;
+  bool _notifyWeeklySummary = true;
   String? _ageError;
   String? _weightError;
   String? _calorieError;
   String? _proteinError;
-
-  bool _notifyRecommendations = true;
-  bool _notifyNewFeatures = true;
-  bool _notifyWeeklySummary = true;
 
   @override
   void initState() {
@@ -548,9 +547,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   color: const Color(0xFF059669),
                                   width: 1.5,
                                 )
-                              : widget.isDarkMode
-                                  ? null
-                                  : Border.all(color: _fieldBorder),
+                              : null,
+                          boxShadow: isSelected
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(
+                                      alpha: widget.isDarkMode ? 0.3 : 0.06,
+                                    ),
+                                    blurRadius: widget.isDarkMode ? 8 : 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                         ),
                         child: Text(
                           goal,
@@ -632,9 +640,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   color: const Color(0xFF10B981),
                                   width: 1.5,
                                 )
-                              : widget.isDarkMode
-                                  ? null
-                                  : Border.all(color: _fieldBorder),
+                              : null,
+                          boxShadow: isSelected
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(
+                                      alpha: widget.isDarkMode ? 0.3 : 0.06,
+                                    ),
+                                    blurRadius: widget.isDarkMode ? 8 : 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                         ),
                         child: Text(
                           tag,
@@ -695,54 +712,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 10),
 
-          // â”€â”€ Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          _SectionCard(
-            backgroundColor: _cardBackground,
-            borderColor: _cardBorder,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _IconBadge(
-                      background: const Color(0xFFDBEAFE),
-                      icon: Icons.notifications_none,
-                      iconColor: const Color(0xFF3B82F6),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Notifications',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: _primaryText,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                _ToggleRow(
-                  title: 'Recipe recommendations',
-                  value: _notifyRecommendations,
-                  isDarkMode: widget.isDarkMode,
-                  onChanged: (v) => setState(() => _notifyRecommendations = v),
-                ),
-                _ToggleRow(
-                  title: 'New features',
-                  value: _notifyNewFeatures,
-                  isDarkMode: widget.isDarkMode,
-                  onChanged: (v) => setState(() => _notifyNewFeatures = v),
-                ),
-                _ToggleRow(
-                  title: 'Weekly summary',
-                  value: _notifyWeeklySummary,
-                  isDarkMode: widget.isDarkMode,
-                  onChanged: (v) => setState(() => _notifyWeeklySummary = v),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 2),
 
           SizedBox(
             height: 44,
@@ -905,43 +875,51 @@ class _LabeledField extends StatelessWidget {
       children: [
         Text(label, style: TextStyle(fontSize: 11, color: secondaryText)),
         const SizedBox(height: 4),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          readOnly: readOnly,
-          style: TextStyle(
-            fontSize: 13,
-            color: isDarkMode
-                ? const Color(0xFFE2E8F0)
-                : const Color(0xFF374151),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.06),
+                blurRadius: isDarkMode ? 8 : 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: fillColor,
-            hintText: hintText,
-            hintStyle: TextStyle(color: secondaryText, fontSize: 13),
-            errorText: errorText,
-            errorStyle: const TextStyle(fontSize: 10),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 9,
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            readOnly: readOnly,
+            style: TextStyle(
+              fontSize: 13,
+              color: isDarkMode
+                  ? const Color(0xFFE2E8F0)
+                  : const Color(0xFF374151),
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: isDarkMode
-                  ? BorderSide.none
-                  : BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: isDarkMode
-                  ? BorderSide.none
-                  : BorderSide(color: borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF059669)),
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: fillColor,
+              hintText: hintText,
+              hintStyle: TextStyle(color: secondaryText, fontSize: 13),
+              errorText: errorText,
+              errorStyle: const TextStyle(fontSize: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 9,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF059669)),
+              ),
             ),
           ),
         ),
@@ -1006,53 +984,6 @@ class _IconBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Icon(icon, size: 13, color: iconColor),
-    );
-  }
-}
-
-class _ToggleRow extends StatelessWidget {
-  const _ToggleRow({
-    required this.title,
-    required this.value,
-    required this.isDarkMode,
-    required this.onChanged,
-  });
-
-  final String title;
-  final bool value;
-  final bool isDarkMode;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                color: isDarkMode ? const Color(0xFFE2E8F0) : colors.onSurface,
-              ),
-            ),
-          ),
-          Transform.scale(
-            scale: 0.83,
-            child: Switch(
-              value: value,
-              onChanged: onChanged,
-              activeThumbColor: Colors.white,
-              activeTrackColor: const Color(0xFF10B981),
-              inactiveThumbColor: Colors.white,
-              inactiveTrackColor: const Color(0xFFD1D5DB),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1301,44 +1232,52 @@ class _PwField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 5),
-        TextField(
-          controller: controller,
-          obscureText: obscure,
-          onChanged: onChanged,
-          style: TextStyle(
-            fontSize: 13,
-            color: isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF374151),
-          ),
-          decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: fillColor,
-            errorText: errorText,
-            errorStyle: const TextStyle(fontSize: 10),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-            suffixIcon: IconButton(
-              icon: Icon(
-                obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                size: 17,
-                color: secondaryText,
+        DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.06),
+                blurRadius: isDarkMode ? 8 : 6,
+                offset: const Offset(0, 2),
               ),
-              onPressed: onToggle,
+            ],
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: obscure,
+            onChanged: onChanged,
+            style: TextStyle(
+              fontSize: 13,
+              color: isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF374151),
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: isDarkMode
-                  ? BorderSide.none
-                  : BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: isDarkMode
-                  ? BorderSide.none
-                  : BorderSide(color: borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF059669)),
+            decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: fillColor,
+              errorText: errorText,
+              errorStyle: const TextStyle(fontSize: 10),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  size: 17,
+                  color: secondaryText,
+                ),
+                onPressed: onToggle,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFF059669)),
+              ),
             ),
           ),
         ),

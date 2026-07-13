@@ -251,15 +251,22 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       await _favoriteService.deleteFavorite(favorite.id);
       if (!mounted) return;
       setState(() => _favorites.removeAt(index));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${recipe.name} removed from favorites.')),
-      );
+      _showRemovedToast(recipe.name);
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
       );
     }
+  }
+
+  void _showRemovedToast(String recipeName) {
+    final overlay = Overlay.of(context);
+    final entry = OverlayEntry(
+      builder: (ctx) => _RemovedToast(recipeName: recipeName),
+    );
+    overlay.insert(entry);
+    Future.delayed(const Duration(milliseconds: 2200), entry.remove);
   }
 
   Future<String?> _showEditNoteDialog({
@@ -480,31 +487,40 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           ),
           const SizedBox(height: 8),
           if (_favorites.isEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFD1D5DB)),
-              ),
-              child: const Column(
-                children: [
-                  Icon(
-                    Icons.favorite_border,
-                    color: Color(0xFF9CA3AF),
-                    size: 28,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'No favorites yet',
-                    style: TextStyle(
-                      color: Color(0xFF374151),
-                      fontWeight: FontWeight.w600,
+            Builder(builder: (context) {
+              final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? const Color(0xFF141414) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDarkMode ? 0.35 : 0.06),
+                      blurRadius: isDarkMode ? 10 : 8,
+                      offset: const Offset(0, 3),
                     ),
-                  ),
-                ],
-              ),
-            ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.favorite_border,
+                      color: Color(0xFF9CA3AF),
+                      size: 28,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No favorites yet',
+                      style: TextStyle(
+                        color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF374151),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ...List.generate(_favorites.length, (index) {
             final favorite = _favorites[index];
             final recipe = favorite.recipe;
@@ -691,6 +707,97 @@ class _SummaryCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RemovedToast extends StatefulWidget {
+  const _RemovedToast({required this.recipeName});
+  final String recipeName;
+
+  @override
+  State<_RemovedToast> createState() => _RemovedToastState();
+}
+
+class _RemovedToastState extends State<_RemovedToast>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _ctrl.forward();
+    Future.delayed(const Duration(milliseconds: 1700), () {
+      if (mounted) _ctrl.reverse();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 90,
+      left: 24,
+      right: 24,
+      child: FadeTransition(
+        opacity: _fade,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1F2937),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDC2626).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.favorite_border_rounded,
+                    size: 16,
+                    color: Color(0xFFF87171),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${widget.recipeName} removed from favorites',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -349,14 +349,7 @@ class _RecsScreenState extends State<RecsScreen> {
               decoration: BoxDecoration(
                 color: isDarkMode
                     ? const Color(0xFF0A0A0A)
-                    : const Color(0xFFE5E7EB),
-                border: Border(
-                  top: BorderSide(
-                    color: isDarkMode
-                        ? const Color(0xFF2A2A2A)
-                        : const Color(0xFFD1D5DB),
-                  ),
-                ),
+                    : Colors.white,
               ),
               child: Column(
                 children: [
@@ -402,9 +395,13 @@ class _RecsScreenState extends State<RecsScreen> {
                           ? const Color(0xFF1E1E1E)
                           : const Color(0xFFF3F4F6),
                       borderRadius: BorderRadius.circular(999),
-                      border: isDarkMode
-                          ? null
-                          : Border.all(color: const Color(0xFFD1D5DB)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.07),
+                          blurRadius: isDarkMode ? 10 : 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
                     child: Row(
                       children: [
@@ -450,6 +447,8 @@ class _RecsScreenState extends State<RecsScreen> {
                                 isDense: true,
                                 filled: false,
                                 border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 10,
                                   vertical: 12,

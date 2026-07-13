@@ -120,9 +120,13 @@ class RecipeCard extends StatelessWidget {
                                   ? t.start.withValues(alpha: 0.15)
                                   : t.start.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: t.start.withValues(alpha: 0.25),
-                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: t.start.withValues(alpha: isDarkMode ? 0.12 : 0.15),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Text(
                               tag,

@@ -748,15 +748,16 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     final canFinish =
         !_isPreparingIngredients && _currentStepIndex == totalSteps - 1;
 
-    final accentColor = HSLColor.fromColor(widget.cardColor)
-        .withLightness(
-          (HSLColor.fromColor(widget.cardColor).lightness - 0.35).clamp(
-            0.0,
-            1.0,
-          ),
-        )
-        .withSaturation(0.7)
-        .toColor();
+    final baseHsl = HSLColor.fromColor(widget.cardColor);
+    final accentColor = isDarkMode
+        ? baseHsl
+            .withLightness((baseHsl.lightness + 0.1).clamp(0.0, 1.0))
+            .withSaturation((baseHsl.saturation + 0.05).clamp(0.0, 1.0))
+            .toColor()
+        : baseHsl
+            .withLightness((baseHsl.lightness - 0.35).clamp(0.0, 1.0))
+            .withSaturation(0.7)
+            .toColor();
 
     final isSaved = widget.isSaved;
     final saveColor = (isSaved == true)
@@ -1283,9 +1284,9 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                           width: 22,
                                           height: 22,
                                           decoration: BoxDecoration(
-                                            color: isDarkMode
-                                                ? const Color(0xFF1E1E1E)
-                                                : widget.cardColor,
+                                            color: accentColor.withValues(
+                                              alpha: isDarkMode ? 0.18 : 0.1,
+                                            ),
                                             borderRadius: BorderRadius.circular(
                                               999,
                                             ),
