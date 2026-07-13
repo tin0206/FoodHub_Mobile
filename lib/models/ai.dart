@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 enum AiCaptureMode { ingredients, dish }
 
 sealed class AiCaptureResult {
@@ -138,13 +141,27 @@ class IngredientsDetectModel {
     required this.taskId,
     this.ingredients = const [],
     this.imageUrl = '',
+    this.detections = const [],
+    this.annotatedImageBytes,
   });
 
   final String taskId;
   final List<String> ingredients;
   final String imageUrl;
+  final List<DetectionItemModel> detections;
+  final Uint8List? annotatedImageBytes;
 
   factory IngredientsDetectModel.fromJson(Map<String, dynamic> json) {
+    Uint8List? annotated;
+    final b64 = json['annotated_image_base64'] as String?;
+    if (b64 != null && b64.isNotEmpty) {
+      try {
+        annotated = base64Decode(b64);
+      } catch (_) {
+        annotated = null;
+      }
+    }
+
     return IngredientsDetectModel(
       taskId: json['task_id'] as String,
       ingredients: (json['ingredients'] as List<dynamic>?)
@@ -152,6 +169,65 @@ class IngredientsDetectModel {
               .toList() ??
           const [],
       imageUrl: json['image_url'] as String? ?? '',
+      detections: (json['detections'] as List<dynamic>?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(DetectionItemModel.fromJson)
+              .toList() ??
+          const [],
+      annotatedImageBytes: annotated,
+    );
+  }
+}
+
+class DetectionItemModel {
+  const DetectionItemModel({
+    required this.label,
+    required this.confidence,
+    required this.bbox,
+  });
+
+  final String label;
+  final double confidence;
+
+  /// Normalized [x1, y1, x2, y2] in 0..1.
+  final List<double> bbox;
+
+  factory DetectionItemModel.fromJson(Map<String, dynamic> json) {
+    final rawBbox = json['bbox'];
+    final bbox = rawBbox is List
+        ? rawBbox.map((e) => (e as num).toDouble()).toList()
+        : const <double>[0, 0, 0, 0];
+    return DetectionItemModel(
+      label: json['label'] as String? ?? '',
+      confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
+      bbox: bbox.length == 4 ? bbox : const [0, 0, 0, 0],
+    );
+  }
+}
+
+class IngredientsStreamFrame {
+  const IngredientsStreamFrame({
+    this.ingredients = const [],
+    this.detections = const [],
+    this.error,
+  });
+
+  final List<String> ingredients;
+  final List<DetectionItemModel> detections;
+  final String? error;
+
+  factory IngredientsStreamFrame.fromJson(Map<String, dynamic> json) {
+    return IngredientsStreamFrame(
+      ingredients: (json['ingredients'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      detections: (json['detections'] as List<dynamic>?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(DetectionItemModel.fromJson)
+              .toList() ??
+          const [],
+      error: json['error'] as String?,
     );
   }
 }

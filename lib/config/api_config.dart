@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/foundation.dart';
 
 class ApiConfig {
@@ -10,8 +8,18 @@ class ApiConfig {
     const fromEnv = String.fromEnvironment('API_BASE_URL');
     if (fromEnv.isNotEmpty) return fromEnv;
     if (kIsWeb) return 'http://localhost:8000/api/v1';
-    if (Platform.isAndroid) return 'http://10.0.2.2:8000/api/v1';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8000/api/v1';
+    }
     return 'http://localhost:8000/api/v1';
+  }
+
+  static String get ingredientsStreamUrl {
+    final httpBase = baseUrl;
+    final wsBase = httpBase
+        .replaceFirst(RegExp(r'^https://'), 'wss://')
+        .replaceFirst(RegExp(r'^http://'), 'ws://');
+    return '$wsBase/ai/ingredients/stream';
   }
 
   static String resolveImageUrl(String? url) {

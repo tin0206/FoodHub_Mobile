@@ -6,9 +6,20 @@ import 'package:foodhub_mobile/screens/login_screen.dart';
 import 'package:foodhub_mobile/screens/main_shell_screen.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
 
+/// Multi-device UI preview (iPhone/Android frames).
+/// On by default in debug. Disable if camera breaks:
+///   flutter run -d chrome --dart-define=DEVICE_PREVIEW=false
+const bool _kDevicePreview = bool.fromEnvironment(
+  'DEVICE_PREVIEW',
+  defaultValue: true,
+);
+
 void main() {
   runApp(
-    DevicePreview(enabled: !kReleaseMode, builder: (context) => const MyApp()),
+    DevicePreview(
+      enabled: !kReleaseMode && _kDevicePreview,
+      builder: (context) => const MyApp(),
+    ),
   );
 }
 
