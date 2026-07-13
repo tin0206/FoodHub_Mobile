@@ -230,6 +230,14 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     });
   }
 
+  void _closeCookingMode() {
+    setState(() {
+      _isCookingMode = false;
+      _isPreparingIngredients = true;
+      _currentStepIndex = 0;
+    });
+  }
+
   void _finishCooking() {
     if (_isPreparingIngredients) return;
     setState(() {
@@ -387,7 +395,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                 height: 22,
                 decoration: BoxDecoration(
                   color: isDarkMode
-                      ? const Color(0xFF274A73)
+                      ? const Color(0xFF1E1E1E)
                       : widget.cardColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
@@ -470,24 +478,66 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       children: [
-        Text(
-          'Ingredients',
-          style: TextStyle(
-            color: colors.onSurface,
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: isDarkMode ? 0.2 : 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.restaurant_menu_rounded,
+                size: 20,
+                color: accentColor,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Get Ready',
+                    style: TextStyle(
+                      color: colors.onSurface,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  Text(
+                    '${ingredientItems.length} ingredient${ingredientItems.length == 1 ? '' : 's'} to prepare',
+                    style: TextStyle(
+                      color: colors.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: accentColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '${ingredientItems.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 2),
-        Text(
-          'Prepare the following before cooking',
-          style: TextStyle(
-            color: colors.onSurfaceVariant,
-            fontSize: 12.5,
-          ),
-        ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
         ...ingredientItems.map(
           (item) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -496,7 +546,15 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
               decoration: BoxDecoration(
                 color: panelColor,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: borderColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(
+                      alpha: isDarkMode ? 0.3 : 0.06,
+                    ),
+                    blurRadius: isDarkMode ? 6 : 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -536,7 +594,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     required ColorScheme colors,
     required bool isDarkMode,
   }) {
-    final infoBg = isDarkMode ? const Color(0xFF102647) : const Color(0xFFF8FAFC);
+    final infoBg = isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8FAFC);
 
     return Column(
       children: [
@@ -601,7 +659,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                 Text(
                   step,
                   style: TextStyle(
-                    color: colors.onSurface,
+                    color: isDarkMode ? Colors.white : colors.onSurface,
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     height: 1.45,
@@ -676,12 +734,12 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDarkMode ? const Color(0xFF0B1B38) : Colors.white;
+    final surfaceColor = isDarkMode ? const Color(0xFF141414) : Colors.white;
     final panelColor = isDarkMode
-        ? const Color(0xFF102647)
+        ? const Color(0xFF1E1E1E)
         : const Color(0xFFF8FAFC);
     final borderColor = isDarkMode
-        ? const Color(0xFF274A73)
+        ? const Color(0xFF2A2A2A)
         : colors.outlineVariant;
     final stepItems = widget.recipe.stepItems;
     final ingredientItems = widget.recipe.ingredientItems;
@@ -732,14 +790,14 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
             child: Row(
               children: [
                 InkWell(
-                  onTap: widget.onBack,
+                  onTap: _closeCookingMode,
                   borderRadius: BorderRadius.circular(10),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
                     child: Icon(
                       Icons.arrow_back_rounded,
                       size: 20,
-                      color: accentColor,
+                      color: isDarkMode ? Colors.white : accentColor,
                     ),
                   ),
                 ),
@@ -999,20 +1057,21 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                     child: Column(
                       children: [
-                        Text(
-                          _isPreparingIngredients
-                              ? 'Tap ingredients to check them off'
-                              : 'Take your time — tap Next when ready',
-                          style: TextStyle(
-                            color: isDarkMode
-                                ? Colors.white.withValues(alpha: 0.45)
-                                : widget.cardColor.withValues(alpha: 0.65),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+                        if (!_isPreparingIngredients)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Text(
+                              'Take your time — tap Next when ready',
+                              style: TextStyle(
+                                color: isDarkMode
+                                    ? Colors.white.withValues(alpha: 0.45)
+                                    : widget.cardColor.withValues(alpha: 0.65),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
@@ -1030,9 +1089,9 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                   foregroundColor: isDarkMode
                                       ? const Color(0xFFCBD5E1)
                                       : const Color(0xFF374151),
-                                  side: BorderSide(color: borderColor),
+                                  side: BorderSide.none,
                                   backgroundColor: isDarkMode
-                                      ? const Color(0xFF102647)
+                                      ? const Color(0xFF1E1E1E)
                                       : Colors.white,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(14),
@@ -1225,7 +1284,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                           height: 22,
                                           decoration: BoxDecoration(
                                             color: isDarkMode
-                                                ? const Color(0xFF274A73)
+                                                ? const Color(0xFF1E1E1E)
                                                 : widget.cardColor,
                                             borderRadius: BorderRadius.circular(
                                               999,
@@ -1256,84 +1315,57 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                 )
                                 .toList(),
                     ),
-                    const SizedBox(height: 10),
-                    _RecipeDetailSectionCard(
-                      title: 'Labels',
-                      icon: Icons.sell_outlined,
-                      backgroundColor: panelColor,
-                      iconColor: accentColor,
-                      children: _isEditMode
-                          ? [
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: kAvailableLabels.map((label) {
-                                  final isSelected = _selectedEditLabels
-                                      .contains(label);
-                                  return FilterChip(
-                                    visualDensity: VisualDensity.compact,
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    backgroundColor: Colors.white,
-                                    side: BorderSide(color: borderColor),
-                                    selectedColor: const Color(0xFF059669),
-                                    checkmarkColor: Colors.white,
-                                    selected: isSelected,
-                                    label: Text(
-                                      label,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: isSelected
-                                            ? Colors.white
-                                            : colors.onSurfaceVariant,
-                                      ),
-                                    ),
-                                    onSelected: (selected) {
-                                      setState(() {
-                                        if (selected) {
-                                          _selectedEditLabels.add(label);
-                                        } else {
-                                          _selectedEditLabels.remove(label);
-                                        }
-                                      });
-                                    },
-                                  );
-                                }).toList(),
-                              ),
-                            ]
-                          : [
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: widget.recipe.labels
-                                    .map(
-                                      (tag) => Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: panelColor,
-                                          border: Border.all(
-                                            color: borderColor,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            999,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          tag,
-                                          style: TextStyle(
-                                            color: colors.onSurfaceVariant,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-                            ],
-                    ),
+                    if (_isEditMode) ...[
+                      const SizedBox(height: 10),
+                      _RecipeDetailSectionCard(
+                        title: 'Labels',
+                        icon: Icons.sell_outlined,
+                        backgroundColor: panelColor,
+                        iconColor: accentColor,
+                        children: [
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: kAvailableLabels.map((label) {
+                              final isSelected = _selectedEditLabels
+                                  .contains(label);
+                              return FilterChip(
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                backgroundColor: isDarkMode
+                                    ? const Color(0xFF1E1E1E)
+                                    : Colors.white,
+                                side: isDarkMode
+                                    ? BorderSide.none
+                                    : BorderSide(color: borderColor),
+                                selectedColor: const Color(0xFF059669),
+                                checkmarkColor: Colors.white,
+                                selected: isSelected,
+                                label: Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : colors.onSurfaceVariant,
+                                  ),
+                                ),
+                                onSelected: (selected) {
+                                  setState(() {
+                                    if (selected) {
+                                      _selectedEditLabels.add(label);
+                                    } else {
+                                      _selectedEditLabels.remove(label);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1356,7 +1388,9 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                           style: OutlinedButton.styleFrom(
                             backgroundColor: panelColor,
                             foregroundColor: colors.onSurface,
-                            side: BorderSide(color: borderColor),
+                            side: isDarkMode
+                                ? BorderSide.none
+                                : BorderSide(color: borderColor),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(999),
                             ),
@@ -1372,7 +1406,9 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                               : _openCookingMode,
                           style: FilledButton.styleFrom(
                             minimumSize: const Size.fromHeight(40),
-                            backgroundColor: const Color(0xFF059669),
+                            backgroundColor: _isEditMode
+                                ? const Color(0xFF059669)
+                                : widget.cardColor,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(999),
@@ -1404,11 +1440,13 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                             minimumSize: const Size.fromHeight(40),
                             backgroundColor: panelColor,
                             foregroundColor: saveColor,
-                            side: BorderSide(
-                              color: (isSaved == true)
-                                  ? const Color(0xFFFCA5A5)
-                                  : borderColor,
-                            ),
+                            side: isDarkMode
+                                ? BorderSide.none
+                                : BorderSide(
+                                    color: (isSaved == true)
+                                        ? const Color(0xFFFCA5A5)
+                                        : borderColor,
+                                  ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(999),
                             ),
@@ -1421,7 +1459,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                           onPressed: _openCookingMode,
                           style: FilledButton.styleFrom(
                             minimumSize: const Size.fromHeight(40),
-                            backgroundColor: const Color(0xFF059669),
+                            backgroundColor: widget.cardColor,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(999),
@@ -1692,6 +1730,7 @@ class _RecipeDetailSectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
@@ -1699,7 +1738,13 @@ class _RecipeDetailSectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.07),
+            blurRadius: isDarkMode ? 8 : 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

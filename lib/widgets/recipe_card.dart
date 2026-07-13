@@ -29,18 +29,17 @@ class RecipeCard extends StatelessWidget {
 
     final card = Container(
       decoration: BoxDecoration(
-        color: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+        color: isDarkMode ? const Color(0xFF141414) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: isDarkMode ? Border.all(color: const Color(0xFF274A73)) : null,
-        boxShadow: isDarkMode
-            ? []
-            : [
-                BoxShadow(
-                  color: t.start.withValues(alpha: 0.18),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+        boxShadow: [
+          BoxShadow(
+            color: isDarkMode
+                ? Colors.black.withValues(alpha: 0.45)
+                : t.start.withValues(alpha: 0.18),
+            blurRadius: isDarkMode ? 14 : 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

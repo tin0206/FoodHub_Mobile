@@ -91,7 +91,7 @@ class _RecsScreenState extends State<RecsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+        backgroundColor: isDarkMode ? const Color(0xFF141414) : Colors.white,
         title: Text(
           'Reset chat?',
           style: TextStyle(
@@ -233,7 +233,7 @@ class _RecsScreenState extends State<RecsScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+      backgroundColor: isDarkMode ? const Color(0xFF141414) : Colors.white,
       builder: (context) => _IngredientsContextSheet(
         ingredients: items,
         isDarkMode: isDarkMode,
@@ -254,7 +254,7 @@ class _RecsScreenState extends State<RecsScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: isDarkMode ? const Color(0xFF0B1B38) : Colors.white,
+      backgroundColor: isDarkMode ? const Color(0xFF141414) : Colors.white,
       builder: (context) => _DishContextSheet(
         results: _pendingDishResults,
         suggestedRecipes: dish.suggestedRecipes,
@@ -272,7 +272,7 @@ class _RecsScreenState extends State<RecsScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      color: isDarkMode ? const Color(0xFF07152D) : const Color(0xFFE5E7EB),
+      color: isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFE5E7EB),
       child: SafeArea(
         top: false,
         child: Column(
@@ -348,12 +348,12 @@ class _RecsScreenState extends State<RecsScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isDarkMode
-                    ? const Color(0xFF07152D)
+                    ? const Color(0xFF0A0A0A)
                     : const Color(0xFFE5E7EB),
                 border: Border(
                   top: BorderSide(
                     color: isDarkMode
-                        ? const Color(0xFF1E3A5F)
+                        ? const Color(0xFF2A2A2A)
                         : const Color(0xFFD1D5DB),
                   ),
                 ),
@@ -399,14 +399,12 @@ class _RecsScreenState extends State<RecsScreen> {
                     constraints: const BoxConstraints(minHeight: 44),
                     decoration: BoxDecoration(
                       color: isDarkMode
-                          ? const Color(0xFF102647)
+                          ? const Color(0xFF1E1E1E)
                           : const Color(0xFFF3F4F6),
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: isDarkMode
-                            ? const Color(0xFF274A73)
-                            : const Color(0xFFD1D5DB),
-                      ),
+                      border: isDarkMode
+                          ? null
+                          : Border.all(color: const Color(0xFFD1D5DB)),
                     ),
                     child: Row(
                       children: [
@@ -620,25 +618,22 @@ class _ChatBubble extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+              color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
                 topRight: Radius.circular(16),
                 bottomLeft: Radius.circular(16),
                 bottomRight: Radius.circular(16),
               ),
-              boxShadow: isDarkMode
-                  ? []
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-              border: isDarkMode
-                  ? Border.all(color: const Color(0xFF334155))
-                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: isDarkMode ? 0.35 : 0.06,
+                  ),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Text(
               message.text,
@@ -867,7 +862,7 @@ class _IngredientsContextSheet extends StatelessWidget {
                         (item) => Chip(
                           label: Text(item),
                           backgroundColor: isDarkMode
-                              ? const Color(0xFF102647)
+                              ? const Color(0xFF1E1E1E)
                               : const Color(0xFFECFDF5),
                           side: const BorderSide(color: Color(0xFF059669)),
                         ),
@@ -883,7 +878,8 @@ class _IngredientsContextSheet extends StatelessWidget {
                 onPressed: onClear,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFDC2626),
-                  side: const BorderSide(color: Color(0xFFFCA5A5)),
+                  side: BorderSide.none,
+                  backgroundColor: const Color(0xFFFFF1F2),
                 ),
                 child: const Text('Remove attachment'),
               ),
@@ -917,7 +913,7 @@ class _DishContextSheet extends StatelessWidget {
         ? const Color(0xFF94A3B8)
         : const Color(0xFF6B7280);
     final cardBg = isDarkMode
-        ? const Color(0xFF102647)
+        ? const Color(0xFF1E1E1E)
         : const Color(0xFFFAF5FF);
 
     return SafeArea(
@@ -1042,7 +1038,8 @@ class _DishContextSheet extends StatelessWidget {
                 onPressed: onClear,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFDC2626),
-                  side: const BorderSide(color: Color(0xFFFCA5A5)),
+                  side: BorderSide.none,
+                  backgroundColor: const Color(0xFFFFF1F2),
                 ),
                 child: const Text('Remove attachment'),
               ),

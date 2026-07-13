@@ -526,11 +526,13 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDarkMode ? const Color(0xFF0B1B38) : Colors.white;
+    final cardColor = isDarkMode ? const Color(0xFF141414) : Colors.white;
+    final dividerColor =
+        isDarkMode ? const Color(0xFF2A2A2A) : colors.outlineVariant;
     final borderColor =
-        isDarkMode ? const Color(0xFF274A73) : colors.outlineVariant;
+        isDarkMode ? Colors.transparent : colors.outlineVariant;
     final fieldFill =
-        isDarkMode ? const Color(0xFF102647) : const Color(0xFFF9FAFB);
+        isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF9FAFB);
     final textColor =
         isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF111827);
     final labelColor =
@@ -540,7 +542,13 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.4 : 0.08),
+            blurRadius: isDarkMode ? 16 : 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -564,7 +572,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
               ],
             ),
           ),
-          Divider(height: 1, color: borderColor),
+          Divider(height: 1, color: dividerColor),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
@@ -656,8 +664,10 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                       selectedColor: const Color(0xFF059669),
                       checkmarkColor: Colors.white,
                       backgroundColor:
-                          isDarkMode ? const Color(0xFF102647) : Colors.white,
-                      side: BorderSide(color: borderColor),
+                          isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                      side: isDarkMode
+                          ? BorderSide.none
+                          : BorderSide(color: dividerColor),
                       label: Text(
                         label,
                         style: TextStyle(
@@ -687,10 +697,10 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                     onPressed: widget.onCancel,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: colors.onSurface,
-                      side: BorderSide(color: borderColor),
+                      side: BorderSide.none,
                       backgroundColor: isDarkMode
-                          ? const Color(0xFF102647)
-                          : null,
+                          ? const Color(0xFF1E1E1E)
+                          : colors.surfaceContainerHighest,
                     ),
                     child: const Text('Cancel'),
                   ),
