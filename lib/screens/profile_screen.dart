@@ -355,7 +355,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // â”€â”€ Appearance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           _SectionCard(
             backgroundColor: _cardBackground,
-            borderColor: _cardBorder,
+
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -417,14 +417,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // â”€â”€ Personal Information â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           _SectionCard(
             backgroundColor: _cardBackground,
-            borderColor: _cardBorder,
+
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _SectionHeader(
-                  badgeBackground: const Color(0xFFDCFCE7),
+                  badgeBackground: widget.isDarkMode
+                      ? const Color(0xFF16A34A).withValues(alpha: 0.18)
+                      : const Color(0xFFDCFCE7),
                   icon: Icons.person_outline,
-                  iconColor: const Color(0xFF16A34A),
+                  iconColor: widget.isDarkMode
+                      ? const Color(0xFF4ADE80)
+                      : const Color(0xFF16A34A),
                   title: 'Personal Information',
                   subtitle: 'Update your profile details',
                   primaryText: _primaryText,
@@ -502,14 +506,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // â”€â”€ Nutrition Goals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           _SectionCard(
             backgroundColor: _cardBackground,
-            borderColor: _cardBorder,
+
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _SectionHeader(
-                  badgeBackground: const Color(0xFFF3E8FF),
+                  badgeBackground: widget.isDarkMode
+                      ? const Color(0xFFA855F7).withValues(alpha: 0.18)
+                      : const Color(0xFFF3E8FF),
                   icon: Icons.adjust,
-                  iconColor: const Color(0xFFA855F7),
+                  iconColor: widget.isDarkMode
+                      ? const Color(0xFFC084FC)
+                      : const Color(0xFFA855F7),
                   title: 'Nutrition Goals',
                   subtitle: 'Set your dietary objectives',
                   primaryText: _primaryText,
@@ -537,7 +545,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFFD1FAE5)
+                              ? (widget.isDarkMode
+                                  ? const Color(0xFF059669).withValues(alpha: 0.22)
+                                  : const Color(0xFFD1FAE5))
                               : (widget.isDarkMode
                                     ? const Color(0xFF1E1E1E)
                                     : Colors.white),
@@ -569,7 +579,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ? FontWeight.w600
                                 : FontWeight.w400,
                             color: isSelected
-                                ? const Color(0xFF065F46)
+                                ? (widget.isDarkMode
+                                    ? const Color(0xFF4ADE80)
+                                    : const Color(0xFF065F46))
                                 : _primaryText,
                           ),
                         ),
@@ -630,7 +642,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFFD1FAE5)
+                              ? (widget.isDarkMode
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.22)
+                                  : const Color(0xFFD1FAE5))
                               : (widget.isDarkMode
                                     ? const Color(0xFF1E1E1E)
                                     : Colors.white),
@@ -661,7 +675,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ? FontWeight.w600
                                 : FontWeight.w400,
                             color: isSelected
-                                ? const Color(0xFF065F46)
+                                ? (widget.isDarkMode
+                                    ? const Color(0xFF4ADE80)
+                                    : const Color(0xFF065F46))
                                 : _secondaryText,
                           ),
                         ),
@@ -677,16 +693,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // â”€â”€ Security â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           _SectionCard(
             backgroundColor: _cardBackground,
-            borderColor: _cardBorder,
+
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     _IconBadge(
-                      background: const Color(0xFFFFEDD5),
+                      background: widget.isDarkMode
+                          ? const Color(0xFFEA580C).withValues(alpha: 0.18)
+                          : const Color(0xFFFFEDD5),
                       icon: Icons.lock_outline_rounded,
-                      iconColor: const Color(0xFFEA580C),
+                      iconColor: widget.isDarkMode
+                          ? const Color(0xFFFB923C)
+                          : const Color(0xFFEA580C),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -772,9 +792,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFDC2626),
+                foregroundColor: widget.isDarkMode
+                    ? const Color(0xFFF87171)
+                    : const Color(0xFFDC2626),
                 side: BorderSide.none,
-                backgroundColor: const Color(0xFFFFF1F2),
+                backgroundColor: widget.isDarkMode
+                    ? const Color(0xFFDC2626).withValues(alpha: 0.15)
+                    : const Color(0xFFFFF1F2),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(999),
                 ),
@@ -934,12 +958,10 @@ class _SectionCard extends StatelessWidget {
   const _SectionCard({
     required this.child,
     required this.backgroundColor,
-    required this.borderColor,
   });
 
   final Widget child;
   final Color backgroundColor;
-  final Color borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1162,7 +1184,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                     side: BorderSide.none,
                     backgroundColor: widget.isDarkMode
                         ? const Color(0xFF1E1E1E)
-                        : null,
+                        : const Color(0xFFF3F4F6),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

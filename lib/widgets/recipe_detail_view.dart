@@ -394,9 +394,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                 width: 22,
                 height: 22,
                 decoration: BoxDecoration(
-                  color: isDarkMode
-                      ? const Color(0xFF1E1E1E)
-                      : widget.cardColor,
+                  color: accentColor.withValues(alpha: isDarkMode ? 0.18 : 0.1),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 alignment: Alignment.center,
@@ -777,16 +775,13 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
             height: 48,
             decoration: BoxDecoration(
               color: surfaceColor,
-              border: Border(bottom: BorderSide(color: borderColor)),
-              boxShadow: isDarkMode
-                  ? []
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDarkMode ? 0.35 : 0.06),
+                  blurRadius: isDarkMode ? 10 : 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
@@ -1541,33 +1536,51 @@ class _FireworksCelebrationState extends State<FireworksCelebration>
                   },
                 );
               }),
-              Container(
-                width: 190,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 20,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('🎉', style: TextStyle(fontSize: 30)),
-                    SizedBox(height: 6),
-                    Text(
-                      'Completed!',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+              Builder(builder: (context) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return Container(
+                  width: 190,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.5 : 0.12),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text('Great job chef', style: TextStyle(fontSize: 13)),
-                  ],
-                ),
-              ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🎉', style: TextStyle(fontSize: 36)),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Completed!',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827),
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Great job chef 👨‍🍳',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
             ],
           ),
         ),

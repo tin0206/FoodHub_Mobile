@@ -190,25 +190,26 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final shouldRemove = await showDialog<bool>(
       context: context,
       builder: (context) {
+        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: isDarkMode ? const Color(0xFF141414) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
+          title: Text(
             'Remove from favorites?',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF111827),
+              color: isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827),
             ),
           ),
           content: Text(
             'Do you want to remove "${recipe.name}" from your saved recipes?',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               height: 1.4,
-              color: Color(0xFF4B5563),
+              color: isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF4B5563),
             ),
           ),
           actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -555,7 +556,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         decoration: BoxDecoration(
                           color: noteBg,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: noteBorder),
+                          border: isDarkMode ? null : Border.all(color: noteBorder),
+                          boxShadow: isDarkMode
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.25),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
                         ),
                         child: Row(
                           children: [
