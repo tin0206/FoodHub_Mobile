@@ -95,6 +95,7 @@ class RecipeModel {
 
   RecipeDetailData toDetailData() {
     return RecipeDetailData(
+      id: id,
       name: title,
       imageUrl: imageUrl,
       cookingMinutes: cookingMinutes,

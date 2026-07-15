@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:foodhub_mobile/models/favorite.dart';
 import 'package:foodhub_mobile/services/api_client.dart';
 
@@ -5,6 +6,10 @@ class FavoriteService {
   FavoriteService({ApiClient? apiClient}) : _api = apiClient ?? ApiClient();
 
   final ApiClient _api;
+
+  /// Increments whenever a favorite is added or removed.
+  /// Screens can listen to this to sync their local state.
+  static final ValueNotifier<int> changes = ValueNotifier(0);
 
   Future<List<FavoriteModel>> listFavorites() async {
     final data = await _api.get('/favorites');
@@ -21,7 +26,9 @@ class FavoriteService {
         if (note != null && note.isNotEmpty) 'note': note,
       },
     );
-    return FavoriteModel.fromJson(data as Map<String, dynamic>);
+    final result = FavoriteModel.fromJson(data as Map<String, dynamic>);
+    changes.value++;
+    return result;
   }
 
   Future<FavoriteModel> updateFavorite({
@@ -37,5 +44,6 @@ class FavoriteService {
 
   Future<void> deleteFavorite(int favoriteId) async {
     await _api.delete('/favorites/$favoriteId');
+    changes.value++;
   }
 }

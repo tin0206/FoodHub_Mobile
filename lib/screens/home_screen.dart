@@ -3,6 +3,7 @@ import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/services/session_service.dart';
+import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_card.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 
@@ -132,11 +133,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _recipes[index] = updated;
         _selectedRecipe = updated;
       });
+      showRecipeToast(context, recipeName: updated.name, isNew: false);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      showErrorToast(context, e.message);
     }
   }
 
@@ -145,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_selectedRecipe != null && _selectedRecipeCardIndex != null) {
       return RecipeDetailView(
         recipe: _selectedRecipe!.toDetailData(),
-        cardColor: recipeCardTheme(_selectedRecipe!.labels).start,
+        cardColor: recipeCardTheme(_selectedRecipe!.id, _selectedRecipe!.labels).start,
         onBack: _closeRecipeDetails,
         enableEdit: true,
         onSaveEdited: (data) => _onSaveEditedRecipe(data),
@@ -427,9 +427,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
         calories == null ||
         cookingMinutes <= 0 ||
         calories <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all required fields.')),
-      );
+      showErrorToast(context, 'Please fill in all required fields.');
       return;
     }
 
@@ -458,19 +456,16 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
       );
       if (!mounted) return;
       Navigator.of(context).pop();
+      showRecipeToast(context, recipeName: name, isNew: true);
       widget.onSave(created);
     } on ApiException catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      showErrorToast(context, e.message);
     } catch (_) {
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to save recipe.')),
-      );
+      showErrorToast(context, 'Unable to save recipe.');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

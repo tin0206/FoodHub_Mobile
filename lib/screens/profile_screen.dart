@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
+import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 
 const _kDietaryTags = [
   'Dairy Free',
@@ -205,23 +206,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _proteinTargetController.text = _snapProtein;
       });
       widget.onUserUpdated(updated);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully.')),
-      );
+      showProfileToast(context);
     } on ApiException catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop();
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      showErrorToast(context, e.message);
     } catch (_) {
       if (!mounted) return;
       Navigator.of(context).pop();
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to save profile.')),
-      );
+      showErrorToast(context, 'Unable to save profile.');
     }
   }
 
@@ -1078,21 +1073,15 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
       );
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password updated successfully.')),
-      );
+      showSuccessToast(context, 'Password updated successfully.');
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      showErrorToast(context, e.message);
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to update password.')),
-      );
+      showErrorToast(context, 'Unable to update password.');
     }
   }
 

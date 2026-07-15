@@ -7,6 +7,7 @@ class RecipeImageHeader extends StatelessWidget {
   const RecipeImageHeader({
     super.key,
     required this.imageUrl,
+    required this.recipeId,
     required this.labels,
     this.height = 150,
     this.borderRadius = const BorderRadius.vertical(top: Radius.circular(20)),
@@ -14,6 +15,7 @@ class RecipeImageHeader extends StatelessWidget {
   });
 
   final String? imageUrl;
+  final int recipeId;
   final List<String> labels;
   final double height;
   final BorderRadius borderRadius;
@@ -22,7 +24,7 @@ class RecipeImageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final theme = recipeCardTheme(labels);
+    final theme = recipeCardTheme(recipeId, labels);
     final resolvedUrl = ApiConfig.resolveImageUrl(imageUrl);
 
     if (resolvedUrl.isEmpty) {

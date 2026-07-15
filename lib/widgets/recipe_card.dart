@@ -22,7 +22,7 @@ class RecipeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final t = recipeCardTheme(recipe.labels);
+    final t = recipeCardTheme(recipe.id, recipe.labels);
     final primaryText = isDarkMode
         ? const Color(0xFFF8FAFC)
         : const Color(0xFF111827);
@@ -46,6 +46,7 @@ class RecipeCard extends StatelessWidget {
         children: [
           RecipeImageHeader(
             imageUrl: recipe.imageUrl,
+            recipeId: recipe.id,
             labels: recipe.labels,
             height: 120,
           ),
