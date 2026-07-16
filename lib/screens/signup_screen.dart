@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
 import 'package:foodhub_mobile/screens/login_screen.dart';
 import 'package:foodhub_mobile/screens/main_shell_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
@@ -43,7 +44,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => MainShellScreen(initialUser: user)),
+        MaterialPageRoute(
+          builder: (_) => user.role == 'admin'
+              ? AdminShellScreen(user: user)
+              : MainShellScreen(initialUser: user),
+        ),
       );
     } on ApiException catch (e) {
       if (!mounted) return;

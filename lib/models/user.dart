@@ -4,6 +4,7 @@ class UserModel {
     required this.email,
     required this.username,
     this.fullName,
+    this.role = 'user',
     this.isActive = true,
     this.age,
     this.weight,
@@ -20,6 +21,7 @@ class UserModel {
   final String email;
   final String username;
   final String? fullName;
+  final String role;
   final bool isActive;
   final int? age;
   final double? weight;
@@ -37,6 +39,7 @@ class UserModel {
       email: json['email'] as String,
       username: json['username'] as String,
       fullName: json['full_name'] as String?,
+      role: json['role'] as String? ?? 'user',
       isActive: json['is_active'] as bool? ?? true,
       age: json['age'] as int?,
       weight: (json['weight'] as num?)?.toDouble(),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/models/user.dart';
+import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
 import 'package:foodhub_mobile/screens/forgot_password_screen.dart';
 import 'package:foodhub_mobile/screens/main_shell_screen.dart';
 import 'package:foodhub_mobile/screens/signup_screen.dart';
@@ -43,7 +45,11 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => MainShellScreen(initialUser: user)),
+        MaterialPageRoute(
+          builder: (_) => user.role == 'admin'
+              ? AdminShellScreen(user: user)
+              : MainShellScreen(initialUser: user),
+        ),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -296,6 +302,41 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (_) => AdminShellScreen(
+                            user: const UserModel(
+                              id: 0,
+                              email: 'admin@foodhub.app',
+                              username: 'admin',
+                              fullName: 'Admin',
+                              role: 'admin',
+                            ),
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.admin_panel_settings_rounded,
+                            size: 14,
+                            color: const Color(0xFF6366F1).withValues(alpha: 0.7),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'Admin Panel (dev)',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: const Color(0xFF6366F1).withValues(alpha: 0.7),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
