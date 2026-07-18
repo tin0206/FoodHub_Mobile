@@ -11,14 +11,14 @@ class AppTopBar extends StatelessWidget {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      color: isDarkMode ? const Color(0xFF0A0A0A) : Colors.white,
+      color: isDarkMode ? const Color(0xFF141414) : Colors.white,
       child: SafeArea(
         bottom: false,
         child: Container(
           height: 56,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: isDarkMode ? const Color(0xFF0A0A0A) : Colors.white,
+            color: isDarkMode ? const Color(0xFF141414) : Colors.white,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: isDarkMode ? 0.4 : 0.05),

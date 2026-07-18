@@ -122,7 +122,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDarkMode;
-    final panelColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8FAFC);
+    final panelColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final dividerColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE5E7EB);
     final hintColor = isDark ? const Color(0xFF64748B) : const Color(0xFF9CA3AF);
     final textColor = isDark ? const Color(0xFFE2E8F0) : const Color(0xFF111827);
@@ -162,7 +162,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
             color: textColor,
           ),
         ),
-        centerTitle: false,
+        centerTitle: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Divider(height: 1, color: dividerColor),

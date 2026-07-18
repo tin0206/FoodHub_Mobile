@@ -257,7 +257,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       widget.isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFE5E7EB);
 
   Color get _cardBackground =>
-      widget.isDarkMode ? const Color(0xFF141414) : const Color(0xFFF3F4F6);
+      widget.isDarkMode ? const Color(0xFF141414) : Colors.white;
 
   Color get _cardBorder =>
       widget.isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFD1D5DB);
@@ -269,7 +269,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       widget.isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
 
   Color get _fieldFill =>
-      widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+      widget.isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
 
   Color get _fieldBorder =>
       widget.isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFD1D5DB);

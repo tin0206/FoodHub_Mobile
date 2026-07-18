@@ -117,14 +117,16 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
               : null,
           suffixIcon: suffix,
           filled: true,
-          fillColor: cardBg,
+          fillColor: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(11),
             borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(11),
-            borderSide: BorderSide.none,
+            borderSide: isDark
+                ? BorderSide.none
+                : const BorderSide(color: Color(0xFFE5E7EB)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(11),
