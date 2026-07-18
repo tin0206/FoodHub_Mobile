@@ -31,6 +31,7 @@ class ChatMessageModel {
 class RagRecipeModel {
   const RagRecipeModel({
     required this.title,
+    this.recipeId,
     this.ingredients = const [],
     this.directions = const [],
     this.dietaryRestrictions = const [],
@@ -38,14 +39,24 @@ class RagRecipeModel {
   });
 
   final String title;
+  /// Qdrant / RAG recipe id (string). May match FoodHub DB id when numeric.
+  final String? recipeId;
   final List<String> ingredients;
   final List<String> directions;
   final List<String> dietaryRestrictions;
   final int? estimatedServings;
 
+  int? get recipeIdAsInt {
+    final raw = recipeId?.trim();
+    if (raw == null || raw.isEmpty) return null;
+    return int.tryParse(raw);
+  }
+
   factory RagRecipeModel.fromJson(Map<String, dynamic> json) {
+    final rawId = json['recipe_id'] ?? json['id'];
     return RagRecipeModel(
       title: json['title'] as String? ?? 'Untitled recipe',
+      recipeId: rawId?.toString(),
       ingredients: _list(json['ingredients']),
       directions: _list(json['directions']),
       dietaryRestrictions: _list(json['dietary_restrictions']),
@@ -63,22 +74,33 @@ class ChatResponseModel {
   const ChatResponseModel({
     required this.taskId,
     required this.reply,
+    this.phase = 'gather',
+    this.sessionId,
     this.recipes = const [],
+    this.knownInfo = const {},
   });
 
   final String taskId;
   final String reply;
+  final String phase;
+  final String? sessionId;
   final List<RagRecipeModel> recipes;
+  final Map<String, dynamic> knownInfo;
 
   factory ChatResponseModel.fromJson(Map<String, dynamic> json) {
     return ChatResponseModel(
-      taskId: json['task_id'] as String,
+      taskId: json['task_id'] as String? ?? '',
       reply: json['reply'] as String? ?? '',
+      phase: json['phase'] as String? ?? 'gather',
+      sessionId: json['session_id'] as String?,
       recipes: (json['recipes'] as List<dynamic>?)
               ?.whereType<Map<String, dynamic>>()
               .map(RagRecipeModel.fromJson)
               .toList() ??
           const [],
+      knownInfo: json['known_info'] is Map<String, dynamic>
+          ? json['known_info'] as Map<String, dynamic>
+          : const {},
     );
   }
 }
@@ -201,6 +223,70 @@ class DetectionItemModel {
       label: json['label'] as String? ?? '',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
       bbox: bbox.length == 4 ? bbox : const [0, 0, 0, 0],
+    );
+  }
+}
+
+class AiJobAcceptedModel {
+  const AiJobAcceptedModel({
+    required this.taskId,
+    required this.status,
+    required this.requestType,
+    this.imageUrl,
+    this.sessionId,
+  });
+
+  final String taskId;
+  final String status;
+  final String requestType;
+  final String? imageUrl;
+  final String? sessionId;
+
+  factory AiJobAcceptedModel.fromJson(Map<String, dynamic> json) {
+    return AiJobAcceptedModel(
+      taskId: json['task_id'] as String,
+      status: json['status'] as String? ?? 'pending',
+      requestType: json['request_type'] as String? ?? '',
+      imageUrl: json['image_url'] as String?,
+      sessionId: json['session_id'] as String?,
+    );
+  }
+}
+
+class AiRequestDetailModel {
+  const AiRequestDetailModel({
+    required this.taskId,
+    required this.requestType,
+    required this.status,
+    this.inputPayload,
+    this.outputPayload,
+    this.errorMessage,
+    this.durationMs,
+  });
+
+  final String taskId;
+  final String requestType;
+  final String status;
+  final Map<String, dynamic>? inputPayload;
+  final Map<String, dynamic>? outputPayload;
+  final String? errorMessage;
+  final int? durationMs;
+
+  bool get isTerminal => status == 'completed' || status == 'failed';
+
+  factory AiRequestDetailModel.fromJson(Map<String, dynamic> json) {
+    return AiRequestDetailModel(
+      taskId: json['task_id'] as String,
+      requestType: json['request_type'] as String? ?? '',
+      status: json['status'] as String? ?? 'pending',
+      inputPayload: json['input_payload'] is Map<String, dynamic>
+          ? json['input_payload'] as Map<String, dynamic>
+          : null,
+      outputPayload: json['output_payload'] is Map<String, dynamic>
+          ? json['output_payload'] as Map<String, dynamic>
+          : null,
+      errorMessage: json['error_message'] as String?,
+      durationMs: json['duration_ms'] as int?,
     );
   }
 }

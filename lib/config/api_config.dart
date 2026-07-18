@@ -14,6 +14,10 @@ class ApiConfig {
     return 'http://localhost:8000/api/v1';
   }
 
+  static String get apiOrigin {
+    return baseUrl.replaceFirst(RegExp(r'/api/v1/?$'), '');
+  }
+
   static String get ingredientsStreamUrl {
     final httpBase = baseUrl;
     final wsBase = httpBase
@@ -24,8 +28,31 @@ class ApiConfig {
 
   static String resolveImageUrl(String? url) {
     if (url == null || url.isEmpty) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    final origin = baseUrl.replaceFirst(RegExp(r'/api/v1/?$'), '');
-    return url.startsWith('/') ? '$origin$url' : '$origin/$url';
+
+    final parsed = Uri.tryParse(url);
+    if (parsed == null) return '';
+
+    // Preferred: API-relative /media/... (same host as the app API)
+    if (!parsed.hasScheme || url.startsWith('/')) {
+      final path = url.startsWith('/') ? url : '/$url';
+      return '$apiOrigin$path';
+    }
+
+    // Legacy absolute Ceph URLs → rewrite to API /media proxy
+    final path = parsed.path;
+    final mediaIdx = path.indexOf('/foodhub-images/');
+    if (mediaIdx >= 0) {
+      final objectKey = path.substring(mediaIdx + '/foodhub-images/'.length);
+      return '$apiOrigin/media/$objectKey';
+    }
+    if (path.startsWith('/media/')) {
+      return '$apiOrigin$path';
+    }
+
+    if (parsed.scheme == 'http' || parsed.scheme == 'https') {
+      return url;
+    }
+
+    return '$apiOrigin/${url.replaceFirst(RegExp(r'^/'), '')}';
   }
 }

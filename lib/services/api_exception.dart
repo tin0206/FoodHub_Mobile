@@ -21,3 +21,17 @@ String parseApiErrorMessage(dynamic body, {String fallback = 'Request failed'}) 
   }
   return fallback;
 }
+
+String messageForStatusCode(int statusCode, dynamic body) {
+  if (statusCode == 429) {
+    final detail = parseApiErrorMessage(
+      body,
+      fallback: 'AI queue is full. Please try again in a moment.',
+    );
+    return detail;
+  }
+  return parseApiErrorMessage(
+    body,
+    fallback: 'Request failed ($statusCode)',
+  );
+}

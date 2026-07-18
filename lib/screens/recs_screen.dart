@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/models/ai.dart';
+import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/ai_service.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
+import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/ai_capture_overlay.dart';
+import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 import 'package:foodhub_mobile/widgets/recs/markdown_reply.dart';
-import 'package:foodhub_mobile/widgets/recs/recipe_suggestion_card.dart';
 
 class RecsScreen extends StatefulWidget {
   const RecsScreen({
     super.key,
     this.dietaryRestrictions = const {},
     this.primaryGoal = '',
+    this.onDetailModeChanged,
   });
 
   final Set<String> dietaryRestrictions;
   final String primaryGoal;
+  final ValueChanged<bool>? onDetailModeChanged;
 
   @override
   State<RecsScreen> createState() => _RecsScreenState();
@@ -24,26 +28,103 @@ class _RecsScreenState extends State<RecsScreen> {
   final TextEditingController _promptController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final AiService _aiService = AiService();
+  final RecipeService _recipeService = RecipeService();
   final List<ChatMessageModel> _conversationHistory = [];
 
   /// Compose-only detection lines (edited as free text; not separate chat bubbles).
   String? _composeDishText;
   String? _composeIngredientsText;
   bool _isSending = false;
+  bool _isBootstrapping = true;
+  String? _sessionId;
+  String _phase = 'gather';
+  RecipeDetailData? _selectedRecipeDetail;
+  bool _openingRecipe = false;
 
-  final List<_ChatMessage> _messages = [
-    const _ChatMessage(
-      text:
-          "Hello! I'm your AI recipe assistant. Tell me what you're craving, or tap the camera icon to scan ingredients or a dish — then press send.",
-      isUser: false,
-    ),
-  ];
+  bool _welcomeStarted = false;
+
+  final List<_ChatMessage> _messages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Defer past initState — setState/network must not run synchronously here.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _welcomeStarted) return;
+      _welcomeStarted = true;
+      _bootstrapWelcome();
+    });
+  }
 
   @override
   void dispose() {
     _promptController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _bootstrapWelcome() async {
+    if (mounted) {
+      setState(() {
+        _isBootstrapping = true;
+        _messages.clear();
+        _conversationHistory.clear();
+        _selectedRecipeDetail = null;
+      });
+    }
+    widget.onDetailModeChanged?.call(false);
+
+    final sessionId =
+        'fh-${DateTime.now().millisecondsSinceEpoch}-${UniqueKey().hashCode.abs()}';
+    debugPrint('[Recs] Calling POST /ai/chat/welcome session=$sessionId');
+    try {
+      final response = await _aiService.welcome(
+        sessionId: sessionId,
+        dietaryRestrictions: widget.dietaryRestrictions.toList(),
+        primaryGoal: widget.primaryGoal,
+      );
+      if (!mounted) return;
+      debugPrint(
+        '[Recs] Welcome ok phase=${response.phase} '
+        'session=${response.sessionId ?? sessionId}',
+      );
+      setState(() {
+        _sessionId = response.sessionId ?? sessionId;
+        _phase = response.phase;
+        _messages.add(
+          _ChatMessage(
+            text: response.reply.isNotEmpty
+                ? response.reply
+                : "Hello! I'm your culinary companion. Tell me what you'd like to cook.",
+            isUser: false,
+            recipes: response.recipes,
+          ),
+        );
+        if (response.reply.isNotEmpty) {
+          _conversationHistory.add(
+            ChatMessageModel(role: 'assistant', content: response.reply),
+          );
+        }
+        _isBootstrapping = false;
+      });
+      _scrollToBottom();
+    } catch (e, st) {
+      debugPrint('[Recs] Welcome FAILED: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _sessionId = sessionId;
+        _phase = 'gather';
+        _messages.add(
+          _ChatMessage(
+            text:
+                'Could not start the companion session ($e). '
+                'You can still chat — tap reset to retry welcome.',
+            isUser: false,
+          ),
+        );
+        _isBootstrapping = false;
+      });
+    }
   }
 
   List<String> _dishNamesFrom(DishRecognitionModel dish) {
@@ -114,7 +195,7 @@ class _RecsScreenState extends State<RecsScreen> {
   }
 
   Future<void> _resetChat() async {
-    if (_isSending) return;
+    if (_isSending || _isBootstrapping) return;
 
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final confirm = await showDialog<bool>(
@@ -155,28 +236,104 @@ class _RecsScreenState extends State<RecsScreen> {
 
     if (confirm != true || !mounted) return;
 
-    setState(() {
-      _messages
-        ..clear()
-        ..add(
-          const _ChatMessage(
-            text:
-                "Hello! I'm your AI recipe assistant. Tell me what you're craving, or tap the camera icon to scan ingredients or a dish — then press send.",
-            isUser: false,
-          ),
-        );
-      _conversationHistory.clear();
-      _clearComposeDetections();
-      _promptController.clear();
-    });
+    _welcomeStarted = true;
+    _clearComposeDetections();
+    _promptController.clear();
+    await _bootstrapWelcome();
+  }
+
+  RecipeDetailData _detailFromRag(RagRecipeModel recipe) {
+    final model = RecipeModel(
+      id: recipe.recipeIdAsInt ?? 0,
+      title: recipe.title,
+      ingredients: recipe.ingredients,
+      directions: recipe.directions,
+      dietaryRestrictions: recipe.dietaryRestrictions,
+      estimatedServings: recipe.estimatedServings,
+    );
+    return model.toDetailData();
+  }
+
+  Future<void> _openRecipeFromChat({
+    required String title,
+    String? recipeId,
+    RagRecipeModel? ragRecipe,
+  }) async {
+    if (_openingRecipe) return;
+    setState(() => _openingRecipe = true);
+
+    RecipeDetailData? detail;
+
+    // Prefer payload already returned with the message.
+    if (ragRecipe != null &&
+        (ragRecipe.ingredients.isNotEmpty || ragRecipe.directions.isNotEmpty)) {
+      detail = _detailFromRag(ragRecipe);
+    } else {
+      // Fallback: match by id/title in recent messages.
+      for (final msg in _messages.reversed) {
+        for (final r in msg.recipes) {
+          final idMatch =
+              recipeId != null && recipeId.isNotEmpty && r.recipeId == recipeId;
+          final titleMatch =
+              r.title.toLowerCase() == title.toLowerCase();
+          if (idMatch || titleMatch) {
+            if (r.ingredients.isNotEmpty || r.directions.isNotEmpty) {
+              detail = _detailFromRag(r);
+              break;
+            }
+          }
+        }
+        if (detail != null) break;
+      }
+    }
+
+    // Last resort: try FoodHub recipe API when id is numeric.
+    if (detail == null) {
+      final id = int.tryParse((recipeId ?? '').trim());
+      if (id != null) {
+        try {
+          final recipe = await _recipeService.getRecipe(id);
+          detail = recipe.toDetailData();
+        } catch (_) {
+          detail = null;
+        }
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _openingRecipe = false);
+
+    if (detail == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not open details for "$title".'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    widget.onDetailModeChanged?.call(true);
+    setState(() => _selectedRecipeDetail = detail);
+  }
+
+  void _closeRecipeDetails() {
+    widget.onDetailModeChanged?.call(false);
+    setState(() => _selectedRecipeDetail = null);
   }
 
   Future<void> _onPromptSubmitted() async {
-    if (_isSending) return;
+    if (_isSending || _isBootstrapping) return;
 
     final userQuery = _promptController.text.trim();
     final merged = _buildMergedPrompt(userQuery);
     if (merged.isEmpty) return;
+
+    final sessionId = _sessionId;
+    if (sessionId == null || sessionId.isEmpty) {
+      await _bootstrapWelcome();
+      if (_sessionId == null) return;
+    }
 
     final ingredients = _ingredientsForApi();
 
@@ -193,6 +350,7 @@ class _RecsScreenState extends State<RecsScreen> {
     try {
       final response = await _aiService.chat(
         message: merged,
+        sessionId: _sessionId!,
         conversationHistory: _conversationHistory,
         dietaryRestrictions: dietary,
         primaryGoal: widget.primaryGoal,
@@ -205,6 +363,10 @@ class _RecsScreenState extends State<RecsScreen> {
 
       if (!mounted) return;
       setState(() {
+        if (response.sessionId != null && response.sessionId!.isNotEmpty) {
+          _sessionId = response.sessionId;
+        }
+        _phase = response.phase;
         _messages.add(
           _ChatMessage(
             text: response.reply,
@@ -303,6 +465,16 @@ class _RecsScreenState extends State<RecsScreen> {
     final hasIngredients =
         ingredientsText != null && ingredientsText.isNotEmpty;
 
+    if (_selectedRecipeDetail != null) {
+      return RecipeDetailView(
+        recipe: _selectedRecipeDetail!,
+        cardColor: const Color(0xFF059669),
+        onBack: _closeRecipeDetails,
+      );
+    }
+
+    final busy = _isSending || _isBootstrapping;
+
     return Container(
       color: isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFE5E7EB),
       child: SafeArea(
@@ -313,19 +485,39 @@ class _RecsScreenState extends State<RecsScreen> {
               child: ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.all(12),
-                itemCount: _messages.length + 1 + (_isSending ? 1 : 0),
+                itemCount: _messages.length + 1 + (busy ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return _ChatHeader(
                       isDarkMode: isDarkMode,
-                      onReset: _isSending ? null : _resetChat,
+                      onReset: busy ? null : _resetChat,
+                      phase: _phase,
                     );
                   }
                   final messageIndex = index - 1;
-                  if (_isSending && messageIndex == _messages.length) {
+                  if (busy && messageIndex == _messages.length) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: TypingIndicatorBubble(isDarkMode: isDarkMode),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TypingIndicatorBubble(isDarkMode: isDarkMode),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 38, top: 4),
+                            child: Text(
+                              _isBootstrapping
+                                  ? 'Starting companion session...'
+                                  : 'Queued — waiting for AI...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDarkMode
+                                    ? Colors.white54
+                                    : Colors.black45,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   }
                   final message = _messages[messageIndex];
@@ -334,6 +526,23 @@ class _RecsScreenState extends State<RecsScreen> {
                     child: _ChatBubble(
                       message: message,
                       isDarkMode: isDarkMode,
+                      onOpenRecipe: (link) {
+                        RagRecipeModel? match;
+                        for (final r in message.recipes) {
+                          if ((link.recipeId.isNotEmpty &&
+                                  r.recipeId == link.recipeId) ||
+                              r.title.toLowerCase() ==
+                                  link.title.toLowerCase()) {
+                            match = r;
+                            break;
+                          }
+                        }
+                        _openRecipeFromChat(
+                          title: link.title,
+                          recipeId: link.recipeId,
+                          ragRecipe: match,
+                        );
+                      },
                     ),
                   );
                 },
@@ -351,7 +560,7 @@ class _RecsScreenState extends State<RecsScreen> {
                       text: dishText,
                       icon: Icons.restaurant_menu_rounded,
                       isDarkMode: isDarkMode,
-                      enabled: !_isSending,
+                      enabled: !busy,
                       onEdit: _editDishes,
                     ),
                     const SizedBox(height: 8),
@@ -361,7 +570,7 @@ class _RecsScreenState extends State<RecsScreen> {
                       text: ingredientsText,
                       icon: Icons.shopping_basket_outlined,
                       isDarkMode: isDarkMode,
-                      enabled: !_isSending,
+                      enabled: !busy,
                       onEdit: _editIngredients,
                     ),
                     const SizedBox(height: 8),
@@ -369,7 +578,7 @@ class _RecsScreenState extends State<RecsScreen> {
                   _UserComposeField(
                     controller: _promptController,
                     isDarkMode: isDarkMode,
-                    enabled: !_isSending,
+                    enabled: !busy,
                     onCamera: _openCaptureOverlay,
                     onSubmit: _onPromptSubmitted,
                   ),
@@ -384,10 +593,15 @@ class _RecsScreenState extends State<RecsScreen> {
 }
 
 class _ChatHeader extends StatelessWidget {
-  const _ChatHeader({required this.isDarkMode, required this.onReset});
+  const _ChatHeader({
+    required this.isDarkMode,
+    required this.onReset,
+    this.phase = 'gather',
+  });
 
   final bool isDarkMode;
   final VoidCallback? onReset;
+  final String phase;
 
   @override
   Widget build(BuildContext context) {
@@ -411,15 +625,30 @@ class _ChatHeader extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              'AI Recommendations',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: isDarkMode
-                    ? const Color(0xFFF8FAFC)
-                    : const Color(0xFF111827),
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AI Companion',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: isDarkMode
+                        ? const Color(0xFFF8FAFC)
+                        : const Color(0xFF111827),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Phase: $phase',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDarkMode
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF6B7280),
+                  ),
+                ),
+              ],
             ),
           ),
           IconButton(
@@ -617,10 +846,15 @@ class _ChatMessage {
 }
 
 class _ChatBubble extends StatelessWidget {
-  const _ChatBubble({required this.message, required this.isDarkMode});
+  const _ChatBubble({
+    required this.message,
+    required this.isDarkMode,
+    this.onOpenRecipe,
+  });
 
   final _ChatMessage message;
   final bool isDarkMode;
+  final void Function(RecipeLinkRef link)? onOpenRecipe;
 
   @override
   Widget build(BuildContext context) {
@@ -720,19 +954,11 @@ class _ChatBubble extends StatelessWidget {
                 ),
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                MarkdownReplyBody(
-                  markdown: message.text,
-                  isDarkMode: isDarkMode,
-                ),
-                if (message.recipes.isNotEmpty)
-                  RecipeSuggestionList(
-                    recipes: message.recipes,
-                    isDarkMode: isDarkMode,
-                  ),
-              ],
+            child: MarkdownReplyBody(
+              markdown: message.text,
+              isDarkMode: isDarkMode,
+              recipes: message.recipes,
+              onOpenRecipe: onOpenRecipe,
             ),
           ),
         ),

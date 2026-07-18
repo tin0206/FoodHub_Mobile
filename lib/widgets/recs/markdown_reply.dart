@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:foodhub_mobile/models/ai.dart';
 
 class MarkdownSection {
   const MarkdownSection({required this.title, required this.body});
@@ -7,6 +8,64 @@ class MarkdownSection {
   /// Empty title means intro / untitled block shown always expanded.
   final String title;
   final String body;
+}
+
+class RecipeLinkRef {
+  const RecipeLinkRef({required this.title, required this.recipeId});
+
+  final String title;
+  final String recipeId;
+}
+
+final _mdLinkPattern = RegExp(r'\[([^\]]+)\]\(([^)]+)\)');
+
+/// Extract `[Name](id)` links and replace them with plain bold names in markdown.
+({String markdown, List<RecipeLinkRef> links}) extractRecipeMarkdownLinks(
+  String markdown,
+) {
+  final links = <RecipeLinkRef>[];
+  final seen = <String>{};
+  final cleaned = markdown.replaceAllMapped(_mdLinkPattern, (match) {
+    final title = match.group(1)!.trim();
+    final id = match.group(2)!.trim();
+    if (title.isNotEmpty && id.isNotEmpty && seen.add(id)) {
+      links.add(RecipeLinkRef(title: title, recipeId: id));
+    }
+    return '**$title**';
+  });
+  return (markdown: cleaned, links: links);
+}
+
+/// Merges markdown links with structured recipe payloads (dedupe by id/title).
+List<RecipeLinkRef> mergeRecipeCtas({
+  required List<RecipeLinkRef> fromMarkdown,
+  required List<RagRecipeModel> recipes,
+}) {
+  final out = <RecipeLinkRef>[];
+  final seenIds = <String>{};
+  final seenTitles = <String>{};
+
+  void add(String title, String? id) {
+    final t = title.trim();
+    if (t.isEmpty) return;
+    final keyId = (id ?? '').trim();
+    if (keyId.isNotEmpty) {
+      if (!seenIds.add(keyId)) return;
+      out.add(RecipeLinkRef(title: t, recipeId: keyId));
+      seenTitles.add(t.toLowerCase());
+      return;
+    }
+    if (!seenTitles.add(t.toLowerCase())) return;
+    out.add(RecipeLinkRef(title: t, recipeId: ''));
+  }
+
+  for (final link in fromMarkdown) {
+    add(link.title, link.recipeId);
+  }
+  for (final r in recipes) {
+    add(r.title, r.recipeId);
+  }
+  return out;
 }
 
 /// Splits markdown into an optional intro and heading-based sections (`#` / `##`).
@@ -108,51 +167,181 @@ MarkdownStyleSheet recsMarkdownStyle(bool isDarkMode) {
   );
 }
 
+/// Full-width, tall recipe CTA for easy tap-to-detail.
+class RecipeDetailCtaButton extends StatelessWidget {
+  const RecipeDetailCtaButton({
+    super.key,
+    required this.title,
+    required this.isDarkMode,
+    required this.onPressed,
+  });
+
+  final String title;
+  final bool isDarkMode;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF059669),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.menu_book_rounded, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'View',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.9),
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Icon(Icons.chevron_right_rounded, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RecipeCtaList extends StatelessWidget {
+  const RecipeCtaList({
+    super.key,
+    required this.links,
+    required this.isDarkMode,
+    required this.onOpen,
+  });
+
+  final List<RecipeLinkRef> links;
+  final bool isDarkMode;
+  final void Function(RecipeLinkRef link) onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    if (links.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 12),
+        Text(
+          'Open recipe details',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
+            color: isDarkMode
+                ? const Color(0xFF94A3B8)
+                : const Color(0xFF6B7280),
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...links.map(
+          (link) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: RecipeDetailCtaButton(
+              title: link.title,
+              isDarkMode: isDarkMode,
+              onPressed: () => onOpen(link),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class MarkdownReplyBody extends StatelessWidget {
   const MarkdownReplyBody({
     super.key,
     required this.markdown,
     required this.isDarkMode,
+    this.recipes = const [],
+    this.onOpenRecipe,
   });
 
   final String markdown;
   final bool isDarkMode;
+  final List<RagRecipeModel> recipes;
+  final void Function(RecipeLinkRef link)? onOpenRecipe;
 
   @override
   Widget build(BuildContext context) {
-    final sections = parseMarkdownSections(markdown);
+    final extracted = extractRecipeMarkdownLinks(markdown);
+    final ctas = mergeRecipeCtas(
+      fromMarkdown: extracted.links,
+      recipes: recipes,
+    );
+    final sections = parseMarkdownSections(extracted.markdown);
     final style = recsMarkdownStyle(isDarkMode);
     final hasHeadings = sections.any((s) => s.title.isNotEmpty);
 
-    if (!hasHeadings) {
-      return MarkdownBody(
-        data: markdown.trim().isEmpty ? ' ' : markdown,
-        styleSheet: style,
-        softLineBreak: true,
-      );
-    }
+    final content = !hasHeadings
+        ? MarkdownBody(
+            data: extracted.markdown.trim().isEmpty ? ' ' : extracted.markdown,
+            styleSheet: style,
+            softLineBreak: true,
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < sections.length; i++) ...[
+                if (i > 0) const SizedBox(height: 6),
+                if (sections[i].title.isEmpty)
+                  MarkdownBody(
+                    data: sections[i].body,
+                    styleSheet: style,
+                    softLineBreak: true,
+                  )
+                else
+                  _MarkdownSectionTile(
+                    title: sections[i].title,
+                    body: sections[i].body,
+                    isDarkMode: isDarkMode,
+                    styleSheet: style,
+                    initiallyExpanded: i == 0 ||
+                        (sections.first.title.isEmpty ? i == 1 : false),
+                  ),
+              ],
+            ],
+          );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < sections.length; i++) ...[
-          if (i > 0) const SizedBox(height: 6),
-          if (sections[i].title.isEmpty)
-            MarkdownBody(
-              data: sections[i].body,
-              styleSheet: style,
-              softLineBreak: true,
-            )
-          else
-            _MarkdownSectionTile(
-              title: sections[i].title,
-              body: sections[i].body,
-              isDarkMode: isDarkMode,
-              styleSheet: style,
-              initiallyExpanded: i == 0 ||
-                  (sections.first.title.isEmpty ? i == 1 : false),
-            ),
-        ],
+        content,
+        if (onOpenRecipe != null && ctas.isNotEmpty)
+          RecipeCtaList(
+            links: ctas,
+            isDarkMode: isDarkMode,
+            onOpen: onOpenRecipe!,
+          ),
       ],
     );
   }
@@ -345,7 +534,8 @@ class _TypingDotsState extends State<_TypingDots>
           mainAxisSize: MainAxisSize.min,
           children: List.generate(3, (i) {
             final t = (_controller.value + i * 0.2) % 1.0;
-            final opacity = 0.35 + 0.65 * (1 - (t - 0.5).abs() * 2).clamp(0.0, 1.0);
+            final opacity =
+                0.35 + 0.65 * (1 - (t - 0.5).abs() * 2).clamp(0.0, 1.0);
             return Padding(
               padding: EdgeInsets.only(right: i < 2 ? 5 : 0),
               child: Opacity(

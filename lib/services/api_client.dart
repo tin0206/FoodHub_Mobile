@@ -118,7 +118,7 @@ class ApiClient {
     }
 
     throw ApiException(
-      parseApiErrorMessage(body, fallback: 'Request failed (${response.statusCode})'),
+      messageForStatusCode(response.statusCode, body),
       statusCode: response.statusCode,
     );
   }

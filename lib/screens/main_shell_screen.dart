@@ -106,6 +106,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
       RecsScreen(
         dietaryRestrictions: _dietaryRestrictions,
         primaryGoal: _primaryGoal,
+        onDetailModeChanged: (v) => _onDetailModeChanged(AppTab.recs, v),
       ),
       FavoritesScreen(
         onDetailModeChanged: (v) => _onDetailModeChanged(AppTab.favorites, v),

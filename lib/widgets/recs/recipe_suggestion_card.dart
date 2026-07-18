@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/models/ai.dart';
+import 'package:foodhub_mobile/widgets/recs/markdown_reply.dart';
 
 class RecipeSuggestionList extends StatelessWidget {
   const RecipeSuggestionList({
     super.key,
     required this.recipes,
     required this.isDarkMode,
+    this.onOpenRecipe,
   });
 
   final List<RagRecipeModel> recipes;
   final bool isDarkMode;
+  final void Function(RagRecipeModel recipe)? onOpenRecipe;
 
   @override
   Widget build(BuildContext context) {
     if (recipes.isEmpty) return const SizedBox.shrink();
 
+    // When parent already renders markdown CTAs, keep a compact secondary list
+    // only if we still want expandable ingredient previews.
     final titleColor =
         isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
 
@@ -47,6 +52,9 @@ class RecipeSuggestionList extends StatelessWidget {
             child: RecipeSuggestionCard(
               recipe: recipe,
               isDarkMode: isDarkMode,
+              onOpenDetails: onOpenRecipe == null
+                  ? null
+                  : () => onOpenRecipe!(recipe),
             ),
           ),
         ),
@@ -60,10 +68,12 @@ class RecipeSuggestionCard extends StatefulWidget {
     super.key,
     required this.recipe,
     required this.isDarkMode,
+    this.onOpenDetails,
   });
 
   final RagRecipeModel recipe;
   final bool isDarkMode;
+  final VoidCallback? onOpenDetails;
 
   @override
   State<RecipeSuggestionCard> createState() => _RecipeSuggestionCardState();
@@ -92,6 +102,15 @@ class _RecipeSuggestionCardState extends State<RecipeSuggestionCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (widget.onOpenDetails != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+              child: RecipeDetailCtaButton(
+                title: recipe.title,
+                isDarkMode: isDark,
+                onPressed: widget.onOpenDetails!,
+              ),
+            ),
           InkWell(
             onTap: () => setState(() => _expanded = !_expanded),
             borderRadius: BorderRadius.circular(12),
@@ -103,21 +122,28 @@ class _RecipeSuggestionCardState extends State<RecipeSuggestionCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          recipe.title,
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: primary,
-                          ),
-                        ),
-                        if (recipe.estimatedServings != null) ...[
-                          const SizedBox(height: 2),
+                        if (widget.onOpenDetails == null)
                           Text(
-                            'Serves ${recipe.estimatedServings}',
+                            recipe.title,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: primary,
+                            ),
+                          ),
+                        if (recipe.estimatedServings != null) ...[
+                          if (widget.onOpenDetails == null)
+                            const SizedBox(height: 2),
+                          Text(
+                            'Serves ${recipe.estimatedServings}'
+                            '${_expanded ? '' : ' · tap for preview'}',
                             style: TextStyle(fontSize: 11, color: secondary),
                           ),
-                        ],
+                        ] else if (widget.onOpenDetails == null)
+                          Text(
+                            'Tap for preview',
+                            style: TextStyle(fontSize: 11, color: secondary),
+                          ),
                       ],
                     ),
                   ),
@@ -185,10 +211,10 @@ class _RecipeSuggestionCardState extends State<RecipeSuggestionCard> {
                           children: [
                             Text(
                               '${e.key + 1}.',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFF059669),
+                                color: Color(0xFF059669),
                               ),
                             ),
                             const SizedBox(width: 6),

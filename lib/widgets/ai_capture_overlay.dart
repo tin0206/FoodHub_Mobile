@@ -415,8 +415,8 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                     const SizedBox(height: 12),
                     Text(
                       _mode == AiCaptureMode.ingredients
-                          ? 'Detecting ingredients...'
-                          : 'Recognizing dish...',
+                          ? 'Queued — detecting ingredients...'
+                          : 'Queued — recognizing dish...',
                       style: const TextStyle(color: Colors.white),
                     ),
                   ],
