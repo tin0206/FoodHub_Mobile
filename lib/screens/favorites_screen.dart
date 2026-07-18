@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/models/favorite.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/favorite_service.dart';
+import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_card.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 
@@ -30,6 +31,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   void initState() {
     super.initState();
     _loadFavorites();
+    FavoriteService.changes.addListener(_onExternalChange);
+  }
+
+  void _onExternalChange() {
+    // Only reload when not viewing a detail (detail manages its own state)
+    if (mounted && _selectedRecipeIndex == null) _loadFavorites();
+  }
+
+  @override
+  void dispose() {
+    FavoriteService.changes.removeListener(_onExternalChange);
+    super.dispose();
   }
 
   Future<void> _loadFavorites() async {
@@ -81,14 +94,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         await _favoriteService.deleteFavorite(favorite.id);
         if (!mounted) return;
         setState(() => _favorites.removeAt(index));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$removedName removed from favorites.')),
-        );
+        _showRemovedToast(removedName);
       } on ApiException catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        showErrorToast(context, e.message);
         return;
       }
     }
@@ -115,9 +124,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       setState(() => _savedCurrentRecipe = true);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      showErrorToast(context, e.message);
     }
   }
 
@@ -132,7 +139,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
 
     final current = _favorites[index];
-    final cardColor = recipeCardTheme(current.recipe.labels).start;
+    final cardColor = recipeCardTheme(current.recipe.id, current.recipe.labels).start;
     final updatedNote = await _showEditNoteDialog(
       initialNote: current.note ?? '',
       accentColor: cardColor,
@@ -169,9 +176,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       });
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      showErrorToast(context, e.message);
     }
   }
 
@@ -190,25 +195,26 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final shouldRemove = await showDialog<bool>(
       context: context,
       builder: (context) {
+        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: isDarkMode ? const Color(0xFF141414) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
+          title: Text(
             'Remove from favorites?',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF111827),
+              color: isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827),
             ),
           ),
           content: Text(
             'Do you want to remove "${recipe.name}" from your saved recipes?',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               height: 1.4,
-              color: Color(0xFF4B5563),
+              color: isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF4B5563),
             ),
           ),
           actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -254,19 +260,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       _showRemovedToast(recipe.name);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      showErrorToast(context, e.message);
     }
   }
 
   void _showRemovedToast(String recipeName) {
-    final overlay = Overlay.of(context);
-    final entry = OverlayEntry(
-      builder: (ctx) => _RemovedToast(recipeName: recipeName),
-    );
-    overlay.insert(entry);
-    Future.delayed(const Duration(milliseconds: 2200), entry.remove);
+    showFavoriteToast(context, recipeName: recipeName, saved: false);
   }
 
   Future<String?> _showEditNoteDialog({
@@ -408,7 +407,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
       return RecipeDetailView(
         recipe: recipe.toDetailData(),
-        cardColor: recipeCardTheme(recipe.labels).start,
+        cardColor: recipeCardTheme(recipe.id, recipe.labels).start,
         onBack: _closeRecipeDetails,
         isSaved: _savedCurrentRecipe,
         onToggleSave: _toggleSaveInDetail,
@@ -555,7 +554,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         decoration: BoxDecoration(
                           color: noteBg,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: noteBorder),
+                          border: isDarkMode ? null : Border.all(color: noteBorder),
+                          boxShadow: isDarkMode
+                              ? [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.25),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
                         ),
                         child: Row(
                           children: [
@@ -712,93 +720,3 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-class _RemovedToast extends StatefulWidget {
-  const _RemovedToast({required this.recipeName});
-  final String recipeName;
-
-  @override
-  State<_RemovedToast> createState() => _RemovedToastState();
-}
-
-class _RemovedToastState extends State<_RemovedToast>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _fade;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 250),
-    );
-    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
-    _ctrl.forward();
-    Future.delayed(const Duration(milliseconds: 1700), () {
-      if (mounted) _ctrl.reverse();
-    });
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      bottom: 90,
-      left: 24,
-      right: 24,
-      child: FadeTransition(
-        opacity: _fade,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1F2937),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDC2626).withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.favorite_border_rounded,
-                    size: 16,
-                    color: Color(0xFFF87171),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '${widget.recipeName} removed from favorites',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

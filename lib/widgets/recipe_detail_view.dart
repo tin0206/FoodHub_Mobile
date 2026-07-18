@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/api_config.dart';
+import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_image.dart';
 
 const kAvailableLabels = [
@@ -25,6 +26,7 @@ const kAvailableLabels = [
 
 class RecipeDetailData {
   const RecipeDetailData({
+    required this.id,
     required this.name,
     this.imageUrl,
     required this.cookingMinutes,
@@ -34,6 +36,7 @@ class RecipeDetailData {
     required this.labels,
   });
 
+  final int id;
   final String name;
   final String? imageUrl;
   final int cookingMinutes;
@@ -264,13 +267,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
         calories == null ||
         cookingMinutes <= 0 ||
         calories <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Ingredients, instructions, cooking time and calories are required.',
-          ),
-        ),
-      );
+      showErrorToast(context, 'Ingredients, instructions, time and calories are required.');
       return;
     }
 
@@ -292,6 +289,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     Navigator.of(context).pop();
 
     final updated = RecipeDetailData(
+      id: widget.recipe.id,
       name: widget.recipe.name,
       cookingMinutes: cookingMinutes,
       calories: calories,
@@ -394,9 +392,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                 width: 22,
                 height: 22,
                 decoration: BoxDecoration(
-                  color: isDarkMode
-                      ? const Color(0xFF1E1E1E)
-                      : widget.cardColor,
+                  color: accentColor.withValues(alpha: isDarkMode ? 0.18 : 0.1),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 alignment: Alignment.center,
@@ -777,16 +773,13 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
             height: 48,
             decoration: BoxDecoration(
               color: surfaceColor,
-              border: Border(bottom: BorderSide(color: borderColor)),
-              boxShadow: isDarkMode
-                  ? []
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDarkMode ? 0.35 : 0.06),
+                  blurRadius: isDarkMode ? 10 : 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
@@ -823,6 +816,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
             children: [
               RecipeImageHeader(
                 imageUrl: widget.recipe.imageUrl,
+                recipeId: widget.recipe.id,
                 labels: widget.recipe.labels,
                 height: 200,
                 borderRadius: BorderRadius.zero,
@@ -1541,33 +1535,51 @@ class _FireworksCelebrationState extends State<FireworksCelebration>
                   },
                 );
               }),
-              Container(
-                width: 190,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 20,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('🎉', style: TextStyle(fontSize: 30)),
-                    SizedBox(height: 6),
-                    Text(
-                      'Completed!',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+              Builder(builder: (context) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return Container(
+                  width: 190,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.5 : 0.12),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text('Great job chef', style: TextStyle(fontSize: 13)),
-                  ],
-                ),
-              ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🎉', style: TextStyle(fontSize: 36)),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Completed!',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827),
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Great job chef 👨‍🍳',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
             ],
           ),
         ),
@@ -1668,35 +1680,23 @@ class _DetailHeaderInfo extends StatelessWidget {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+const _kCardPalette = [
+  (Color(0xFF10B981), Color(0xFF059669)),
+  (Color(0xFFF59E0B), Color(0xFFD97706)),
+  (Color(0xFF3B82F6), Color(0xFF2563EB)),
+  (Color(0xFFF97316), Color(0xFFEA580C)),
+  (Color(0xFF8B5CF6), Color(0xFF7C3AED)),
+  (Color(0xFF14B8A6), Color(0xFF0D9488)),
+  (Color(0xFF06B6D4), Color(0xFF0891B2)),
+  (Color(0xFFF43F5E), Color(0xFFE11D48)),
+  (Color(0xFF6366F1), Color(0xFF4F46E5)),
+  (Color(0xFFEC4899), Color(0xFFDB2777)),
+];
+
 /// Public: used by recipe cards AND detail view to keep colors consistent.
-({String emoji, Color start, Color end}) recipeCardTheme(List<String> labels) {
-  for (final l in labels) {
-    if (l == 'Vegan' || l == 'Vegetarian') {
-      return (emoji: '🥗', start: const Color(0xFF10B981), end: const Color(0xFF059669));
-    }
-    if (l == 'Italian' || l == 'Comfort Food') {
-      return (emoji: '🍝', start: const Color(0xFFF59E0B), end: const Color(0xFFD97706));
-    }
-    if (l == 'High Protein' || l == 'Keto') {
-      return (emoji: '💪', start: const Color(0xFF3B82F6), end: const Color(0xFF1D4ED8));
-    }
-    if (l == 'Breakfast') {
-      return (emoji: '🌅', start: const Color(0xFFF97316), end: const Color(0xFFEA580C));
-    }
-    if (l == 'Quick Meal') {
-      return (emoji: '⚡', start: const Color(0xFF8B5CF6), end: const Color(0xFF7C3AED));
-    }
-    if (l == 'Healthy') {
-      return (emoji: '🌿', start: const Color(0xFF22C55E), end: const Color(0xFF16A34A));
-    }
-    if (l == 'Pescetarian') {
-      return (emoji: '🐟', start: const Color(0xFF06B6D4), end: const Color(0xFF0891B2));
-    }
-    if (l == 'Meal Prep') {
-      return (emoji: '📦', start: const Color(0xFFF43F5E), end: const Color(0xFFE11D48));
-    }
-  }
-  return (emoji: '🍽️', start: const Color(0xFF10B981), end: const Color(0xFF059669));
+({String emoji, Color start, Color end}) recipeCardTheme(int id, List<String> labels) {
+  final (start, end) = _kCardPalette[id.abs() % _kCardPalette.length];
+  return (emoji: _recipeEmoji(labels), start: start, end: end);
 }
 
 String _recipeEmoji(List<String> labels) {

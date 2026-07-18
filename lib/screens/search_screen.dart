@@ -3,6 +3,7 @@ import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/favorite_service.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
+import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_card.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 
@@ -54,6 +55,11 @@ class _SearchScreenState extends State<SearchScreen> {
     super.initState();
     _loadRecipes();
     _loadFavoriteIds();
+    FavoriteService.changes.addListener(_onFavoritesChanged);
+  }
+
+  void _onFavoritesChanged() {
+    if (mounted) _loadFavoriteIds();
   }
 
   Future<void> _loadFavoriteIds() async {
@@ -113,6 +119,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    FavoriteService.changes.removeListener(_onFavoritesChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -159,6 +166,7 @@ class _SearchScreenState extends State<SearchScreen> {
             _favoriteIdsByRecipeId.remove(recipe.id);
             _savedCurrentRecipe = false;
           });
+          if (mounted) showFavoriteToast(context, recipeName: recipe.name, saved: false);
         }
       } else {
         final favorite = await _favoriteService.addFavorite(recipeId: recipe.id);
@@ -166,12 +174,11 @@ class _SearchScreenState extends State<SearchScreen> {
           _favoriteIdsByRecipeId[recipe.id] = favorite.id;
           _savedCurrentRecipe = true;
         });
+        if (mounted) showFavoriteToast(context, recipeName: recipe.name, saved: true);
       }
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      showErrorToast(context, e.message);
     }
   }
 
@@ -189,7 +196,7 @@ class _SearchScreenState extends State<SearchScreen> {
       final recipe = _recipes[_selectedRecipeIndex!];
       return RecipeDetailView(
         recipe: recipe.toDetailData(),
-        cardColor: recipeCardTheme(recipe.labels).start,
+        cardColor: recipeCardTheme(recipe.id, recipe.labels).start,
         onBack: _closeRecipeDetails,
         isSaved: _savedCurrentRecipe,
         onToggleSave: () => _toggleSave(),

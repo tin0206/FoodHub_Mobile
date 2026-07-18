@@ -3,6 +3,7 @@ import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/services/session_service.dart';
+import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_card.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 
@@ -132,11 +133,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _recipes[index] = updated;
         _selectedRecipe = updated;
       });
+      showRecipeToast(context, recipeName: updated.name, isNew: false);
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      showErrorToast(context, e.message);
     }
   }
 
@@ -145,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_selectedRecipe != null && _selectedRecipeCardIndex != null) {
       return RecipeDetailView(
         recipe: _selectedRecipe!.toDetailData(),
-        cardColor: recipeCardTheme(_selectedRecipe!.labels).start,
+        cardColor: recipeCardTheme(_selectedRecipe!.id, _selectedRecipe!.labels).start,
         onBack: _closeRecipeDetails,
         enableEdit: true,
         onSaveEdited: (data) => _onSaveEditedRecipe(data),
@@ -427,9 +427,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
         calories == null ||
         cookingMinutes <= 0 ||
         calories <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all required fields.')),
-      );
+      showErrorToast(context, 'Please fill in all required fields.');
       return;
     }
 
@@ -458,262 +456,427 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
       );
       if (!mounted) return;
       Navigator.of(context).pop();
+      showRecipeToast(context, recipeName: name, isNew: true);
       widget.onSave(created);
     } on ApiException catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      showErrorToast(context, e.message);
     } catch (_) {
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to save recipe.')),
-      );
+      showErrorToast(context, 'Unable to save recipe.');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
-  }
-
-  Widget _darkField({
-    required TextEditingController controller,
-    required String label,
-    required Color fillColor,
-    required Color textColor,
-    required Color labelColor,
-    required Color borderColor,
-    String? hint,
-    String? suffix,
-    int? maxLines,
-    TextInputType? keyboardType,
-  }) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines ?? 1,
-      keyboardType: keyboardType,
-      style: TextStyle(fontSize: 13, color: textColor),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        suffixText: suffix,
-        filled: true,
-        fillColor: fillColor,
-        labelStyle: TextStyle(color: labelColor),
-        hintStyle: TextStyle(color: labelColor, fontSize: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: borderColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF059669)),
-        ),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 10,
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDarkMode ? const Color(0xFF141414) : Colors.white;
-    final dividerColor =
-        isDarkMode ? const Color(0xFF2A2A2A) : colors.outlineVariant;
-    final borderColor =
-        isDarkMode ? Colors.transparent : colors.outlineVariant;
-    final fieldFill =
-        isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF9FAFB);
-    final textColor =
-        isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF111827);
-    final labelColor =
-        isDarkMode ? const Color(0xFF94A3B8) : colors.onSurfaceVariant;
+    final cardBg = isDarkMode ? const Color(0xFF141414) : Colors.white;
+    final panelColor = isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF8FAFC);
+    final dividerColor = isDarkMode ? const Color(0xFF2A2A2A) : colors.outlineVariant;
+    final hintColor = isDarkMode ? const Color(0xFF64748B) : const Color(0xFF9CA3AF);
+    final textColor = isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF111827);
+    const accentColor = Color(0xFF059669);
+
+    InputDecoration inlineFieldDecoration({String? hint, String? suffix}) =>
+        InputDecoration(
+          hintText: hint,
+          suffixText: suffix,
+          hintStyle: TextStyle(color: hintColor, fontSize: 13),
+          isDense: true,
+          filled: false,
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: accentColor, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
+        );
 
     return Container(
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(12),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDarkMode ? 0.4 : 0.08),
-            blurRadius: isDarkMode ? 16 : 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.45 : 0.08),
+            blurRadius: isDarkMode ? 20 : 14,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Column(
         children: [
+          // ── Header ──────────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 10),
             child: Row(
               children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.add_circle_outline, size: 16, color: accentColor),
+                ),
+                const SizedBox(width: 10),
                 Text(
-                  'Add Recipe',
+                  'New Recipe',
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                     color: colors.onSurface,
+                    letterSpacing: -0.3,
                   ),
                 ),
                 const Spacer(),
                 IconButton(
                   onPressed: widget.onCancel,
-                  icon: Icon(Icons.close, size: 16, color: colors.onSurface),
+                  icon: Icon(Icons.close_rounded, size: 18, color: colors.onSurfaceVariant),
+                  style: IconButton.styleFrom(
+                    backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF3F4F6),
+                    minimumSize: const Size(32, 32),
+                    padding: EdgeInsets.zero,
+                  ),
                 ),
               ],
             ),
           ),
           Divider(height: 1, color: dividerColor),
+
+          // ── Body ────────────────────────────────────────────────────
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-              children: [
-                _darkField(
-                  controller: _nameController,
-                  label: 'Recipe Name *',
-                  fillColor: fieldFill,
-                  textColor: textColor,
-                  labelColor: labelColor,
-                  borderColor: borderColor,
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _darkField(
-                        controller: _cookingMinutesController,
-                        label: 'Cooking time *',
-                        suffix: 'min',
-                        keyboardType: TextInputType.number,
-                        fillColor: fieldFill,
-                        textColor: textColor,
-                        labelColor: labelColor,
-                        borderColor: borderColor,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Recipe name
+                  _AddSectionCard(
+                    isDarkMode: isDarkMode,
+                    panelColor: panelColor,
+                    child: TextField(
+                      controller: _nameController,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                        letterSpacing: -0.3,
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _darkField(
-                        controller: _caloriesController,
-                        label: 'Calories *',
-                        suffix: 'cal',
-                        keyboardType: TextInputType.number,
-                        fillColor: fieldFill,
-                        textColor: textColor,
-                        labelColor: labelColor,
-                        borderColor: borderColor,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                _DynamicListSection(
-                  label: 'Ingredients *',
-                  controllers: _ingredientControllers,
-                  isNumbered: false,
-                  hint: 'e.g. 2 cups flour',
-                  onAdd: () => setState(
-                    () => _ingredientControllers.add(TextEditingController()),
-                  ),
-                  onRemove: (i) => setState(() {
-                    _ingredientControllers[i].dispose();
-                    _ingredientControllers.removeAt(i);
-                  }),
-                  fieldFill: fieldFill,
-                  textColor: textColor,
-                  labelColor: labelColor,
-                  borderColor: borderColor,
-                  isDarkMode: isDarkMode,
-                ),
-                const SizedBox(height: 10),
-                _DynamicListSection(
-                  label: 'Steps *',
-                  controllers: _stepControllers,
-                  isNumbered: true,
-                  hint: 'Describe this step',
-                  onAdd: () => setState(
-                    () => _stepControllers.add(TextEditingController()),
-                  ),
-                  onRemove: (i) => setState(() {
-                    _stepControllers[i].dispose();
-                    _stepControllers.removeAt(i);
-                  }),
-                  fieldFill: fieldFill,
-                  textColor: textColor,
-                  labelColor: labelColor,
-                  borderColor: borderColor,
-                  isDarkMode: isDarkMode,
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: kAvailableLabels.map((label) {
-                    final isSelected = _selectedLabels.contains(label);
-                    return FilterChip(
-                      selected: isSelected,
-                      selectedColor: const Color(0xFF059669),
-                      checkmarkColor: Colors.white,
-                      backgroundColor:
-                          isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-                      side: isDarkMode
-                          ? BorderSide.none
-                          : BorderSide(color: dividerColor),
-                      label: Text(
-                        label,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: isSelected ? Colors.white : labelColor,
+                      decoration: InputDecoration(
+                        hintText: 'Recipe name…',
+                        hintStyle: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: hintColor,
+                          letterSpacing: -0.3,
                         ),
+                        isDense: true,
+                        filled: false,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
                       ),
-                      onSelected: (selected) {
-                        setState(() {
-                          selected
-                              ? _selectedLabels.add(label)
-                              : _selectedLabels.remove(label);
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-              ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Time + Calories
+                  _AddSectionCard(
+                    isDarkMode: isDarkMode,
+                    panelColor: panelColor,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.schedule_rounded, size: 16, color: accentColor),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 56,
+                          child: TextField(
+                            controller: _cookingMinutesController,
+                            keyboardType: TextInputType.number,
+                            style: TextStyle(fontSize: 13, color: textColor),
+                            decoration: inlineFieldDecoration(hint: '0'),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text('min', style: TextStyle(fontSize: 12, color: hintColor)),
+                        const SizedBox(width: 20),
+                        const Icon(Icons.local_fire_department_outlined, size: 16, color: accentColor),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 56,
+                          child: TextField(
+                            controller: _caloriesController,
+                            keyboardType: TextInputType.number,
+                            style: TextStyle(fontSize: 13, color: textColor),
+                            decoration: inlineFieldDecoration(hint: '0'),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text('cal', style: TextStyle(fontSize: 12, color: hintColor)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Ingredients
+                  _AddSectionCard(
+                    isDarkMode: isDarkMode,
+                    panelColor: panelColor,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.shopping_basket_outlined, size: 15, color: accentColor),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Ingredients',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: colors.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        ..._ingredientControllers.asMap().entries.map((entry) {
+                          final i = entry.key;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 7,
+                                  height: 7,
+                                  decoration: const BoxDecoration(
+                                    color: accentColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: TextField(
+                                    controller: entry.value,
+                                    maxLines: 1,
+                                    textInputAction: TextInputAction.next,
+                                    style: TextStyle(fontSize: 13, color: textColor),
+                                    decoration: inlineFieldDecoration(hint: 'Ingredient ${i + 1}'),
+                                  ),
+                                ),
+                                if (_ingredientControllers.length > 1) ...[
+                                  const SizedBox(width: 4),
+                                  GestureDetector(
+                                    onTap: () => setState(() {
+                                      _ingredientControllers[i].dispose();
+                                      _ingredientControllers.removeAt(i);
+                                    }),
+                                    child: Icon(Icons.close_rounded, size: 16, color: colors.onSurfaceVariant),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        }),
+                        TextButton.icon(
+                          onPressed: () => setState(() => _ingredientControllers.add(TextEditingController())),
+                          icon: const Icon(Icons.add, size: 14),
+                          label: const Text('Add ingredient'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: accentColor,
+                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Steps
+                  _AddSectionCard(
+                    isDarkMode: isDarkMode,
+                    panelColor: panelColor,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.format_list_numbered, size: 15, color: accentColor),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Instructions',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: colors.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        ..._stepControllers.asMap().entries.map((entry) {
+                          final i = entry.key;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 22,
+                                  height: 22,
+                                  decoration: BoxDecoration(
+                                    color: accentColor.withValues(alpha: isDarkMode ? 0.18 : 0.1),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '${i + 1}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: accentColor,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextField(
+                                    controller: entry.value,
+                                    maxLines: null,
+                                    minLines: 1,
+                                    textInputAction: TextInputAction.next,
+                                    style: TextStyle(fontSize: 13, color: textColor),
+                                    decoration: inlineFieldDecoration(hint: 'Step ${i + 1}…'),
+                                  ),
+                                ),
+                                if (_stepControllers.length > 1) ...[
+                                  const SizedBox(width: 4),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 3),
+                                    child: GestureDetector(
+                                      onTap: () => setState(() {
+                                        _stepControllers[i].dispose();
+                                        _stepControllers.removeAt(i);
+                                      }),
+                                      child: Icon(Icons.close_rounded, size: 16, color: colors.onSurfaceVariant),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        }),
+                        TextButton.icon(
+                          onPressed: () => setState(() => _stepControllers.add(TextEditingController())),
+                          icon: const Icon(Icons.add, size: 14),
+                          label: const Text('Add step'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: accentColor,
+                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Labels
+                  _AddSectionCard(
+                    isDarkMode: isDarkMode,
+                    panelColor: panelColor,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.sell_outlined, size: 15, color: accentColor),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Labels',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: colors.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: kAvailableLabels.map((label) {
+                            final isSelected = _selectedLabels.contains(label);
+                            return FilterChip(
+                              selected: isSelected,
+                              selectedColor: accentColor,
+                              checkmarkColor: Colors.white,
+                              backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+                              side: BorderSide.none,
+                              label: Text(
+                                label,
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  color: isSelected ? Colors.white : colors.onSurfaceVariant,
+                                ),
+                              ),
+                              onSelected: (selected) => setState(() {
+                                selected ? _selectedLabels.add(label) : _selectedLabels.remove(label);
+                              }),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+
+          // ── Actions ─────────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
             child: Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     onPressed: widget.onCancel,
                     style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(44),
                       foregroundColor: colors.onSurface,
                       side: BorderSide.none,
-                      backgroundColor: isDarkMode
-                          ? const Color(0xFF1E1E1E)
-                          : colors.surfaceContainerHighest,
+                      backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Cancel'),
+                    child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: FilledButton(
                     onPressed: _isSaving ? null : _save,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF059669),
+                      minimumSize: const Size.fromHeight(44),
+                      backgroundColor: accentColor,
                       foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Save'),
+                    child: const Text('Save Recipe', style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],
@@ -725,172 +888,34 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
   }
 }
 
-class _DynamicListSection extends StatelessWidget {
-  const _DynamicListSection({
-    required this.label,
-    required this.controllers,
-    required this.isNumbered,
-    required this.hint,
-    required this.onAdd,
-    required this.onRemove,
-    required this.fieldFill,
-    required this.textColor,
-    required this.labelColor,
-    required this.borderColor,
+class _AddSectionCard extends StatelessWidget {
+  const _AddSectionCard({
     required this.isDarkMode,
+    required this.panelColor,
+    required this.child,
   });
 
-  final String label;
-  final List<TextEditingController> controllers;
-  final bool isNumbered;
-  final String hint;
-  final VoidCallback onAdd;
-  final void Function(int) onRemove;
-  final Color fieldFill;
-  final Color textColor;
-  final Color labelColor;
-  final Color borderColor;
   final bool isDarkMode;
+  final Color panelColor;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    const accentColor = Color(0xFF059669);
-    final removeBg =
-        isDarkMode ? const Color(0xFF1E293B) : const Color(0xFFF3F4F6);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: labelColor,
-              ),
-            ),
-            const Spacer(),
-            GestureDetector(
-              onTap: onAdd,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.add, size: 12, color: accentColor),
-                    SizedBox(width: 3),
-                    Text(
-                      'Add',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: accentColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ...controllers.asMap().entries.map((entry) {
-          final i = entry.key;
-          final controller = entry.value;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              children: [
-                Container(
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.1),
-                    shape: isNumbered ? BoxShape.rectangle : BoxShape.circle,
-                    borderRadius: isNumbered ? BorderRadius.circular(6) : null,
-                  ),
-                  alignment: Alignment.center,
-                  child: isNumbered
-                      ? Text(
-                          '${i + 1}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: accentColor,
-                          ),
-                        )
-                      : Container(
-                          width: 5,
-                          height: 5,
-                          decoration: const BoxDecoration(
-                            color: accentColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    maxLines: isNumbered ? null : 1,
-                    minLines: 1,
-                    textInputAction: TextInputAction.next,
-                    style: TextStyle(fontSize: 13, color: textColor),
-                    decoration: InputDecoration(
-                      hintText: isNumbered ? 'Step ${i + 1}…' : hint,
-                      hintStyle: TextStyle(color: labelColor, fontSize: 12),
-                      filled: true,
-                      fillColor: fieldFill,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: borderColor),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: borderColor),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF059669)),
-                      ),
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                    ),
-                  ),
-                ),
-                if (controllers.length > 1) ...[
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: () => onRemove(i),
-                    child: Container(
-                      width: 26,
-                      height: 26,
-                      decoration: BoxDecoration(
-                        color: removeBg,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        size: 14,
-                        color: Color(0xFF9CA3AF),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          );
-        }),
-      ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: panelColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.28 : 0.06),
+            blurRadius: isDarkMode ? 8 : 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }

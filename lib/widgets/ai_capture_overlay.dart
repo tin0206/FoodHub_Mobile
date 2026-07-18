@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/models/ai.dart';
 import 'package:foodhub_mobile/services/ai_service.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
+import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:image_picker/image_picker.dart';
 
 class AiCaptureScreen extends StatefulWidget {
@@ -205,9 +206,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    showErrorToast(context, message);
   }
 
   void _finishIngredients() {
