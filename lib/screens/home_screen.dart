@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
-import 'package:foodhub_mobile/services/session_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_card.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
@@ -40,17 +39,12 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final userId = SessionService.instance.currentUser?.id;
-      final all = await _recipeService.listRecipes();
+      final mine = await _recipeService.listRecipes(mine: true);
       if (!mounted) return;
       setState(() {
         _recipes
           ..clear()
-          ..addAll(
-            userId == null
-                ? all
-                : all.where((r) => r.createdBy == userId),
-          );
+          ..addAll(mine);
         _isLoading = false;
       });
     } on ApiException catch (e) {
@@ -124,16 +118,86 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final updated = await _recipeService.updateRecipe(
         current.id,
+        title: data.name,
         ingredients: RecipeModel.splitLines(data.ingredients),
         directions: RecipeModel.splitLines(data.steps),
         dietaryRestrictions: data.labels,
       );
       if (!mounted) return;
+      final wasClone = updated.id != current.id;
       setState(() {
-        _recipes[index] = updated;
+        if (wasClone) {
+          // Catalog edit creates a private copy — replace selection with clone.
+          if (index < _recipes.length && _recipes[index].id == current.id) {
+            _recipes[index] = updated;
+          } else {
+            _recipes.insert(0, updated);
+          }
+        } else {
+          _recipes[index] = updated;
+        }
         _selectedRecipe = updated;
       });
-      showRecipeToast(context, recipeName: updated.name, isNew: false);
+      showRecipeToast(
+        context,
+        recipeName: updated.name,
+        isNew: wasClone,
+      );
+      if (wasClone && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Saved as your private copy of this recipe.'),
+          ),
+        );
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      showErrorToast(context, e.message);
+    }
+  }
+
+  Future<void> _onDeleteRecipe() async {
+    final index = _selectedRecipeCardIndex;
+    final current = _selectedRecipe;
+    if (current == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete recipe?'),
+        content: Text('Delete "${current.title}" permanently?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await _recipeService.deleteRecipe(current.id);
+      if (!mounted) return;
+      setState(() {
+        if (index != null &&
+            index >= 0 &&
+            index < _recipes.length &&
+            _recipes[index].id == current.id) {
+          _recipes.removeAt(index);
+        } else {
+          _recipes.removeWhere((r) => r.id == current.id);
+        }
+      });
+      _closeRecipeDetails();
+      showRecipeToast(context, recipeName: current.title, isNew: false);
     } on ApiException catch (e) {
       if (!mounted) return;
       showErrorToast(context, e.message);
@@ -149,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onBack: _closeRecipeDetails,
         enableEdit: true,
         onSaveEdited: (data) => _onSaveEditedRecipe(data),
+        onDelete: _onDeleteRecipe,
       );
     }
 

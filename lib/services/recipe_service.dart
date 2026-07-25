@@ -6,11 +6,19 @@ class RecipeService {
 
   final ApiClient _api;
 
-  Future<List<RecipeModel>> listRecipes({int skip = 0, int limit = 50}) async {
+  Future<List<RecipeModel>> listRecipes({
+    int skip = 0,
+    int limit = 50,
+    bool mine = false,
+  }) async {
     final data = await _api.get(
       '/recipes',
-      query: {'skip': '$skip', 'limit': '$limit'},
-      auth: false,
+      query: {
+        'skip': '$skip',
+        'limit': '$limit',
+        if (mine) 'mine': 'true',
+      },
+      auth: mine,
     );
     return (data as List<dynamic>)
         .map((e) => RecipeModel.fromJson(e as Map<String, dynamic>))
@@ -22,6 +30,7 @@ class RecipeService {
     String? dietaryRestriction,
     int skip = 0,
     int limit = 50,
+    bool mine = false,
   }) async {
     final params = <String, String>{
       'skip': '$skip',
@@ -31,15 +40,20 @@ class RecipeService {
     if (dietaryRestriction != null && dietaryRestriction.isNotEmpty) {
       params['dietary_restriction'] = dietaryRestriction;
     }
+    if (mine) params['mine'] = 'true';
 
-    final data = await _api.get('/recipes/search', query: params, auth: false);
+    final data = await _api.get(
+      '/recipes/search',
+      query: params,
+      auth: mine,
+    );
     return (data as List<dynamic>)
         .map((e) => RecipeModel.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
   Future<RecipeModel> getRecipe(int id) async {
-    final data = await _api.get('/recipes/$id', auth: false);
+    final data = await _api.get('/recipes/$id', auth: true);
     return RecipeModel.fromJson(data as Map<String, dynamic>);
   }
 
@@ -67,12 +81,14 @@ class RecipeService {
 
   Future<RecipeModel> updateRecipe(
     int id, {
+    String? title,
     List<String>? ingredients,
     List<String>? directions,
     List<String>? dietaryRestrictions,
     int? estimatedServings,
   }) async {
     final body = RecipeModel(id: 0, title: '').toUpdateJson(
+      title: title,
       ingredients: ingredients,
       directions: directions,
       dietaryRestrictions: dietaryRestrictions,

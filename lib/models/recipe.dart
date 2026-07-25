@@ -11,6 +11,7 @@ class RecipeModel {
     this.estimatedServings,
     this.dietaryRestrictions = const [],
     this.createdBy,
+    this.visibility = 'private',
   });
 
   final int id;
@@ -22,6 +23,9 @@ class RecipeModel {
   final int? estimatedServings;
   final List<String> dietaryRestrictions;
   final int? createdBy;
+  final String visibility;
+
+  bool get isPrivate => visibility == 'private';
 
   String get name => title;
 
@@ -55,6 +59,7 @@ class RecipeModel {
       estimatedServings: json['estimated_servings'] as int?,
       dietaryRestrictions: _parseStringList(json['dietary_restrictions']),
       createdBy: json['created_by'] as int?,
+      visibility: (json['visibility'] as String?) ?? 'private',
     );
   }
 
@@ -76,12 +81,14 @@ class RecipeModel {
   }
 
   Map<String, dynamic> toUpdateJson({
+    String? title,
     List<String>? ingredients,
     List<String>? directions,
     List<String>? dietaryRestrictions,
     int? estimatedServings,
   }) {
     final data = <String, dynamic>{};
+    if (title != null) data['title'] = title;
     if (ingredients != null) data['ingredients'] = ingredients;
     if (directions != null) data['directions'] = directions;
     if (dietaryRestrictions != null) {
@@ -103,6 +110,7 @@ class RecipeModel {
       ingredients: ingredientsText,
       steps: stepsText,
       labels: dietaryRestrictions,
+      isPrivate: isPrivate,
     );
   }
 

@@ -34,6 +34,7 @@ class RecipeDetailData {
     required this.ingredients,
     required this.steps,
     required this.labels,
+    this.isPrivate = false,
   });
 
   final int id;
@@ -44,6 +45,7 @@ class RecipeDetailData {
   final String ingredients;
   final String steps;
   final List<String> labels;
+  final bool isPrivate;
 
   List<String> get ingredientItems => ingredients
       .split('\n')
@@ -97,6 +99,7 @@ class RecipeDetailView extends StatefulWidget {
     required this.onBack,
     this.enableEdit = false,
     this.onSaveEdited,
+    this.onDelete,
     this.isSaved,
     this.onToggleSave,
   });
@@ -108,6 +111,7 @@ class RecipeDetailView extends StatefulWidget {
   /// If true, shows Edit / Save Changes buttons (home screen).
   final bool enableEdit;
   final ValueChanged<RecipeDetailData>? onSaveEdited;
+  final VoidCallback? onDelete;
 
   /// Null means no save button is shown (home screen with enableEdit).
   final bool? isSaved;
@@ -296,6 +300,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       ingredients: ingredients,
       steps: steps,
       labels: _selectedEditLabels.toList(),
+      isPrivate: widget.recipe.isPrivate,
     );
 
     widget.onSaveEdited?.call(updated);
@@ -1371,6 +1376,21 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
             child: widget.enableEdit
                 ? Row(
                     children: [
+                      if (widget.onDelete != null && !_isEditMode) ...[
+                        IconButton(
+                          onPressed: widget.onDelete,
+                          tooltip: 'Delete recipe',
+                          style: IconButton.styleFrom(
+                            backgroundColor: panelColor,
+                            foregroundColor: const Color(0xFFDC2626),
+                            side: isDarkMode
+                                ? BorderSide.none
+                                : BorderSide(color: borderColor),
+                          ),
+                          icon: const Icon(Icons.delete_outline_rounded),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () {
@@ -1610,6 +1630,31 @@ class _DetailHeaderInfo extends StatelessWidget {
             height: 1.2,
           ),
         ),
+        if (recipe.isPrivate) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock_outline_rounded, size: 11, color: Colors.white),
+                SizedBox(width: 4),
+                Text(
+                  'Private',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 5),
         Row(
           children: [
