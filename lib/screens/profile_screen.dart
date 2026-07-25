@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
@@ -26,7 +27,9 @@ class ProfileScreen extends StatefulWidget {
     super.key,
     required this.user,
     required this.isDarkMode,
+    required this.language,
     required this.onToggleTheme,
+    required this.onLanguageChanged,
     required this.onLogout,
     required this.selectedDietaryRestrictions,
     required this.onDietaryRestrictionToggled,
@@ -37,7 +40,9 @@ class ProfileScreen extends StatefulWidget {
 
   final UserModel user;
   final bool isDarkMode;
+  final String language;
   final VoidCallback onToggleTheme;
+  final ValueChanged<String> onLanguageChanged;
   final VoidCallback onLogout;
   final Set<String> selectedDietaryRestrictions;
   final void Function(String tag, bool selected) onDietaryRestrictionToggled;
@@ -58,13 +63,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _calorieTargetController;
   late TextEditingController _proteinTargetController;
 
-  // Snapshot of last-saved values for Cancel
   late String _snapFullName;
   late String _snapEmail;
   late String _snapAge;
   late String _snapWeight;
   late String _snapCalorie;
   late String _snapProtein;
+  late String _snapLanguage;
 
   bool _isSaving = false;
   bool _notifyRecommendations = true;
@@ -108,6 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _snapWeight = user.weight?.toString() ?? '';
     _snapCalorie = user.calorieTarget?.toString() ?? '';
     _snapProtein = user.proteinTarget?.toString() ?? '';
+    _snapLanguage = user.language ?? 'en';
     _notifyRecommendations = user.notifyRecommendations;
     _notifyNewFeatures = user.notifyNewFeatures;
     _notifyWeeklySummary = user.notifyWeeklySummary;
@@ -126,31 +132,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _saveChanges() async {
     if (_isSaving) return;
+    final s = S.of(context);
 
     String? ageErr, weightErr, calorieErr, proteinErr;
 
     final ageVal = _ageController.text.trim();
     if (ageVal.isNotEmpty) {
       final v = int.tryParse(ageVal);
-      if (v == null || v <= 0) ageErr = 'Must be a positive number';
+      if (v == null || v <= 0) ageErr = s.mustBePositiveNumber;
     }
 
     final weightVal = _weightController.text.trim();
     if (weightVal.isNotEmpty) {
       final v = double.tryParse(weightVal);
-      if (v == null || v <= 0) weightErr = 'Must be a positive number';
+      if (v == null || v <= 0) weightErr = s.mustBePositiveNumber;
     }
 
     final calorieVal = _calorieTargetController.text.trim();
     if (calorieVal.isNotEmpty) {
       final v = int.tryParse(calorieVal);
-      if (v == null || v <= 0) calorieErr = 'Must be a positive number';
+      if (v == null || v <= 0) calorieErr = s.mustBePositiveNumber;
     }
 
     final proteinVal = _proteinTargetController.text.trim();
     if (proteinVal.isNotEmpty) {
       final v = int.tryParse(proteinVal);
-      if (v == null || v <= 0) proteinErr = 'Must be a positive number';
+      if (v == null || v <= 0) proteinErr = s.mustBePositiveNumber;
     }
 
     setState(() {
@@ -188,6 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (proteinVal.isNotEmpty) 'protein_target': int.parse(proteinVal),
         'dietary_restrictions': widget.selectedDietaryRestrictions.toList(),
         'primary_goal': widget.primaryGoal,
+        'language': widget.language,
         'notify_recommendations': _notifyRecommendations,
         'notify_new_features': _notifyNewFeatures,
         'notify_weekly_summary': _notifyWeeklySummary,
@@ -216,10 +224,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       Navigator.of(context).pop();
       setState(() => _isSaving = false);
-      showErrorToast(context, 'Unable to save profile.');
+      showErrorToast(context, s.unableToSaveProfile);
     }
   }
-
 
   void _showChangePasswordSheet() {
     showModalBottomSheet<void>(
@@ -239,6 +246,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _cancelChanges() {
+    if (widget.language != _snapLanguage) {
+      widget.onLanguageChanged(_snapLanguage);
+    }
     setState(() {
       _fullNameController.text = _snapFullName;
       _emailController.text = _snapEmail;
@@ -276,11 +286,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
+
     return Container(
       color: _screenBackground,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(8, 8, 8, 14),
         children: [
+          // ── Avatar card ─────────────────────────────────────────────────
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 20),
@@ -289,9 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: widget.isDarkMode ? 0.4 : 0.06,
-                  ),
+                  color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.4 : 0.06),
                   blurRadius: 14,
                   offset: const Offset(0, 4),
                 ),
@@ -317,17 +328,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.person_rounded,
-                    color: Colors.white,
-                    size: 32,
-                  ),
+                  child: const Icon(Icons.person_rounded, color: Colors.white, size: 32),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   _fullNameController.text.isNotEmpty
                       ? _fullNameController.text
-                      : 'Your Profile',
+                      : s.yourProfile,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -339,7 +346,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   _emailController.text.isNotEmpty
                       ? _emailController.text
-                      : 'Settings & preferences',
+                      : s.settingsPreferences,
                   style: TextStyle(color: _secondaryText, fontSize: 12),
                 ),
               ],
@@ -347,39 +354,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 10),
 
-          // â”€â”€ Appearance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Appearance ──────────────────────────────────────────────────
           _SectionCard(
             backgroundColor: _cardBackground,
-
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Appearance',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: _primaryText,
-                  ),
+                  s.appearance,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _primaryText),
                 ),
                 const SizedBox(height: 6),
+                // Theme toggle
                 Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Theme',
-                            style: TextStyle(fontSize: 13, color: _primaryText),
-                          ),
+                          Text(s.themeLabel, style: TextStyle(fontSize: 13, color: _primaryText)),
                           const SizedBox(height: 1),
                           Text(
-                            widget.isDarkMode ? 'Dark mode' : 'Light mode',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: _secondaryText,
-                            ),
+                            widget.isDarkMode ? s.darkMode : s.lightMode,
+                            style: TextStyle(fontSize: 11, color: _secondaryText),
                           ),
                         ],
                       ),
@@ -404,15 +401,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 10),
+                Divider(height: 1, color: _fieldBorder),
+                const SizedBox(height: 10),
+                // Language selector
+                Text(s.languageLabel, style: TextStyle(fontSize: 13, color: _primaryText)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _LangOption(
+                      label: s.langVietnamese,
+                      flag: '🇻🇳',
+                      isSelected: widget.language == 'vi',
+                      isDarkMode: widget.isDarkMode,
+                      onTap: () => widget.onLanguageChanged('vi'),
+                    ),
+                    const SizedBox(width: 8),
+                    _LangOption(
+                      label: s.langEnglish,
+                      flag: '🇺🇸',
+                      isSelected: widget.language == 'en',
+                      isDarkMode: widget.isDarkMode,
+                      onTap: () => widget.onLanguageChanged('en'),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
           const SizedBox(height: 10),
 
-          // â”€â”€ Personal Information â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Personal Information ────────────────────────────────────────
           _SectionCard(
             backgroundColor: _cardBackground,
-
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -424,8 +445,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   iconColor: widget.isDarkMode
                       ? const Color(0xFF4ADE80)
                       : const Color(0xFF16A34A),
-                  title: 'Personal Information',
-                  subtitle: 'Update your profile details',
+                  title: s.personalInformation,
+                  subtitle: s.updateProfileDetails,
                   primaryText: _primaryText,
                   secondaryText: _secondaryText,
                 ),
@@ -435,7 +456,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Expanded(
                       child: _LabeledField(
-                        label: 'Full Name',
+                        label: s.fullNameLabel,
                         controller: _fullNameController,
                         secondaryText: _secondaryText,
                         fillColor: _fieldFill,
@@ -446,7 +467,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _LabeledField(
-                        label: 'Email',
+                        label: s.emailLabel,
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         readOnly: true,
@@ -464,7 +485,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Expanded(
                       child: _LabeledField(
-                        label: 'Age',
+                        label: s.ageLabel,
                         controller: _ageController,
                         keyboardType: TextInputType.number,
                         hintText: 'e.g. 28',
@@ -478,11 +499,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _LabeledField(
-                        label: 'Weight (kg)',
+                        label: s.weightLabel,
                         controller: _weightController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         hintText: 'e.g. 75',
                         errorText: _weightError,
                         secondaryText: _secondaryText,
@@ -498,10 +517,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 10),
 
-          // â”€â”€ Nutrition Goals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Nutrition Goals ─────────────────────────────────────────────
           _SectionCard(
             backgroundColor: _cardBackground,
-
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -513,16 +531,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   iconColor: widget.isDarkMode
                       ? const Color(0xFFC084FC)
                       : const Color(0xFFA855F7),
-                  title: 'Nutrition Goals',
-                  subtitle: 'Set your dietary objectives',
+                  title: s.nutritionGoals,
+                  subtitle: s.setDietaryObjectives,
                   primaryText: _primaryText,
                   secondaryText: _secondaryText,
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  'Primary Goal',
-                  style: TextStyle(fontSize: 11, color: _secondaryText),
-                ),
+                Text(s.primaryGoalLabel, style: TextStyle(fontSize: 11, color: _secondaryText)),
                 const SizedBox(height: 6),
                 GridView.count(
                   padding: EdgeInsets.zero,
@@ -543,36 +558,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ? (widget.isDarkMode
                                   ? const Color(0xFF059669).withValues(alpha: 0.22)
                                   : const Color(0xFFD1FAE5))
-                              : (widget.isDarkMode
-                                    ? const Color(0xFF1E1E1E)
-                                    : Colors.white),
+                              : (widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white),
                           borderRadius: BorderRadius.circular(8),
                           border: isSelected
-                              ? Border.all(
-                                  color: const Color(0xFF059669),
-                                  width: 1.5,
-                                )
+                              ? Border.all(color: const Color(0xFF059669), width: 1.5)
                               : null,
                           boxShadow: isSelected
                               ? null
                               : [
                                   BoxShadow(
-                                    color: Colors.black.withValues(
-                                      alpha: widget.isDarkMode ? 0.3 : 0.06,
-                                    ),
+                                    color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.06),
                                     blurRadius: widget.isDarkMode ? 8 : 6,
                                     offset: const Offset(0, 2),
                                   ),
                                 ],
                         ),
                         child: Text(
-                          goal,
+                          s.goalDisplay(goal),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                             color: isSelected
                                 ? (widget.isDarkMode
                                     ? const Color(0xFF4ADE80)
@@ -590,7 +596,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Expanded(
                       child: _LabeledField(
-                        label: 'Daily Calorie Target',
+                        label: s.dailyCalorieTarget,
                         controller: _calorieTargetController,
                         keyboardType: TextInputType.number,
                         errorText: _calorieError,
@@ -603,7 +609,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _LabeledField(
-                        label: 'Target Protein (g/day)',
+                        label: s.targetProtein,
                         controller: _proteinTargetController,
                         keyboardType: TextInputType.number,
                         errorText: _proteinError,
@@ -616,59 +622,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  'Dietary Restrictions',
-                  style: TextStyle(fontSize: 10.5, color: _secondaryText),
-                ),
+                Text(s.dietaryRestrictionsLabel, style: TextStyle(fontSize: 10.5, color: _secondaryText)),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
                   children: _kDietaryTags.map((tag) {
-                    final isSelected = widget.selectedDietaryRestrictions
-                        .contains(tag);
+                    final isSelected = widget.selectedDietaryRestrictions.contains(tag);
                     return GestureDetector(
-                      onTap: () =>
-                          widget.onDietaryRestrictionToggled(tag, !isSelected),
+                      onTap: () => widget.onDietaryRestrictionToggled(tag, !isSelected),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? (widget.isDarkMode
                                   ? const Color(0xFF10B981).withValues(alpha: 0.22)
                                   : const Color(0xFFD1FAE5))
-                              : (widget.isDarkMode
-                                    ? const Color(0xFF1E1E1E)
-                                    : Colors.white),
+                              : (widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white),
                           borderRadius: BorderRadius.circular(999),
                           border: isSelected
-                              ? Border.all(
-                                  color: const Color(0xFF10B981),
-                                  width: 1.5,
-                                )
+                              ? Border.all(color: const Color(0xFF10B981), width: 1.5)
                               : null,
                           boxShadow: isSelected
                               ? null
                               : [
                                   BoxShadow(
-                                    color: Colors.black.withValues(
-                                      alpha: widget.isDarkMode ? 0.3 : 0.06,
-                                    ),
+                                    color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.06),
                                     blurRadius: widget.isDarkMode ? 8 : 6,
                                     offset: const Offset(0, 2),
                                   ),
                                 ],
                         ),
                         child: Text(
-                          tag,
+                          s.dietaryTagDisplay(tag),
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                             color: isSelected
                                 ? (widget.isDarkMode
                                     ? const Color(0xFF4ADE80)
@@ -685,10 +674,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 10),
 
-          // â”€â”€ Security â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          // ── Security ────────────────────────────────────────────────────
           _SectionCard(
             backgroundColor: _cardBackground,
-
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -705,19 +693,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Security',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: _primaryText,
-                      ),
+                      s.securityLabel,
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _primaryText),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 _SecurityRow(
                   icon: Icons.key_rounded,
-                  label: 'Change password',
+                  label: s.changePasswordLabel,
                   onTap: _showChangePasswordSheet,
                   primaryText: _primaryText,
                   secondaryText: _secondaryText,
@@ -726,9 +710,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 10),
-
           const SizedBox(height: 2),
 
+          // ── Action buttons ──────────────────────────────────────────────
           SizedBox(
             height: 44,
             child: Row(
@@ -744,12 +728,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Text(
+                      s.cancel,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -764,12 +745,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                    child: const Text(
-                      'Save changes',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: Text(
+                      s.saveChanges,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -782,9 +760,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: OutlinedButton.icon(
               onPressed: widget.onLogout,
               icon: const Icon(Icons.logout, size: 16),
-              label: const Text(
-                'Log out',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              label: Text(
+                s.logOut,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: widget.isDarkMode
@@ -806,7 +784,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// â”€â”€ Shared section header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Language option chip ──────────────────────────────────────────────────────
+
+class _LangOption extends StatelessWidget {
+  const _LangOption({
+    required this.label,
+    required this.flag,
+    required this.isSelected,
+    required this.isDarkMode,
+    required this.onTap,
+  });
+
+  final String label;
+  final String flag;
+  final bool isSelected;
+  final bool isDarkMode;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (isDarkMode
+                    ? const Color(0xFF059669).withValues(alpha: 0.2)
+                    : const Color(0xFFD1FAE5))
+                : (isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6)),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? const Color(0xFF059669) : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(flag, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected
+                      ? (isDarkMode ? const Color(0xFF4ADE80) : const Color(0xFF065F46))
+                      : (isDarkMode ? const Color(0xFFCBD5E1) : const Color(0xFF374151)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Shared section header ─────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
@@ -832,27 +870,16 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _IconBadge(
-          background: badgeBackground,
-          icon: icon,
-          iconColor: iconColor,
-        ),
+        _IconBadge(background: badgeBackground, icon: icon, iconColor: iconColor),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: primaryText,
-              ),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: primaryText),
             ),
-            Text(
-              subtitle,
-              style: TextStyle(fontSize: 11, color: secondaryText),
-            ),
+            Text(subtitle, style: TextStyle(fontSize: 11, color: secondaryText)),
           ],
         ),
       ],
@@ -860,7 +887,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// â”€â”€ Labeled text field â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Labeled text field ────────────────────────────────────────────────────────
 
 class _LabeledField extends StatelessWidget {
   const _LabeledField({
@@ -911,9 +938,7 @@ class _LabeledField extends StatelessWidget {
             readOnly: readOnly,
             style: TextStyle(
               fontSize: 13,
-              color: isDarkMode
-                  ? const Color(0xFFE2E8F0)
-                  : const Color(0xFF374151),
+              color: isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF374151),
             ),
             decoration: InputDecoration(
               isDense: true,
@@ -923,10 +948,7 @@ class _LabeledField extends StatelessWidget {
               hintStyle: TextStyle(color: secondaryText, fontSize: 13),
               errorText: errorText,
               errorStyle: const TextStyle(fontSize: 10),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 9,
-              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
@@ -947,13 +969,10 @@ class _LabeledField extends StatelessWidget {
   }
 }
 
-// â”€â”€ Reusable widgets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Reusable widgets ──────────────────────────────────────────────────────────
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.child,
-    required this.backgroundColor,
-  });
+  const _SectionCard({required this.child, required this.backgroundColor});
 
   final Widget child;
   final Color backgroundColor;
@@ -996,16 +1015,50 @@ class _IconBadge extends StatelessWidget {
     return Container(
       width: 22,
       height: 22,
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-      ),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(999)),
       child: Icon(icon, size: 13, color: iconColor),
     );
   }
 }
 
-// â”€â”€ Change Password Sheet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _SecurityRow extends StatelessWidget {
+  const _SecurityRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.primaryText,
+    required this.secondaryText,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color primaryText;
+  final Color secondaryText;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: secondaryText),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(label, style: TextStyle(fontSize: 13, color: primaryText)),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 18, color: secondaryText),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Change Password Sheet ─────────────────────────────────────────────────────
 
 class _ChangePasswordSheet extends StatefulWidget {
   const _ChangePasswordSheet({
@@ -1053,10 +1106,11 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
   }
 
   Future<void> _submit() async {
+    final s = S.of(context);
     String? curErr, newErr, confErr;
-    if (_currentCtrl.text.isEmpty) curErr = 'Enter your current password';
-    if (_newCtrl.text.length < 6) newErr = 'Must be at least 6 characters';
-    if (_confirmCtrl.text != _newCtrl.text) confErr = 'Passwords do not match';
+    if (_currentCtrl.text.isEmpty) curErr = s.enterCurrentPassword;
+    if (_newCtrl.text.length < 6) newErr = s.mustBeAtLeast6;
+    if (_confirmCtrl.text != _newCtrl.text) confErr = s.passwordsDoNotMatch;
 
     setState(() {
       _currentError = curErr;
@@ -1073,7 +1127,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
       );
       if (!mounted) return;
       Navigator.of(context).pop();
-      showSuccessToast(context, 'Password updated successfully.');
+      showSuccessToast(context, s.passwordUpdated);
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _isSaving = false);
@@ -1081,12 +1135,13 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      showErrorToast(context, 'Unable to update password.');
+      showErrorToast(context, S.of(context).unableToUpdatePassword);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Container(
       decoration: BoxDecoration(
@@ -1110,22 +1165,18 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
             ),
           ),
           Text(
-            'Change password',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: widget.primaryText,
-            ),
+            s.changePasswordTitle,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: widget.primaryText),
           ),
           const SizedBox(height: 4),
           Text(
-            'Choose a strong password for your account',
+            s.chooseStrongPassword,
             style: TextStyle(fontSize: 12, color: widget.secondaryText),
           ),
           const SizedBox(height: 20),
           _PwField(
             controller: _currentCtrl,
-            label: 'Current password',
+            label: s.currentPassword,
             obscure: _obscureCurrent,
             errorText: _currentError,
             secondaryText: widget.secondaryText,
@@ -1138,7 +1189,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
           const SizedBox(height: 12),
           _PwField(
             controller: _newCtrl,
-            label: 'New password',
+            label: s.newPassword,
             obscure: _obscureNew,
             errorText: _newError,
             secondaryText: widget.secondaryText,
@@ -1151,7 +1202,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
           const SizedBox(height: 12),
           _PwField(
             controller: _confirmCtrl,
-            label: 'Confirm new password',
+            label: s.confirmNewPassword,
             obscure: _obscureConfirm,
             errorText: _confirmError,
             secondaryText: widget.secondaryText,
@@ -1174,11 +1225,9 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                     backgroundColor: widget.isDarkMode
                         ? const Color(0xFF1E1E1E)
                         : const Color(0xFFF3F4F6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+                  child: Text(s.cancel, style: const TextStyle(fontWeight: FontWeight.w600)),
                 ),
               ),
               const SizedBox(width: 10),
@@ -1189,11 +1238,9 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                     minimumSize: const Size.fromHeight(46),
                     backgroundColor: const Color(0xFF059669),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Update', style: TextStyle(fontWeight: FontWeight.w700)),
+                  child: Text(s.updateLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
@@ -1236,11 +1283,7 @@ class _PwField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: secondaryText,
-          ),
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: secondaryText),
         ),
         const SizedBox(height: 5),
         DecoratedBox(
@@ -1296,49 +1339,3 @@ class _PwField extends StatelessWidget {
     );
   }
 }
-
-
-class _SecurityRow extends StatelessWidget {
-  const _SecurityRow({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    required this.primaryText,
-    required this.secondaryText,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color primaryText;
-  final Color secondaryText;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          children: [
-            Icon(icon, size: 15, color: secondaryText),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: primaryText,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, size: 18, color: secondaryText),
-          ],
-        ),
-      ),
-    );
-  }
-}
-

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 import 'package:foodhub_mobile/widgets/recipe_image.dart';
@@ -130,7 +131,7 @@ class RecipeCard extends StatelessWidget {
                               ],
                             ),
                             child: Text(
-                              tag,
+                              S.of(context).dietaryTagDisplay(tag),
                               style: TextStyle(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w500,

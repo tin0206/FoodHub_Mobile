@@ -8,6 +8,7 @@ class UserModel {
     this.isActive = true,
     this.age,
     this.weight,
+    this.language,
     this.calorieTarget,
     this.proteinTarget,
     this.dietaryRestrictions = const [],
@@ -25,6 +26,7 @@ class UserModel {
   final bool isActive;
   final int? age;
   final double? weight;
+  final String? language;
   final int? calorieTarget;
   final int? proteinTarget;
   final List<String> dietaryRestrictions;
@@ -43,9 +45,11 @@ class UserModel {
       isActive: json['is_active'] as bool? ?? true,
       age: json['age'] as int?,
       weight: (json['weight'] as num?)?.toDouble(),
+      language: json['language'] as String?,
       calorieTarget: json['calorie_target'] as int?,
       proteinTarget: json['protein_target'] as int?,
-      dietaryRestrictions: (json['dietary_restrictions'] as List<dynamic>?)
+      dietaryRestrictions:
+          (json['dietary_restrictions'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           const [],
@@ -67,6 +71,7 @@ class UserModel {
     bool? notifyRecommendations,
     bool? notifyNewFeatures,
     bool? notifyWeeklySummary,
+    String? language,
   }) {
     final data = <String, dynamic>{};
     if (fullName != null) data['full_name'] = fullName;
@@ -87,6 +92,9 @@ class UserModel {
     if (notifyWeeklySummary != null) {
       data['notify_weekly_summary'] = notifyWeeklySummary;
     }
+    if (language != null) {
+      data['language'] = language;
+    }
     return data;
   }
 
@@ -101,6 +109,7 @@ class UserModel {
     bool? notifyRecommendations,
     bool? notifyNewFeatures,
     bool? notifyWeeklySummary,
+    String? language,
   }) {
     return UserModel(
       id: id,
@@ -114,6 +123,7 @@ class UserModel {
       proteinTarget: proteinTarget ?? this.proteinTarget,
       dietaryRestrictions: dietaryRestrictions ?? this.dietaryRestrictions,
       primaryGoal: primaryGoal ?? this.primaryGoal,
+      language: language ?? this.language,
       notifyRecommendations:
           notifyRecommendations ?? this.notifyRecommendations,
       notifyNewFeatures: notifyNewFeatures ?? this.notifyNewFeatures,

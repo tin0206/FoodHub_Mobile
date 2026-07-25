@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/ai.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/ai_service.dart';
@@ -116,9 +117,7 @@ class _RecsScreenState extends State<RecsScreen> {
         _phase = 'gather';
         _messages.add(
           _ChatMessage(
-            text:
-                'Could not start the companion session ($e). '
-                'You can still chat — tap reset to retry welcome.',
+            text: S.of(context).unableToReachAi,
             isUser: false,
           ),
         );
@@ -200,38 +199,41 @@ class _RecsScreenState extends State<RecsScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDarkMode ? const Color(0xFF141414) : Colors.white,
-        title: Text(
-          'Reset chat?',
-          style: TextStyle(
-            color: isDarkMode
-                ? const Color(0xFFF8FAFC)
-                : const Color(0xFF111827),
-          ),
-        ),
-        content: Text(
-          'This clears the conversation and compose detections. Your profile preferences stay the same.',
-          style: TextStyle(
-            color: isDarkMode
-                ? const Color(0xFF94A3B8)
-                : const Color(0xFF6B7280),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF059669),
+      builder: (ctx) {
+        final s = S.of(ctx);
+        return AlertDialog(
+          backgroundColor: isDarkMode ? const Color(0xFF141414) : Colors.white,
+          title: Text(
+            s.resetChatTitle,
+            style: TextStyle(
+              color: isDarkMode
+                  ? const Color(0xFFF8FAFC)
+                  : const Color(0xFF111827),
             ),
-            child: const Text('Reset'),
           ),
-        ],
-      ),
+          content: Text(
+            s.resetChatDesc,
+            style: TextStyle(
+              color: isDarkMode
+                  ? const Color(0xFF94A3B8)
+                  : const Color(0xFF6B7280),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(s.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+              ),
+              child: Text(s.resetLabel),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirm != true || !mounted) return;
@@ -306,7 +308,7 @@ class _RecsScreenState extends State<RecsScreen> {
     if (detail == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not open details for "$title".'),
+          content: Text(S.of(context).unableToOpenRecipe(title)),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -388,8 +390,8 @@ class _RecsScreenState extends State<RecsScreen> {
       if (!mounted) return;
       setState(() {
         _messages.add(
-          const _ChatMessage(
-            text: 'Unable to reach AI assistant. Please try again.',
+          _ChatMessage(
+            text: S.of(context).unableToReachAi,
             isUser: false,
           ),
         );
@@ -440,7 +442,7 @@ class _RecsScreenState extends State<RecsScreen> {
     final text = _composeDishText;
     if (text == null) return;
     _editComposeText(
-      title: 'Edit dishes',
+      title: S.of(context).editDishesLabel,
       initialText: text,
       onSave: (value) => setState(() => _composeDishText = value),
     );
@@ -450,7 +452,7 @@ class _RecsScreenState extends State<RecsScreen> {
     final text = _composeIngredientsText;
     if (text == null) return;
     _editComposeText(
-      title: 'Edit ingredients',
+      title: S.of(context).editIngredientsLabel,
       initialText: text,
       onSave: (value) => setState(() => _composeIngredientsText = value),
     );
@@ -506,8 +508,8 @@ class _RecsScreenState extends State<RecsScreen> {
                             padding: const EdgeInsets.only(left: 38, top: 4),
                             child: Text(
                               _isBootstrapping
-                                  ? 'Starting companion session...'
-                                  : 'Queued — waiting for AI...',
+                                  ? S.of(context).startingSession
+                                  : S.of(context).waitingForAi,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isDarkMode
@@ -629,7 +631,7 @@ class _ChatHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'AI Companion',
+                  S.of(context).aiCompanion,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -640,7 +642,7 @@ class _ChatHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Phase: $phase',
+                  S.of(context).phaseLabel(phase),
                   style: TextStyle(
                     fontSize: 11,
                     color: isDarkMode
@@ -790,7 +792,7 @@ class _UserComposeField extends StatelessWidget {
                       : const Color(0xFF111827),
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Ask for recipes...',
+                  hintText: S.of(context).askForRecipesHint,
                   hintStyle: TextStyle(
                     fontSize: 14,
                     color: isDarkMode
@@ -1067,7 +1069,7 @@ class _TextAreaEditSheetState extends State<_TextAreaEditSheet> {
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF059669),
                 ),
-                child: const Text('Save'),
+                child: Text(S.of(context).save),
               ),
             ),
           ],

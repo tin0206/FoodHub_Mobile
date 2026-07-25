@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/favorite.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/favorite_service.dart';
@@ -67,7 +68,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _loadError = 'Unable to load favorites.';
+        _loadError = S.of(context).unableToLoadFavorites;
         _isLoading = false;
       });
     }
@@ -202,7 +203,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           title: Text(
-            'Remove from favorites?',
+            S.of(context).removeFromFavorites,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -210,7 +211,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             ),
           ),
           content: Text(
-            'Do you want to remove "${recipe.name}" from your saved recipes?',
+            S.of(context).removeConfirm(recipe.name),
             style: TextStyle(
               fontSize: 14,
               height: 1.4,
@@ -228,7 +229,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              child: const Text('Cancel'),
+              child: Text(S.of(context).cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
@@ -243,7 +244,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              child: const Text('Unfavorite'),
+              child: Text(S.of(context).unfavoriteLabel),
             ),
           ],
         );
@@ -290,7 +291,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'My Note',
+                  S.of(context).myNote,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -315,7 +316,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     minLines: 3,
                     maxLines: 4,
                     decoration: InputDecoration(
-                      hintText: 'Write your note...',
+                      hintText: S.of(context).writeNoteHint,
                       hintStyle: TextStyle(
                         color: isDarkMode
                             ? const Color(0xFF94A3B8)
@@ -356,7 +357,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        child: const Text('Cancel'),
+                        child: Text(S.of(context).cancel),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -376,7 +377,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        child: const Text('Save Note'),
+                        child: Text(S.of(context).saveNote),
                       ),
                     ),
                   ],
@@ -427,12 +428,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           children: [
             Text(_loadError!),
             const SizedBox(height: 8),
-            FilledButton(onPressed: _loadFavorites, child: const Text('Retry')),
+            FilledButton(onPressed: _loadFavorites, child: Text(S.of(context).retry)),
           ],
         ),
       );
     }
 
+    final s = S.of(context);
     return Container(
       color: isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFE5E7EB),
       child: ListView(
@@ -443,7 +445,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               const Icon(Icons.favorite, size: 20, color: Color(0xFFE11D48)),
               const SizedBox(width: 6),
               Text(
-                'Favorites',
+                s.favoritesTitle,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -456,7 +458,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           ),
           const SizedBox(height: 2),
           Text(
-            'Saved recipes with your notes',
+            s.savedRecipesWithNotes,
             style: TextStyle(
               fontSize: 10.5,
               color: isDarkMode
@@ -470,7 +472,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               Expanded(
                 child: _SummaryCard(
                   value: '$_savedCount',
-                  label: 'Saved',
+                  label: s.savedLabel,
                   isDarkMode: isDarkMode,
                 ),
               ),
@@ -478,7 +480,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               Expanded(
                 child: _SummaryCard(
                   value: '$_noteCount',
-                  label: 'With Notes',
+                  label: s.withNotesLabel,
                   isDarkMode: isDarkMode,
                 ),
               ),
@@ -510,7 +512,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'No favorites yet',
+                      S.of(context).noFavoritesYet,
                       style: TextStyle(
                         color: isDarkMode ? const Color(0xFF9CA3AF) : const Color(0xFF374151),
                         fontWeight: FontWeight.w600,
@@ -596,7 +598,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                               size: 14,
                             ),
                             label: Text(
-                              favorite.note == null ? 'Add Note' : 'Edit Note',
+                              favorite.note == null ? s.addNote : s.editNote,
                             ),
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size.fromHeight(32),

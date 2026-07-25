@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/favorite_service.dart';
@@ -111,7 +112,7 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _loadError = 'Unable to search recipes.';
+        _loadError = S.of(context).unableToSearch;
         _isLoading = false;
       });
     }
@@ -188,6 +189,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final s = S.of(context);
     final visibleRecipes = _filteredRecipes;
 
     if (_selectedRecipeIndex != null &&
@@ -207,7 +209,7 @@ class _SearchScreenState extends State<SearchScreen> {
       padding: const EdgeInsets.all(12),
       children: [
         Text(
-          'Search Recipes',
+          s.searchRecipesTitle,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -238,7 +240,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 : const Color(0xFF111827),
           ),
           decoration: InputDecoration(
-            hintText: 'Search recipes, ingredients...',
+            hintText: s.searchHint,
             hintStyle: TextStyle(
               color: isDarkMode
                   ? const Color(0xFF94A3B8)
@@ -269,7 +271,7 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
         const SizedBox(height: 18),
         Text(
-          'Popular categories',
+          s.popularCategories,
           style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant),
         ),
         const SizedBox(height: 10),
@@ -325,7 +327,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     Text(emoji, style: const TextStyle(fontSize: 13)),
                     const SizedBox(width: 5),
                     Text(
-                      label,
+                      s.categoryDisplay(label),
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: isSelected
@@ -348,13 +350,13 @@ class _SearchScreenState extends State<SearchScreen> {
         Row(
           children: [
             Text(
-              'Recent recipes',
+              s.recentRecipes,
               style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant),
             ),
             const Spacer(),
             if (_selectedCategory != null || _query.isNotEmpty)
               Text(
-                '${visibleRecipes.length} result${visibleRecipes.length == 1 ? '' : 's'}',
+                s.resultCount(visibleRecipes.length),
                 style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
               ),
           ],
@@ -374,7 +376,7 @@ class _SearchScreenState extends State<SearchScreen> {
               children: [
                 Text(_loadError!, textAlign: TextAlign.center),
                 const SizedBox(height: 8),
-                OutlinedButton(onPressed: _loadRecipes, child: const Text('Retry')),
+                OutlinedButton(onPressed: _loadRecipes, child: Text(s.retry)),
               ],
             ),
           )

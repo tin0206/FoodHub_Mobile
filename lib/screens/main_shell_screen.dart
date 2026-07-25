@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/app_theme.dart';
+import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/screens/favorites_screen.dart';
 import 'package:foodhub_mobile/screens/home_screen.dart';
@@ -23,6 +24,7 @@ class MainShellScreen extends StatefulWidget {
 class _MainShellScreenState extends State<MainShellScreen> {
   AppTab _currentTab = AppTab.home;
   bool _isDarkMode = false;
+  String _language = 'en';
   final Map<AppTab, bool> _tabInDetail = {};
   late UserModel _user;
   final _authService = AuthService();
@@ -34,6 +36,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   void initState() {
     super.initState();
     _user = widget.initialUser;
+    _language = widget.initialUser.language ?? 'en';
     _dietaryRestrictions = {..._user.dietaryRestrictions};
     _primaryGoal = _user.primaryGoal ?? 'Balanced Nutrition';
   }
@@ -41,11 +44,16 @@ class _MainShellScreenState extends State<MainShellScreen> {
   void _onUserUpdated(UserModel user) {
     setState(() {
       _user = user;
+      _language = user.language ?? _language;
       _dietaryRestrictions = {...user.dietaryRestrictions};
       if (user.primaryGoal != null && user.primaryGoal!.isNotEmpty) {
         _primaryGoal = user.primaryGoal!;
       }
     });
+  }
+
+  void _onLanguageChanged(String lang) {
+    setState(() => _language = lang);
   }
 
   void _onDietaryRestrictionToggled(String tag, bool selected) {
@@ -114,7 +122,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
       ProfileScreen(
         user: _user,
         isDarkMode: _isDarkMode,
+        language: _language,
         onToggleTheme: _toggleTheme,
+        onLanguageChanged: _onLanguageChanged,
         onLogout: _logout,
         selectedDietaryRestrictions: _dietaryRestrictions,
         onDietaryRestrictionToggled: _onDietaryRestrictionToggled,
@@ -124,23 +134,26 @@ class _MainShellScreenState extends State<MainShellScreen> {
       ),
     ];
 
-    return Theme(
-      data: _isDarkMode ? AppTheme.dark : AppTheme.light,
-      child: Scaffold(
-        body: Column(
-          children: [
-            AppTopBar(onOpenProfile: _openProfile),
-            Expanded(
-              child: IndexedStack(index: _currentTab.index, children: screens),
-            ),
-          ],
+    return LangScope(
+      lang: _language,
+      child: Theme(
+        data: _isDarkMode ? AppTheme.dark : AppTheme.light,
+        child: Scaffold(
+          body: Column(
+            children: [
+              AppTopBar(onOpenProfile: _openProfile),
+              Expanded(
+                child: IndexedStack(index: _currentTab.index, children: screens),
+              ),
+            ],
+          ),
+          bottomNavigationBar: _showBottomBar
+              ? AppBottomBar(
+                  currentTab: _currentTab,
+                  onTabSelected: _onTabSelected,
+                )
+              : null,
         ),
-        bottomNavigationBar: _showBottomBar
-            ? AppBottomBar(
-                currentTab: _currentTab,
-                onTabSelected: _onTabSelected,
-              )
-            : null,
       ),
     );
   }

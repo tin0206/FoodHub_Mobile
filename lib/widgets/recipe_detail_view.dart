@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/api_config.dart';
+import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_image.dart';
 
@@ -360,7 +361,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
         onPressed: () =>
             setState(() => _ingredientControllers.add(TextEditingController())),
         icon: const Icon(Icons.add, size: 14),
-        label: const Text('Add ingredient'),
+        label: Text(S.of(context).addIngredient),
         style: TextButton.styleFrom(
           foregroundColor: accentColor,
           textStyle: const TextStyle(
@@ -448,7 +449,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
         onPressed: () =>
             setState(() => _stepControllers.add(TextEditingController())),
         icon: const Icon(Icons.add, size: 14),
-        label: const Text('Add step'),
+        label: Text(S.of(context).addStep),
         style: TextButton.styleFrom(
           foregroundColor: accentColor,
           textStyle: const TextStyle(
@@ -496,7 +497,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Get Ready',
+                    S.of(context).getReady,
                     style: TextStyle(
                       color: colors.onSurface,
                       fontSize: 20,
@@ -505,7 +506,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                     ),
                   ),
                   Text(
-                    '${ingredientItems.length} ingredient${ingredientItems.length == 1 ? '' : 's'} to prepare',
+                    S.of(context).ingredientsToPrepare(ingredientItems.length),
                     style: TextStyle(
                       color: colors.onSurfaceVariant,
                       fontSize: 12,
@@ -624,7 +625,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
               ),
               const SizedBox(width: 10),
               Text(
-                'Step $stepNumber',
+                S.of(context).stepLabel(stepNumber),
                 style: TextStyle(
                   color: accentColor,
                   fontSize: 15,
@@ -633,7 +634,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
               ),
               const Spacer(),
               Text(
-                'of $totalSteps',
+                S.of(context).ofTotal(totalSteps),
                 style: TextStyle(
                   color: accentColor.withValues(alpha: 0.55),
                   fontSize: 13,
@@ -683,7 +684,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
               Icon(Icons.schedule_rounded, size: 14, color: accentColor),
               const SizedBox(width: 5),
               Text(
-                '~${widget.recipe.estimatedMinutesPerStep} min',
+                S.of(context).estimatedTimePerStep(widget.recipe.estimatedMinutesPerStep),
                 style: TextStyle(
                   color: accentColor,
                   fontWeight: FontWeight.w700,
@@ -701,7 +702,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'Take your time with this step',
+                  S.of(context).takeYourTimeWithStep,
                   style: TextStyle(
                     color: colors.onSurfaceVariant,
                     fontSize: 12,
@@ -957,8 +958,8 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                 children: [
                                   Text(
                                     _isPreparingIngredients
-                                        ? 'Prepare Ingredients'
-                                        : 'Step ${_currentStepIndex + 1} of $totalSteps',
+                                        ? S.of(context).prepareIngredients
+                                        : S.of(context).stepOf(_currentStepIndex + 1, totalSteps),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w800,
@@ -1056,7 +1057,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Text(
-                              'Take your time — tap Next when ready',
+                              S.of(context).takeYourTime,
                               style: TextStyle(
                                 color: isDarkMode
                                     ? Colors.white.withValues(alpha: 0.45)
@@ -1070,6 +1071,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                         Row(
                           children: [
                             Expanded(
+                              flex: 2,
                               child: OutlinedButton.icon(
                                 onPressed: _isPreparingIngredients
                                     ? null
@@ -1078,7 +1080,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                   Icons.arrow_back_rounded,
                                   size: 15,
                                 ),
-                                label: const Text('Back'),
+                                label: Text(S.of(context).back),
                                 style: OutlinedButton.styleFrom(
                                   minimumSize: const Size.fromHeight(48),
                                   foregroundColor: isDarkMode
@@ -1096,7 +1098,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                             ),
                             const SizedBox(width: 10),
                             Expanded(
-                              flex: 2,
+                              flex: 3,
                               child: DecoratedBox(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
@@ -1133,10 +1135,10 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                   ),
                                   label: Text(
                                     canFinish
-                                        ? 'Finish! 🎉'
+                                        ? S.of(context).finish
                                         : (_isPreparingIngredients
-                                            ? 'Start Cooking'
-                                            : 'Next'),
+                                            ? S.of(context).startCooking
+                                            : S.of(context).next),
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.transparent,
@@ -1181,12 +1183,12 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                               controller: _cookingMinutesController,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 isDense: true,
-                                contentPadding: EdgeInsets.symmetric(
+                                contentPadding: const EdgeInsets.symmetric(
                                   vertical: 8,
                                 ),
-                                suffixText: 'min',
+                                suffixText: S.of(context).minSuffix,
                               ),
                             ),
                           ),
@@ -1203,12 +1205,12 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                               controller: _caloriesController,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 isDense: true,
-                                contentPadding: EdgeInsets.symmetric(
+                                contentPadding: const EdgeInsets.symmetric(
                                   vertical: 8,
                                 ),
-                                suffixText: 'cal',
+                                suffixText: S.of(context).calSuffix,
                               ),
                             ),
                           ),
@@ -1217,7 +1219,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                       const SizedBox(height: 12),
                     ],
                     _RecipeDetailSectionCard(
-                      title: 'Ingredients',
+                      title: S.of(context).ingredientsLabel,
                       icon: Icons.shopping_basket_outlined,
                       backgroundColor: panelColor,
                       iconColor: accentColor,
@@ -1254,7 +1256,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                     ),
                     const SizedBox(height: 10),
                     _RecipeDetailSectionCard(
-                      title: 'Instructions',
+                      title: S.of(context).instructionsLabel,
                       icon: Icons.format_list_numbered,
                       backgroundColor: panelColor,
                       iconColor: accentColor,
@@ -1313,7 +1315,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                     if (_isEditMode) ...[
                       const SizedBox(height: 10),
                       _RecipeDetailSectionCard(
-                        title: 'Labels',
+                        title: S.of(context).labelsLabel,
                         icon: Icons.sell_outlined,
                         backgroundColor: panelColor,
                         iconColor: accentColor,
@@ -1338,7 +1340,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                 checkmarkColor: Colors.white,
                                 selected: isSelected,
                                 label: Text(
-                                  label,
+                                  S.of(context).dietaryTagDisplay(label),
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: isSelected
@@ -1372,6 +1374,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                 ? Row(
                     children: [
                       Expanded(
+                        flex: 2,
                         child: OutlinedButton(
                           onPressed: () {
                             setState(() {
@@ -1390,11 +1393,12 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                               borderRadius: BorderRadius.circular(999),
                             ),
                           ),
-                          child: Text(_isEditMode ? 'Cancel' : 'Edit'),
+                          child: Text(_isEditMode ? S.of(context).cancel : S.of(context).edit),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
+                        flex: 3,
                         child: FilledButton(
                           onPressed: _isEditMode
                               ? _saveEditedRecipe
@@ -1410,7 +1414,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                             ),
                           ),
                           child: Text(
-                            _isEditMode ? 'Save Changes' : 'Start Cooking',
+                            _isEditMode ? S.of(context).saveChanges : S.of(context).startCooking,
                           ),
                         ),
                       ),
@@ -1419,6 +1423,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                 : Row(
                     children: [
                       Expanded(
+                        flex: 2,
                         child: OutlinedButton.icon(
                           onPressed: widget.onToggleSave,
                           icon: Icon(
@@ -1430,7 +1435,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                 ? const Color(0xFFDC2626)
                                 : saveColor,
                           ),
-                          label: Text((isSaved == true) ? 'Saved' : 'Save'),
+                          label: Text((isSaved == true) ? S.of(context).saved : S.of(context).save),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(40),
                             backgroundColor: panelColor,
@@ -1450,6 +1455,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
+                        flex: 3,
                         child: FilledButton(
                           onPressed: _openCookingMode,
                           style: FilledButton.styleFrom(
@@ -1460,7 +1466,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                               borderRadius: BorderRadius.circular(999),
                             ),
                           ),
-                          child: const Text('Start Cooking'),
+                          child: Text(S.of(context).startCooking),
                         ),
                       ),
                     ],
@@ -1560,7 +1566,7 @@ class _FireworksCelebrationState extends State<FireworksCelebration>
                       const Text('🎉', style: TextStyle(fontSize: 36)),
                       const SizedBox(height: 8),
                       Text(
-                        'Completed!',
+                        S.of(context).completed,
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w800,
@@ -1570,7 +1576,7 @@ class _FireworksCelebrationState extends State<FireworksCelebration>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Great job chef 👨‍🍳',
+                        S.of(context).greatJobChef,
                         style: TextStyle(
                           fontSize: 13,
                           color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
@@ -1620,7 +1626,7 @@ class _DetailHeaderInfo extends StatelessWidget {
             ),
             const SizedBox(width: 3),
             Text(
-              '${recipe.cookingMinutes} min',
+              S.of(context).cookingMinutesDisplay(recipe.cookingMinutes),
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 11,
@@ -1635,7 +1641,7 @@ class _DetailHeaderInfo extends StatelessWidget {
             ),
             const SizedBox(width: 3),
             Text(
-              '${recipe.calories} cal',
+              '${recipe.calories} ${S.of(context).calSuffix}',
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 11,
@@ -1661,7 +1667,7 @@ class _DetailHeaderInfo extends StatelessWidget {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      tag,
+                      S.of(context).dietaryTagDisplay(tag),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
