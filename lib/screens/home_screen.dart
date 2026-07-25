@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
@@ -6,6 +8,7 @@ import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_card.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
+import 'package:image_picker/image_picker.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -458,6 +461,18 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
   ];
   final Set<String> _selectedLabels = {};
   bool _isSaving = false;
+  Uint8List? _imageBytes;
+  String _imageFilename = 'recipe.jpg';
+
+  Future<void> _pickImage() async {
+    final file = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (file == null || !mounted) return;
+    final bytes = await file.readAsBytes();
+    setState(() {
+      _imageBytes = bytes;
+      _imageFilename = file.name.isNotEmpty ? file.name : 'recipe.jpg';
+    });
+  }
 
   @override
   void dispose() {
@@ -522,10 +537,30 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
         dietaryRestrictions: _selectedLabels.toList(),
         estimatedServings: (calories / 200).round().clamp(1, 12),
       );
+
+      String? imageUrl;
+      if (_imageBytes != null) {
+        imageUrl = await _recipeService.uploadRecipeImage(created.id, _imageBytes!, _imageFilename);
+      }
+
       if (!mounted) return;
       Navigator.of(context).pop();
       showRecipeToast(context, recipeName: name, isNew: true);
-      widget.onSave(created);
+      final finalRecipe = imageUrl != null
+          ? RecipeModel(
+              id: created.id,
+              title: created.title,
+              imageUrl: imageUrl,
+              ingredients: created.ingredients,
+              directions: created.directions,
+              ner: created.ner,
+              estimatedServings: created.estimatedServings,
+              dietaryRestrictions: created.dietaryRestrictions,
+              createdBy: created.createdBy,
+              visibility: created.visibility,
+            )
+          : created;
+      widget.onSave(finalRecipe);
     } on ApiException catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -545,8 +580,8 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final s = S.of(context);
     final cardBg = isDarkMode ? const Color(0xFF141414) : Colors.white;
-    final panelColor = isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF8FAFC);
-    final dividerColor = isDarkMode ? const Color(0xFF2A2A2A) : colors.outlineVariant;
+    final panelColor = isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF0F2F5);
+    final dividerColor = isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE2E4E8);
     final hintColor = isDarkMode ? const Color(0xFF64748B) : const Color(0xFF9CA3AF);
     final textColor = isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF111827);
     const accentColor = Color(0xFF059669);
@@ -626,6 +661,56 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Photo picker
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: _imageBytes != null
+                          ? Stack(
+                              children: [
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 140,
+                                  child: Image.memory(_imageBytes!, fit: BoxFit.cover),
+                                ),
+                                Positioned.fill(
+                                  child: ColoredBox(color: Colors.black.withValues(alpha: 0.25)),
+                                ),
+                                const Positioned.fill(
+                                  child: Center(
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.photo_camera_outlined, size: 15, color: Colors.white),
+                                        SizedBox(width: 6),
+                                        Text('Change Photo',
+                                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Container(
+                              width: double.infinity,
+                              height: 100,
+                              color: panelColor,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_photo_alternate_outlined, size: 28,
+                                      color: isDarkMode ? const Color(0xFF64748B) : const Color(0xFF9CA3AF)),
+                                  const SizedBox(height: 4),
+                                  Text(S.of(context).addPhoto,
+                                      style: TextStyle(fontSize: 12, color: isDarkMode ? const Color(0xFF64748B) : const Color(0xFF9CA3AF))),
+                                ],
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
                   // Recipe name
                   _AddSectionCard(
                     isDarkMode: isDarkMode,
@@ -894,7 +979,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                               selected: isSelected,
                               selectedColor: accentColor,
                               checkmarkColor: Colors.white,
-                              backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+                              backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE4E6EA),
                               side: BorderSide.none,
                               label: Text(
                                 s.dietaryTagDisplay(label),

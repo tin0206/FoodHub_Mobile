@@ -102,4 +102,19 @@ class RecipeService {
   Future<void> deleteRecipe(int id) async {
     await _api.delete('/recipes/$id');
   }
+
+  Future<String?> uploadRecipeImage(int id, List<int> bytes, String filename) async {
+    try {
+      final data = await _api.postMultipart(
+        '/recipes/$id/image',
+        fieldName: 'file',
+        bytes: bytes,
+        filename: filename,
+      );
+      if (data is Map<String, dynamic>) {
+        return data['image_url'] as String?;
+      }
+    } catch (_) {}
+    return null;
+  }
 }

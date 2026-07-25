@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/api_config.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
+import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_image.dart';
+import 'package:image_picker/image_picker.dart';
 
 const kAvailableLabels = [
   'Dairy Free',
@@ -128,6 +130,10 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   bool _isPreparingIngredients = true;
   int _currentStepIndex = 0;
 
+  Uint8List? _editImageBytes;
+  String _editImageFilename = 'recipe.jpg';
+  final _recipeService = RecipeService();
+
   late List<TextEditingController> _ingredientControllers;
   late List<TextEditingController> _stepControllers;
   late TextEditingController _cookingMinutesController;
@@ -187,7 +193,21 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       _isCookingMode = false;
       _isPreparingIngredients = true;
       _currentStepIndex = 0;
+      _editImageBytes = null;
     }
+  }
+
+  Future<void> _pickEditImage() async {
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (file == null || !mounted) return;
+    final bytes = await file.readAsBytes();
+    setState(() {
+      _editImageBytes = bytes;
+      _editImageFilename = file.name.isNotEmpty ? file.name : 'recipe.jpg';
+    });
   }
 
   @override
@@ -279,23 +299,34 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(
+      builder: (_) => Center(
         child: Card(
           child: Padding(
-            padding: EdgeInsets.all(28),
-            child: CircularProgressIndicator(color: Color(0xFF059669)),
+            padding: const EdgeInsets.all(28),
+            child: CircularProgressIndicator(color: widget.cardColor),
           ),
         ),
       ),
     );
 
-    await Future<void>.delayed(const Duration(milliseconds: 600));
+    String? uploadedImageUrl;
+    if (_editImageBytes != null) {
+      uploadedImageUrl = await _recipeService.uploadRecipeImage(
+        widget.recipe.id,
+        _editImageBytes!,
+        _editImageFilename,
+      );
+    } else {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+    }
+
     if (!mounted) return;
     Navigator.of(context).pop();
 
     final updated = RecipeDetailData(
       id: widget.recipe.id,
       name: widget.recipe.name,
+      imageUrl: uploadedImageUrl ?? widget.recipe.imageUrl,
       cookingMinutes: cookingMinutes,
       calories: calories,
       ingredients: ingredients,
@@ -305,7 +336,10 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     );
 
     widget.onSaveEdited?.call(updated);
-    setState(() => _isEditMode = false);
+    setState(() {
+      _isEditMode = false;
+      _editImageBytes = null;
+    });
   }
 
   List<Widget> _buildIngredientEditList({
@@ -335,12 +369,16 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                   textInputAction: TextInputAction.next,
                   style: TextStyle(fontSize: 13, color: colors.onSurface),
                   decoration: InputDecoration(
-                    hintText: 'Ingredient ${i + 1}',
+                    hintText: S.of(context).ingredientHint(i),
+                    hintStyle: TextStyle(fontSize: 13, color: colors.onSurfaceVariant.withValues(alpha: 0.5)),
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 7,
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: accentColor, width: 1.5),
                     ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
                   ),
                 ),
               ),
@@ -420,12 +458,16 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                   textInputAction: TextInputAction.next,
                   style: TextStyle(fontSize: 13, color: colors.onSurface),
                   decoration: InputDecoration(
-                    hintText: 'Step ${i + 1}…',
+                    hintText: S.of(context).stepHint(i),
+                    hintStyle: TextStyle(fontSize: 13, color: colors.onSurfaceVariant.withValues(alpha: 0.5)),
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 7,
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: accentColor, width: 1.5),
                     ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
                   ),
                 ),
               ),
@@ -817,6 +859,98 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
               ],
             ),
           )
+        else if (_isEditMode)
+          DecoratedBox(
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDarkMode ? 0.35 : 0.12),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Stack(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: 160,
+                child: _editImageBytes != null
+                    ? Image.memory(_editImageBytes!, fit: BoxFit.cover, width: double.infinity)
+                    : hasImage
+                        ? RecipeImageHeader(
+                            imageUrl: widget.recipe.imageUrl,
+                            recipeId: widget.recipe.id,
+                            labels: widget.recipe.labels,
+                            height: 160,
+                            borderRadius: BorderRadius.zero,
+                          )
+                        : Container(
+                            color: isDarkMode ? const Color(0xFF1C1C1C) : const Color(0xFFF3F4F6),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_photo_alternate_outlined, size: 32,
+                                    color: isDarkMode ? Colors.white30 : Colors.black26),
+                                const SizedBox(height: 4),
+                                Text(S.of(context).addPhoto,
+                                    style: TextStyle(fontSize: 12,
+                                        color: isDarkMode ? Colors.white30 : Colors.black38)),
+                              ],
+                            ),
+                          ),
+              ),
+              if (_editImageBytes != null || hasImage)
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: _pickEditImage,
+                    child: ColoredBox(color: Colors.black.withValues(alpha: 0.28)),
+                  ),
+                ),
+              Positioned(
+                top: 10,
+                left: 12,
+                child: GestureDetector(
+                  onTap: widget.onBack,
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.arrow_back_rounded, size: 17, color: Colors.white),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: _pickEditImage,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.photo_camera_outlined, size: 15, color: Colors.white),
+                          const SizedBox(width: 6),
+                          Text(
+                            (_editImageBytes != null || hasImage)
+                                ? S.of(context).changePhoto
+                                : S.of(context).addPhoto,
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ))
         else if (hasImage)
           Stack(
             children: [
@@ -1177,51 +1311,75 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_isEditMode) ...[
-                      Row(
-                        children: [
-                          const Icon(Icons.schedule, size: 14),
-                          const SizedBox(width: 6),
-                          SizedBox(
-                            width: 70,
-                            height: 34,
-                            child: TextField(
-                              controller: _cookingMinutesController,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              decoration: InputDecoration(
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 8,
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: panelColor,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDarkMode ? 0.28 : 0.07),
+                              blurRadius: isDarkMode ? 8 : 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.schedule, size: 14, color: accentColor),
+                            const SizedBox(width: 6),
+                            SizedBox(
+                              width: 70,
+                              height: 34,
+                              child: TextField(
+                                controller: _cookingMinutesController,
+                                keyboardType: TextInputType.number,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 13, color: colors.onSurface),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  filled: false,
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: UnderlineInputBorder(
+                                    borderSide: BorderSide(color: accentColor, width: 1.5),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                  suffixText: S.of(context).minSuffix,
+                                  suffixStyle: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
                                 ),
-                                suffixText: S.of(context).minSuffix,
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          const Icon(
-                            Icons.local_fire_department_outlined,
-                            size: 14,
-                          ),
-                          const SizedBox(width: 6),
-                          SizedBox(
-                            width: 70,
-                            height: 34,
-                            child: TextField(
-                              controller: _caloriesController,
-                              keyboardType: TextInputType.number,
-                              textAlign: TextAlign.center,
-                              decoration: InputDecoration(
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 8,
+                            const SizedBox(width: 20),
+                            Icon(Icons.local_fire_department_outlined, size: 14, color: accentColor),
+                            const SizedBox(width: 6),
+                            SizedBox(
+                              width: 70,
+                              height: 34,
+                              child: TextField(
+                                controller: _caloriesController,
+                                keyboardType: TextInputType.number,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 13, color: colors.onSurface),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  filled: false,
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: UnderlineInputBorder(
+                                    borderSide: BorderSide(color: accentColor, width: 1.5),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                  suffixText: S.of(context).calSuffix,
+                                  suffixStyle: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
                                 ),
-                                suffixText: S.of(context).calSuffix,
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                     ],
                     _RecipeDetailSectionCard(
                       title: S.of(context).ingredientsLabel,
@@ -1341,7 +1499,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                 side: isDarkMode
                                     ? BorderSide.none
                                     : BorderSide(color: borderColor),
-                                selectedColor: const Color(0xFF059669),
+                                selectedColor: accentColor,
                                 checkmarkColor: Colors.white,
                                 selected: isSelected,
                                 label: Text(
@@ -1379,117 +1537,91 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                 ? Row(
                     children: [
                       if (widget.onDelete != null && !_isEditMode) ...[
-                        IconButton(
+                        OutlinedButton(
                           onPressed: widget.onDelete,
-                          tooltip: 'Delete recipe',
-                          style: IconButton.styleFrom(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 40),
                             backgroundColor: panelColor,
                             foregroundColor: const Color(0xFFDC2626),
                             side: isDarkMode
                                 ? BorderSide.none
-                                : BorderSide(color: borderColor),
+                                : const BorderSide(color: Color(0xFFFCA5A5)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
                           ),
-                          icon: const Icon(Icons.delete_outline_rounded),
+                          child: Text(S.of(context).delete),
                         ),
                         const SizedBox(width: 8),
                       ],
-                      Expanded(
-                        flex: 2,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              _isEditMode = !_isEditMode;
-                              _selectedEditLabels = widget.recipe.labels
-                                  .toSet();
-                            });
-                          },
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: panelColor,
-                            foregroundColor: colors.onSurface,
-                            side: isDarkMode
-                                ? BorderSide.none
-                                : BorderSide(color: borderColor),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(999),
+                      if (_isEditMode) ...[
+                        Expanded(
+                          flex: 2,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setState(() {
+                                _isEditMode = false;
+                                _selectedEditLabels = widget.recipe.labels.toSet();
+                                _editImageBytes = null;
+                              });
+                            },
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: panelColor,
+                              foregroundColor: colors.onSurface,
+                              side: isDarkMode ? BorderSide.none : BorderSide(color: borderColor),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                             ),
-                          ),
-                          child: Text(_isEditMode ? S.of(context).cancel : S.of(context).edit),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 3,
-                        child: FilledButton(
-                          onPressed: _isEditMode
-                              ? _saveEditedRecipe
-                              : _openCookingMode,
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(40),
-                            backgroundColor: _isEditMode
-                                ? const Color(0xFF059669)
-                                : widget.cardColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                          child: Text(
-                            _isEditMode ? S.of(context).saveChanges : S.of(context).startCooking,
+                            child: Text(S.of(context).cancel),
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 3,
+                          child: FilledButton(
+                            onPressed: _saveEditedRecipe,
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(40),
+                              backgroundColor: accentColor,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                            ),
+                            child: Text(S.of(context).saveChanges),
+                          ),
+                        ),
+                      ] else
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () => setState(() => _isEditMode = true),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(40),
+                              backgroundColor: widget.cardColor,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                            ),
+                            child: Text(S.of(context).edit),
+                          ),
+                        ),
                     ],
                   )
-                : Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: OutlinedButton.icon(
-                          onPressed: widget.onToggleSave,
-                          icon: Icon(
-                            (isSaved == true)
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            size: 15,
-                            color: (isSaved == true)
-                                ? const Color(0xFFDC2626)
-                                : saveColor,
-                          ),
-                          label: Text((isSaved == true) ? S.of(context).saved : S.of(context).save),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(40),
-                            backgroundColor: panelColor,
-                            foregroundColor: saveColor,
-                            side: isDarkMode
-                                ? BorderSide.none
-                                : BorderSide(
-                                    color: (isSaved == true)
-                                        ? const Color(0xFFFCA5A5)
-                                        : borderColor,
-                                  ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(999),
+                : OutlinedButton.icon(
+                    onPressed: widget.onToggleSave,
+                    icon: Icon(
+                      (isSaved == true) ? Icons.favorite : Icons.favorite_border,
+                      size: 15,
+                      color: (isSaved == true) ? const Color(0xFFDC2626) : saveColor,
+                    ),
+                    label: Text((isSaved == true) ? S.of(context).saved : S.of(context).save),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(40),
+                      backgroundColor: panelColor,
+                      foregroundColor: saveColor,
+                      side: isDarkMode
+                          ? BorderSide.none
+                          : BorderSide(
+                              color: (isSaved == true) ? const Color(0xFFFCA5A5) : borderColor,
                             ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 3,
-                        child: FilledButton(
-                          onPressed: _openCookingMode,
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(40),
-                            backgroundColor: widget.cardColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                          child: Text(S.of(context).startCooking),
-                        ),
-                      ),
-                    ],
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                    ),
                   ),
           ),
         ],

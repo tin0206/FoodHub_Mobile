@@ -30,6 +30,7 @@ class S {
 
   // ── Shared ──────────────────────────────────────────────────────────────────
   String get cancel => _vi ? 'Hủy' : 'Cancel';
+  String get delete => _vi ? 'Xóa' : 'Delete';
   String get retry => _vi ? 'Thử lại' : 'Retry';
   String get save => _vi ? 'Lưu' : 'Save';
 
@@ -124,6 +125,9 @@ class S {
       _vi ? 'Không thể kết nối với trợ lý AI. Vui lòng thử lại.' : 'Unable to reach AI assistant. Please try again.';
 
   // ── Recipe detail / cooking mode ────────────────────────────────────────────
+  String get addPhoto => _vi ? 'Thêm ảnh' : 'Add Photo';
+  String get changePhoto => _vi ? 'Đổi ảnh' : 'Change Photo';
+
   String get startCooking => _vi ? 'Bắt đầu nấu' : 'Start Cooking';
   String get prepareIngredients => _vi ? 'Chuẩn bị nguyên liệu' : 'Prepare Ingredients';
   String stepOf(int step, int total) => _vi ? 'Bước $step / $total' : 'Step $step of $total';
