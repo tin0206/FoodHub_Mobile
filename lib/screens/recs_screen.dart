@@ -37,7 +37,8 @@ class _RecsScreenState extends State<RecsScreen> {
   bool _isSending = false;
   bool _isBootstrapping = true;
   String? _sessionId;
-  String _phase = 'gather';
+  String? _lastSentMessage;
+  List<String> _lastSentIngredients = const [];
   RecipeDetailData? _selectedRecipeDetail;
   bool _openingRecipe = false;
 
@@ -90,7 +91,8 @@ class _RecsScreenState extends State<RecsScreen> {
       );
       setState(() {
         _sessionId = response.sessionId ?? sessionId;
-        _phase = response.phase;
+        _lastSentMessage = null;
+        _lastSentIngredients = const [];
         _messages.add(
           _ChatMessage(
             text: response.reply.isNotEmpty
@@ -113,7 +115,8 @@ class _RecsScreenState extends State<RecsScreen> {
       if (!mounted) return;
       setState(() {
         _sessionId = sessionId;
-        _phase = 'gather';
+        _lastSentMessage = null;
+        _lastSentIngredients = const [];
         _messages.add(
           _ChatMessage(
             text:
@@ -339,12 +342,52 @@ class _RecsScreenState extends State<RecsScreen> {
 
     setState(() {
       _messages.add(_ChatMessage(text: merged, isUser: true));
+      _lastSentMessage = merged;
+      _lastSentIngredients = ingredients;
       _isSending = true;
       _clearComposeDetections();
       _promptController.clear();
     });
     _scrollToBottom();
 
+    await _sendToAi(merged, ingredients);
+  }
+
+  Future<void> _rerunLast() async {
+    if (_isSending || _isBootstrapping) return;
+    final last = _lastSentMessage;
+    if (last == null || last.isEmpty) return;
+
+    final sessionId = _sessionId;
+    if (sessionId == null || sessionId.isEmpty) {
+      await _bootstrapWelcome();
+      if (_sessionId == null) return;
+    }
+
+    setState(() {
+      // Drop the previous assistant reply so rerun regenerates it.
+      if (_messages.isNotEmpty && !_messages.last.isUser) {
+        _messages.removeLast();
+      }
+      if (_conversationHistory.isNotEmpty &&
+          _conversationHistory.last.role == 'assistant') {
+        _conversationHistory.removeLast();
+      }
+      // Keep history aligned: remove the matching user turn so _sendToAi
+      // can append it again with the new assistant reply.
+      if (_conversationHistory.isNotEmpty &&
+          _conversationHistory.last.role == 'user' &&
+          _conversationHistory.last.content == last) {
+        _conversationHistory.removeLast();
+      }
+      _isSending = true;
+    });
+    _scrollToBottom();
+
+    await _sendToAi(last, _lastSentIngredients);
+  }
+
+  Future<void> _sendToAi(String merged, List<String> ingredients) async {
     final dietary = widget.dietaryRestrictions.toList();
 
     try {
@@ -366,7 +409,6 @@ class _RecsScreenState extends State<RecsScreen> {
         if (response.sessionId != null && response.sessionId!.isNotEmpty) {
           _sessionId = response.sessionId;
         }
-        _phase = response.phase;
         _messages.add(
           _ChatMessage(
             text: response.reply,
@@ -491,41 +533,26 @@ class _RecsScreenState extends State<RecsScreen> {
                     return _ChatHeader(
                       isDarkMode: isDarkMode,
                       onReset: busy ? null : _resetChat,
-                      phase: _phase,
                     );
                   }
                   final messageIndex = index - 1;
                   if (busy && messageIndex == _messages.length) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TypingIndicatorBubble(isDarkMode: isDarkMode),
-                          Padding(
-                            padding: const EdgeInsets.only(left: 38, top: 4),
-                            child: Text(
-                              _isBootstrapping
-                                  ? 'Starting companion session...'
-                                  : 'Queued — waiting for AI...',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDarkMode
-                                    ? Colors.white54
-                                    : Colors.black45,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: TypingIndicatorBubble(isDarkMode: isDarkMode),
                     );
                   }
                   final message = _messages[messageIndex];
+                  final isLatestAiReply = !busy &&
+                      !message.isUser &&
+                      messageIndex == _messages.length - 1 &&
+                      _lastSentMessage != null;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: _ChatBubble(
                       message: message,
                       isDarkMode: isDarkMode,
+                      onRerun: isLatestAiReply ? _rerunLast : null,
                       onOpenRecipe: (link) {
                         RagRecipeModel? match;
                         for (final r in message.recipes) {
@@ -596,12 +623,10 @@ class _ChatHeader extends StatelessWidget {
   const _ChatHeader({
     required this.isDarkMode,
     required this.onReset,
-    this.phase = 'gather',
   });
 
   final bool isDarkMode;
   final VoidCallback? onReset;
-  final String phase;
 
   @override
   Widget build(BuildContext context) {
@@ -625,30 +650,18 @@ class _ChatHeader extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AI Companion',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: isDarkMode
-                        ? const Color(0xFFF8FAFC)
-                        : const Color(0xFF111827),
-                  ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'AI Companion',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: isDarkMode
+                      ? const Color(0xFFF8FAFC)
+                      : const Color(0xFF111827),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  'Phase: $phase',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDarkMode
-                        ? const Color(0xFF94A3B8)
-                        : const Color(0xFF6B7280),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
           IconButton(
@@ -850,11 +863,13 @@ class _ChatBubble extends StatelessWidget {
     required this.message,
     required this.isDarkMode,
     this.onOpenRecipe,
+    this.onRerun,
   });
 
   final _ChatMessage message;
   final bool isDarkMode;
   final void Function(RecipeLinkRef link)? onOpenRecipe;
+  final VoidCallback? onRerun;
 
   @override
   Widget build(BuildContext context) {
@@ -905,63 +920,88 @@ class _ChatBubble extends StatelessWidget {
       );
     }
 
-    return Row(
+    final muted =
+        isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF059669), Color(0xFF047857)],
-            ),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF059669).withValues(alpha: 0.3),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.smart_toy_outlined,
-            color: Colors.white,
-            size: 16,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(4),
-                topRight: Radius.circular(16),
-                bottomLeft: Radius.circular(16),
-                bottomRight: Radius.circular(16),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: isDarkMode ? 0.35 : 0.06,
-                  ),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF059669), Color(0xFF047857)],
                 ),
-              ],
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF059669).withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.smart_toy_outlined,
+                color: Colors.white,
+                size: 16,
+              ),
             ),
-            child: MarkdownReplyBody(
-              markdown: message.text,
-              isDarkMode: isDarkMode,
-              recipes: message.recipes,
-              onOpenRecipe: onOpenRecipe,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(4),
+                    topRight: Radius.circular(16),
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDarkMode ? 0.35 : 0.06,
+                      ),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: MarkdownReplyBody(
+                  markdown: message.text,
+                  isDarkMode: isDarkMode,
+                  recipes: message.recipes,
+                  onOpenRecipe: onOpenRecipe,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (onRerun != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 38, top: 4),
+            child: TextButton.icon(
+              onPressed: onRerun,
+              style: TextButton.styleFrom(
+                foregroundColor: muted,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+              icon: const Icon(Icons.refresh_rounded, size: 16),
+              label: const Text('Rerun', style: TextStyle(fontSize: 12)),
             ),
           ),
-        ),
       ],
     );
   }
