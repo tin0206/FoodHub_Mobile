@@ -2,9 +2,7 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/app_theme.dart';
-import 'package:foodhub_mobile/screens/login_screen.dart';
-import 'package:foodhub_mobile/screens/main_shell_screen.dart';
-import 'package:foodhub_mobile/services/auth_service.dart';
+import 'package:foodhub_mobile/screens/splash_screen.dart';
 
 /// Multi-device UI preview (iPhone/Android frames).
 /// On by default in debug. Disable if camera breaks:
@@ -43,46 +41,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.light,
-      home: const _BootstrapScreen(),
-    );
-  }
-}
-
-class _BootstrapScreen extends StatefulWidget {
-  const _BootstrapScreen();
-
-  @override
-  State<_BootstrapScreen> createState() => _BootstrapScreenState();
-}
-
-class _BootstrapScreenState extends State<_BootstrapScreen> {
-  final _authService = AuthService();
-
-  @override
-  void initState() {
-    super.initState();
-    _restoreSession();
-  }
-
-  Future<void> _restoreSession() async {
-    final user = await _authService.restoreSession();
-    if (!mounted) return;
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => user == null
-            ? const LoginScreen()
-            : MainShellScreen(initialUser: user),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(color: Color(0xFF059669)),
-      ),
+      home: const SplashScreen(),
     );
   }
 }
