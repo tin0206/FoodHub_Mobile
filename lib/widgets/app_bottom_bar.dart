@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/l10n/app_strings.dart';
 
 enum AppTab { home, search, recs, favorites, profile }
 
@@ -15,6 +16,7 @@ class AppBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final s = S.of(context);
 
     return Container(
       decoration: BoxDecoration(
@@ -34,7 +36,7 @@ class AppBottomBar extends StatelessWidget {
           child: Row(
             children: [
               _BottomTabItem(
-                label: 'Home',
+                label: s.navHome,
                 icon: Icons.home_outlined,
                 selectedIcon: Icons.home_rounded,
                 isSelected: currentTab == AppTab.home,
@@ -42,7 +44,7 @@ class AppBottomBar extends StatelessWidget {
                 onTap: () => onTabSelected(AppTab.home),
               ),
               _BottomTabItem(
-                label: 'Search',
+                label: s.navSearch,
                 icon: Icons.search_outlined,
                 selectedIcon: Icons.search_rounded,
                 isSelected: currentTab == AppTab.search,
@@ -50,7 +52,7 @@ class AppBottomBar extends StatelessWidget {
                 onTap: () => onTabSelected(AppTab.search),
               ),
               _BottomTabItem(
-                label: 'Recs',
+                label: s.navRecs,
                 icon: Icons.auto_awesome_outlined,
                 selectedIcon: Icons.auto_awesome,
                 isSelected: currentTab == AppTab.recs,
@@ -58,7 +60,7 @@ class AppBottomBar extends StatelessWidget {
                 onTap: () => onTabSelected(AppTab.recs),
               ),
               _BottomTabItem(
-                label: 'Favorites',
+                label: s.navFavorites,
                 icon: Icons.favorite_border_rounded,
                 selectedIcon: Icons.favorite_rounded,
                 isSelected: currentTab == AppTab.favorites,

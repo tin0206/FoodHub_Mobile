@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/ai.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/ai_service.dart';
@@ -118,12 +119,7 @@ class _RecsScreenState extends State<RecsScreen> {
         _lastSentMessage = null;
         _lastSentIngredients = const [];
         _messages.add(
-          _ChatMessage(
-            text:
-                'Could not start the companion session ($e). '
-                'You can still chat — tap reset to retry welcome.',
-            isUser: false,
-          ),
+          _ChatMessage(text: S.of(context).unableToReachAi, isUser: false),
         );
         _isBootstrapping = false;
       });
@@ -203,38 +199,41 @@ class _RecsScreenState extends State<RecsScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDarkMode ? const Color(0xFF141414) : Colors.white,
-        title: Text(
-          'Reset chat?',
-          style: TextStyle(
-            color: isDarkMode
-                ? const Color(0xFFF8FAFC)
-                : const Color(0xFF111827),
-          ),
-        ),
-        content: Text(
-          'This clears the conversation and compose detections. Your profile preferences stay the same.',
-          style: TextStyle(
-            color: isDarkMode
-                ? const Color(0xFF94A3B8)
-                : const Color(0xFF6B7280),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF059669),
+      builder: (ctx) {
+        final s = S.of(ctx);
+        return AlertDialog(
+          backgroundColor: isDarkMode ? const Color(0xFF141414) : Colors.white,
+          title: Text(
+            s.resetChatTitle,
+            style: TextStyle(
+              color: isDarkMode
+                  ? const Color(0xFFF8FAFC)
+                  : const Color(0xFF111827),
             ),
-            child: const Text('Reset'),
           ),
-        ],
-      ),
+          content: Text(
+            s.resetChatDesc,
+            style: TextStyle(
+              color: isDarkMode
+                  ? const Color(0xFF94A3B8)
+                  : const Color(0xFF6B7280),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(s.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+              ),
+              child: Text(s.resetLabel),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirm != true || !mounted) return;
@@ -277,8 +276,7 @@ class _RecsScreenState extends State<RecsScreen> {
         for (final r in msg.recipes) {
           final idMatch =
               recipeId != null && recipeId.isNotEmpty && r.recipeId == recipeId;
-          final titleMatch =
-              r.title.toLowerCase() == title.toLowerCase();
+          final titleMatch = r.title.toLowerCase() == title.toLowerCase();
           if (idMatch || titleMatch) {
             if (r.ingredients.isNotEmpty || r.directions.isNotEmpty) {
               detail = _detailFromRag(r);
@@ -309,7 +307,7 @@ class _RecsScreenState extends State<RecsScreen> {
     if (detail == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not open details for "$title".'),
+          content: Text(S.of(context).unableToOpenRecipe(title)),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -430,10 +428,7 @@ class _RecsScreenState extends State<RecsScreen> {
       if (!mounted) return;
       setState(() {
         _messages.add(
-          const _ChatMessage(
-            text: 'Unable to reach AI assistant. Please try again.',
-            isUser: false,
-          ),
+          _ChatMessage(text: S.of(context).unableToReachAi, isUser: false),
         );
         _isSending = false;
       });
@@ -482,7 +477,7 @@ class _RecsScreenState extends State<RecsScreen> {
     final text = _composeDishText;
     if (text == null) return;
     _editComposeText(
-      title: 'Edit dishes',
+      title: S.of(context).editDishesLabel,
       initialText: text,
       onSave: (value) => setState(() => _composeDishText = value),
     );
@@ -492,7 +487,7 @@ class _RecsScreenState extends State<RecsScreen> {
     final text = _composeIngredientsText;
     if (text == null) return;
     _editComposeText(
-      title: 'Edit ingredients',
+      title: S.of(context).editIngredientsLabel,
       initialText: text,
       onSave: (value) => setState(() => _composeIngredientsText = value),
     );
@@ -539,11 +534,31 @@ class _RecsScreenState extends State<RecsScreen> {
                   if (busy && messageIndex == _messages.length) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: TypingIndicatorBubble(isDarkMode: isDarkMode),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TypingIndicatorBubble(isDarkMode: isDarkMode),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 38, top: 4),
+                            child: Text(
+                              _isBootstrapping
+                                  ? S.of(context).startingSession
+                                  : S.of(context).waitingForAi,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDarkMode
+                                    ? Colors.white54
+                                    : Colors.black45,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   }
                   final message = _messages[messageIndex];
-                  final isLatestAiReply = !busy &&
+                  final isLatestAiReply =
+                      !busy &&
                       !message.isUser &&
                       messageIndex == _messages.length - 1 &&
                       _lastSentMessage != null;
@@ -620,10 +635,7 @@ class _RecsScreenState extends State<RecsScreen> {
 }
 
 class _ChatHeader extends StatelessWidget {
-  const _ChatHeader({
-    required this.isDarkMode,
-    required this.onReset,
-  });
+  const _ChatHeader({required this.isDarkMode, required this.onReset});
 
   final bool isDarkMode;
   final VoidCallback? onReset;
@@ -650,17 +662,14 @@ class _ChatHeader extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'AI Companion',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: isDarkMode
-                      ? const Color(0xFFF8FAFC)
-                      : const Color(0xFF111827),
-                ),
+            child: Text(
+              S.of(context).aiCompanion,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: isDarkMode
+                    ? const Color(0xFFF8FAFC)
+                    : const Color(0xFF111827),
               ),
             ),
           ),
@@ -698,10 +707,12 @@ class _ComposeDetectionField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor =
-        isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF111827);
-    final muted =
-        isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final textColor = isDarkMode
+        ? const Color(0xFFE2E8F0)
+        : const Color(0xFF111827);
+    final muted = isDarkMode
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF6B7280);
 
     return Container(
       constraints: const BoxConstraints(minHeight: 44),
@@ -803,7 +814,7 @@ class _UserComposeField extends StatelessWidget {
                       : const Color(0xFF111827),
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Ask for recipes...',
+                  hintText: S.of(context).askForRecipesHint,
                   hintStyle: TextStyle(
                     fontSize: 14,
                     color: isDarkMode
@@ -920,8 +931,9 @@ class _ChatBubble extends StatelessWidget {
       );
     }
 
-    final muted =
-        isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final muted = isDarkMode
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF6B7280);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -956,8 +968,10 @@ class _ChatBubble extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
                   borderRadius: const BorderRadius.only(
@@ -1023,8 +1037,9 @@ class _TextAreaEditSheet extends StatefulWidget {
 }
 
 class _TextAreaEditSheetState extends State<_TextAreaEditSheet> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.initialText);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialText,
+  );
 
   @override
   void dispose() {
@@ -1107,7 +1122,7 @@ class _TextAreaEditSheetState extends State<_TextAreaEditSheet> {
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF059669),
                 ),
-                child: const Text('Save'),
+                child: Text(S.of(context).save),
               ),
             ),
           ],
