@@ -303,6 +303,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
+                    // ignore: dead_code
+                    if (false) ...[
                     const SizedBox(height: 12),
                     GestureDetector(
                       onTap: () => Navigator.of(context).pushReplacement(
@@ -338,6 +340,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                     ),
+                    ],
                   ],
                 ),
               ),
