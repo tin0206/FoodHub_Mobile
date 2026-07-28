@@ -1,17 +1,11 @@
-import 'package:flutter/foundation.dart';
-
 class ApiConfig {
   ApiConfig._();
 
-  /// Override at build time: `--dart-define=API_BASE_URL=http://192.168.x.x:8000/api/v1`
+  /// Override at build time: `--dart-define=API_BASE_URL=http://justinakatruc-mac.tail657715.ts.net:8000/api/v1`
   static String get baseUrl {
     const fromEnv = String.fromEnvironment('API_BASE_URL');
     if (fromEnv.isNotEmpty) return fromEnv;
-    if (kIsWeb) return 'http://100.89.44.103:8000/api/v1';
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000/api/v1';
-    }
-    return 'http://100.89.44.103:8000/api/v1';
+    return 'http://justinakatruc-mac.tail657715.ts.net:8000/api/v1';
   }
 
   static String get apiOrigin {
