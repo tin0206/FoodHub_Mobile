@@ -33,9 +33,13 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         final preview = DevicePreview.appBuilder(context, child);
         final mediaQuery = MediaQuery.of(context);
-        return MediaQuery(
-          data: mediaQuery.copyWith(textScaler: const TextScaler.linear(1.12)),
-          child: preview,
+        return GestureDetector(
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          behavior: HitTestBehavior.translucent,
+          child: MediaQuery(
+            data: mediaQuery.copyWith(textScaler: const TextScaler.linear(1.12)),
+            child: preview,
+          ),
         );
       },
       theme: AppTheme.light,
