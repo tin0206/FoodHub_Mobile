@@ -51,6 +51,7 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _savedCurrentRecipe = false;
 
   List<String> _dietaryOptions = [];
+  int _totalCount = 0;
 
   @override
   void initState() {
@@ -89,6 +90,8 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() {
       _isLoading = true;
       _loadError = null;
+      _recipes = [];
+      _totalCount = 0;
     });
 
     try {
@@ -103,7 +106,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 ? _selectedCategory
                 : null);
 
-      final results = await _recipeService.searchRecipes(
+      final result = await _recipeService.searchRecipes(
         query: query,
         dietaryRestriction: dietary,
         limit: _hasFilter ? null : 50,
@@ -111,7 +114,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
       if (!mounted) return;
       setState(() {
-        _recipes = results;
+        _recipes = result.recipes;
+        _totalCount = result.totalCount;
         _isLoading = false;
         _selectedRecipeIndex = null;
       });
@@ -199,7 +203,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  List<RecipeModel> get _filteredRecipes => _recipes.take(50).toList();
+  List<RecipeModel> get _filteredRecipes => _recipes;
 
   @override
   Widget build(BuildContext context) {
@@ -384,7 +388,7 @@ class _SearchScreenState extends State<SearchScreen> {
             const Spacer(),
             if (_hasFilter)
               Text(
-                s.resultCount(_recipes.length),
+                s.resultCount(_totalCount),
                 style: TextStyle(fontSize: 11, color: colors.onSurfaceVariant),
               ),
           ],

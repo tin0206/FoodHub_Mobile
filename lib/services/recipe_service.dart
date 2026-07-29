@@ -1,6 +1,12 @@
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_client.dart';
 
+class RecipeSearchResult {
+  const RecipeSearchResult({required this.totalCount, required this.recipes});
+  final int totalCount;
+  final List<RecipeModel> recipes;
+}
+
 class RecipeService {
   RecipeService({ApiClient? apiClient}) : _api = apiClient ?? ApiClient();
 
@@ -21,7 +27,7 @@ class RecipeService {
         .toList();
   }
 
-  Future<List<RecipeModel>> searchRecipes({
+  Future<RecipeSearchResult> searchRecipes({
     String? query,
     String? dietaryRestriction,
     int skip = 0,
@@ -37,9 +43,13 @@ class RecipeService {
     if (mine) params['mine'] = 'true';
 
     final data = await _api.get('/recipes/search', query: params, auth: mine);
-    return (data as List<dynamic>)
-        .map((e) => RecipeModel.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final map = data as Map<String, dynamic>;
+    return RecipeSearchResult(
+      totalCount: map['total_count'] as int,
+      recipes: (map['recipes'] as List<dynamic>)
+          .map((e) => RecipeModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
   }
 
   Future<RecipeModel> getRecipe(int id) async {
