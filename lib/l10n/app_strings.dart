@@ -79,11 +79,15 @@ class S {
       'Breakfast': 'Bữa sáng',
       'Lunch': 'Bữa trưa',
       'Dinner': 'Bữa tối',
-      'Vegan': 'Thuần chay',
       'Quick Meals': 'Nấu nhanh',
-      'High Protein': 'Nhiều protein',
+      'Alcoholic': 'Có cồn',
+      'Beverage': 'Đồ uống',
+      'Dairy Free': 'Không sữa',
       'Gluten Free': 'Không gluten',
-      'Keto': 'Keto',
+      'Nut Free': 'Không hạt',
+      'Pescetarian': 'Hải sản',
+      'Vegan': 'Thuần chay',
+      'Vegetarian': 'Ăn chay',
     };
     return map[value] ?? value;
   }
@@ -208,13 +212,15 @@ class S {
     if (!_vi) return tag;
     const map = {
       // dietary restrictions
+      'Alcoholic': 'Có cồn',
+      'Beverage': 'Đồ uống',
       'Dairy Free': 'Không sữa',
       'Egg Free': 'Không trứng',
       'Gluten Free': 'Không gluten',
       'Nut Free': 'Không hạt',
+      'Pescetarian': 'Hải sản',
       'Vegan': 'Thuần chay',
       'Vegetarian': 'Ăn chay',
-      'Pescetarian': 'Hải sản',
       // recipe labels
       'Healthy': 'Lành mạnh',
       'Italian': 'Ẩm thực Ý',
