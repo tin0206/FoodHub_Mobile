@@ -88,7 +88,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(11),
+                      padding: const EdgeInsets.all(6),
                       child: Image.asset(
                         'assets/icons/app_icon.png',
                         fit: BoxFit.contain,
@@ -147,7 +147,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     const SizedBox(height: 3),
                     const Text(
                       'Start your healthier eating journey',
-                      style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFF64748B),
+                      ),
                     ),
                     const SizedBox(height: 16),
 
@@ -185,7 +188,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               if (name.length > 50) {
                                 return 'Name must be under 50 characters.';
                               }
-                              if (!RegExp(r"^[a-zA-ZÀ-ỹ\s'\-]+$").hasMatch(name)) {
+                              if (!RegExp(
+                                r"^[a-zA-ZÀ-ỹ\s'\-]+$",
+                              ).hasMatch(name)) {
                                 return 'Name can only contain letters and spaces.';
                               }
                               return null;
@@ -206,8 +211,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               if (email.isEmpty) {
                                 return 'Please enter your email.';
                               }
-                              if (!RegExp(r'^[\w.+\-]+@[\w\-]+\.[a-zA-Z]{2,}$')
-                                  .hasMatch(email)) {
+                              if (!RegExp(
+                                r'^[\w.+\-]+@[\w\-]+\.[a-zA-Z]{2,}$',
+                              ).hasMatch(email)) {
                                 return 'Please enter a valid email address.';
                               }
                               return null;
@@ -219,23 +225,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
-                            decoration: authInputDecoration(
-                              hint: '••••••••',
-                              icon: Icons.lock_outline_rounded,
-                            ).copyWith(
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  size: 18,
-                                  color: const Color(0xFF94A3B8),
+                            decoration:
+                                authInputDecoration(
+                                  hint: '••••••••',
+                                  icon: Icons.lock_outline_rounded,
+                                ).copyWith(
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      size: 18,
+                                      color: const Color(0xFF94A3B8),
+                                    ),
+                                    onPressed: () => setState(
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
+                                    ),
+                                  ),
                                 ),
-                                onPressed: () => setState(
-                                  () => _obscurePassword = !_obscurePassword,
-                                ),
-                              ),
-                            ),
                             validator: (v) {
                               if (v == null || v.isEmpty) {
                                 return 'Please enter your password.';
@@ -271,10 +279,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           onTap: isLoading
                               ? null
                               : () => Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (_) => const LoginScreen(),
-                                    ),
+                                  MaterialPageRoute(
+                                    builder: (_) => const LoginScreen(),
                                   ),
+                                ),
                           child: const Text(
                             'Sign in',
                             style: TextStyle(

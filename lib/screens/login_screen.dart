@@ -67,9 +67,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _forgotPassword() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()));
   }
 
   @override
@@ -95,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(11),
+                      padding: const EdgeInsets.all(6),
                       child: Image.asset(
                         'assets/icons/app_icon.png',
                         fit: BoxFit.contain,
@@ -154,7 +154,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 3),
                     const Text(
                       'Sign in to continue to your account',
-                      style: TextStyle(fontSize: 12.5, color: Color(0xFF64748B)),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFF64748B),
+                      ),
                     ),
                     const SizedBox(height: 16),
 
@@ -197,23 +200,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
-                            decoration: authInputDecoration(
-                              hint: '••••••••',
-                              icon: Icons.lock_outline_rounded,
-                            ).copyWith(
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  size: 22,
-                                  color: const Color(0xFF94A3B8),
+                            decoration:
+                                authInputDecoration(
+                                  hint: '••••••••',
+                                  icon: Icons.lock_outline_rounded,
+                                ).copyWith(
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      size: 22,
+                                      color: const Color(0xFF94A3B8),
+                                    ),
+                                    onPressed: () => setState(
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
+                                    ),
+                                  ),
                                 ),
-                                onPressed: () => setState(
-                                  () => _obscurePassword = !_obscurePassword,
-                                ),
-                              ),
-                            ),
                             validator: (v) {
                               if (v == null || v.isEmpty) {
                                 return 'Please enter your password.';
@@ -288,10 +293,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           onTap: isLoading
                               ? null
                               : () => Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (_) => const SignUpScreen(),
-                                    ),
+                                  MaterialPageRoute(
+                                    builder: (_) => const SignUpScreen(),
                                   ),
+                                ),
                           child: const Text(
                             'Sign up',
                             style: TextStyle(
@@ -305,41 +310,45 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     // ignore: dead_code
                     if (false) ...[
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (_) => AdminShellScreen(
-                            user: const UserModel(
-                              id: 0,
-                              email: 'admin@foodhub.app',
-                              username: 'admin',
-                              fullName: 'Admin',
-                              role: 'admin',
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (_) => AdminShellScreen(
+                              user: const UserModel(
+                                id: 0,
+                                email: 'admin@foodhub.app',
+                                username: 'admin',
+                                fullName: 'Admin',
+                                role: 'admin',
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.admin_panel_settings_rounded,
-                            size: 14,
-                            color: const Color(0xFF6366F1).withValues(alpha: 0.7),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            'Admin Panel (dev)',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: const Color(0xFF6366F1).withValues(alpha: 0.7),
-                              fontWeight: FontWeight.w500,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.admin_panel_settings_rounded,
+                              size: 14,
+                              color: const Color(
+                                0xFF6366F1,
+                              ).withValues(alpha: 0.7),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 5),
+                            Text(
+                              'Admin Panel (dev)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: const Color(
+                                  0xFF6366F1,
+                                ).withValues(alpha: 0.7),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                     ],
                   ],
                 ),
