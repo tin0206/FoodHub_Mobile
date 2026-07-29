@@ -872,15 +872,24 @@ class _SectionHeader extends StatelessWidget {
       children: [
         _IconBadge(background: badgeBackground, icon: icon, iconColor: iconColor),
         const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: primaryText),
-            ),
-            Text(subtitle, style: TextStyle(fontSize: 11, color: secondaryText)),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: primaryText),
+              ),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11, color: secondaryText),
+              ),
+            ],
+          ),
         ),
       ],
     );

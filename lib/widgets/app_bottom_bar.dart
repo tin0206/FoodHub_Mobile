@@ -32,7 +32,7 @@ class AppBottomBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 64,
+          height: 72,
           child: Row(
             children: [
               _BottomTabItem(
@@ -117,7 +117,7 @@ class _BottomTabItem extends StatelessWidget {
                 curve: Curves.easeInOut,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
-                  vertical: 4,
+                  vertical: 3,
                 ),
                 decoration: BoxDecoration(
                   color: isSelected ? pillColor : Colors.transparent,
@@ -125,13 +125,15 @@ class _BottomTabItem extends StatelessWidget {
                 ),
                 child: Icon(
                   isSelected ? selectedIcon : icon,
-                  size: 22,
+                  size: 26,
                   color: isSelected ? activeColor : inactiveColor,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 10.5,
                   fontWeight:

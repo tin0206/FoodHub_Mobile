@@ -813,8 +813,19 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
         widget.recipe.imageUrl!.isNotEmpty &&
         ApiConfig.resolveImageUrl(widget.recipe.imageUrl).isNotEmpty;
 
-    return Column(
-      children: [
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        if (_isCookingMode) return;
+        final v = details.primaryVelocity;
+        if (v == null || v.abs() < 300) return;
+        if (_isEditMode) {
+          setState(() => _isEditMode = false);
+        } else {
+          widget.onBack();
+        }
+      },
+      child: Column(
+        children: [
         // ── Header: gradient hero (normal) or flat (cooking) ───────
         if (_isCookingMode)
           Container(
@@ -1625,6 +1636,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                   ),
           ),
         ],
+      ),
     );
   }
 }

@@ -18,7 +18,14 @@ void showFavoriteToast(
   );
 }
 
+String? _activeErrorMessage;
+
 void showErrorToast(BuildContext context, String message) {
+  if (_activeErrorMessage == message) return;
+  _activeErrorMessage = message;
+  Future.delayed(const Duration(milliseconds: 2200), () {
+    if (_activeErrorMessage == message) _activeErrorMessage = null;
+  });
   _showAppToast(
     context,
     icon: Icons.error_rounded,
@@ -150,13 +157,13 @@ class _AppToastState extends State<_AppToast>
             child: Row(
               children: [
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: widget.iconBg,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(widget.icon, size: 16, color: widget.iconColor),
+                  child: Icon(widget.icon, size: 20, color: widget.iconColor),
                 ),
                 const SizedBox(width: 10),
                 Expanded(

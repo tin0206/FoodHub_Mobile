@@ -196,12 +196,16 @@ class _SearchScreenState extends State<SearchScreen> {
         _selectedRecipeIndex! >= 0 &&
         _selectedRecipeIndex! < _recipes.length) {
       final recipe = _recipes[_selectedRecipeIndex!];
-      return RecipeDetailView(
-        recipe: recipe.toDetailData(),
-        cardColor: recipeCardTheme(recipe.id, recipe.labels).start,
-        onBack: _closeRecipeDetails,
-        isSaved: _savedCurrentRecipe,
-        onToggleSave: () => _toggleSave(),
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) { if (!didPop) _closeRecipeDetails(); },
+        child: RecipeDetailView(
+          recipe: recipe.toDetailData(),
+          cardColor: recipeCardTheme(recipe.id, recipe.labels).start,
+          onBack: _closeRecipeDetails,
+          isSaved: _savedCurrentRecipe,
+          onToggleSave: () => _toggleSave(),
+        ),
       );
     }
 

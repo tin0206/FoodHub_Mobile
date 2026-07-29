@@ -212,13 +212,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     if (_selectedRecipe != null && _selectedRecipeCardIndex != null) {
-      return RecipeDetailView(
-        recipe: _selectedRecipe!.toDetailData(),
-        cardColor: recipeCardTheme(_selectedRecipe!.id, _selectedRecipe!.labels).start,
-        onBack: _closeRecipeDetails,
-        enableEdit: true,
-        onSaveEdited: (data) => _onSaveEditedRecipe(data),
-        onDelete: _onDeleteRecipe,
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) { if (!didPop) _closeRecipeDetails(); },
+        child: RecipeDetailView(
+          recipe: _selectedRecipe!.toDetailData(),
+          cardColor: recipeCardTheme(_selectedRecipe!.id, _selectedRecipe!.labels).start,
+          onBack: _closeRecipeDetails,
+          enableEdit: true,
+          onSaveEdited: (data) => _onSaveEditedRecipe(data),
+          onDelete: _onDeleteRecipe,
+        ),
       );
     }
 
@@ -356,6 +360,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             final recipe = _recipes[index];
                             return RecipeCard(
                               recipe: recipe,
+                              onTap: () => _openRecipeDetails(recipe, index),
                               onAction: () => _openRecipeDetails(recipe, index),
                             );
                           },

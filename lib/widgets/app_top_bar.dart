@@ -32,14 +32,14 @@ class AppTopBar extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 38,
+                    height: 38,
                     decoration: BoxDecoration(
                       color: const Color(0xFF059669),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(4),
                       child: Image.asset(
                         'assets/icons/app_icon.png',
                         fit: BoxFit.contain,
@@ -64,8 +64,8 @@ class AppTopBar extends StatelessWidget {
                 onTap: onOpenProfile,
                 borderRadius: BorderRadius.circular(999),
                 child: Container(
-                  width: 34,
-                  height: 34,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
@@ -83,7 +83,7 @@ class AppTopBar extends StatelessWidget {
                   ),
                   child: const Icon(
                     Icons.person_rounded,
-                    size: 18,
+                    size: 22,
                     color: Colors.white,
                   ),
                 ),

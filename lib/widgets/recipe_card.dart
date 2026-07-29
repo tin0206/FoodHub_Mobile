@@ -62,6 +62,8 @@ class RecipeCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         recipe.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: primaryText,
                           fontWeight: FontWeight.w800,

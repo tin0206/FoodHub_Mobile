@@ -88,14 +88,14 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Row(
                 children: [
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: 50,
+                    height: 50,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(13),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(9),
+                      padding: const EdgeInsets.all(11),
                       child: Image.asset(
                         'assets/icons/app_icon.png',
                         fit: BoxFit.contain,
@@ -206,7 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   _obscurePassword
                                       ? Icons.visibility_off_outlined
                                       : Icons.visibility_outlined,
-                                  size: 18,
+                                  size: 22,
                                   color: const Color(0xFF94A3B8),
                                 ),
                                 onPressed: () => setState(
@@ -529,7 +529,7 @@ InputDecoration authInputDecoration({
   return InputDecoration(
     hintText: hint,
     hintStyle: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 13.5),
-    prefixIcon: Icon(icon, size: 17, color: const Color(0xFF94A3B8)),
+    prefixIcon: Icon(icon, size: 20, color: const Color(0xFF94A3B8)),
     filled: true,
     fillColor: Colors.white,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

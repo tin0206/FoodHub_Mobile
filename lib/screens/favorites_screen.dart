@@ -406,12 +406,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       final favorite = _favorites[_selectedRecipeIndex!];
       final recipe = favorite.recipe;
 
-      return RecipeDetailView(
-        recipe: recipe.toDetailData(),
-        cardColor: recipeCardTheme(recipe.id, recipe.labels).start,
-        onBack: _closeRecipeDetails,
-        isSaved: _savedCurrentRecipe,
-        onToggleSave: _toggleSaveInDetail,
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) { if (!didPop) _closeRecipeDetails(); },
+        child: RecipeDetailView(
+          recipe: recipe.toDetailData(),
+          cardColor: recipeCardTheme(recipe.id, recipe.labels).start,
+          onBack: _closeRecipeDetails,
+          isSaved: _savedCurrentRecipe,
+          onToggleSave: _toggleSaveInDetail,
+        ),
       );
     }
 

@@ -81,14 +81,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: Row(
                 children: [
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: 50,
+                    height: 50,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(13),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(9),
+                      padding: const EdgeInsets.all(11),
                       child: Image.asset(
                         'assets/icons/app_icon.png',
                         fit: BoxFit.contain,
