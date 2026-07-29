@@ -175,8 +175,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               icon: Icons.person_outline_rounded,
                             ),
                             validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
+                              final name = v?.trim() ?? '';
+                              if (name.isEmpty) {
                                 return 'Please enter your full name.';
+                              }
+                              if (name.length < 2) {
+                                return 'Name must be at least 2 characters.';
+                              }
+                              if (name.length > 50) {
+                                return 'Name must be under 50 characters.';
+                              }
+                              if (!RegExp(r"^[a-zA-ZÀ-ỹ\s'\-]+$").hasMatch(name)) {
+                                return 'Name can only contain letters and spaces.';
                               }
                               return null;
                             },
@@ -192,11 +202,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               icon: Icons.mail_outline_rounded,
                             ),
                             validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
+                              final email = v?.trim() ?? '';
+                              if (email.isEmpty) {
                                 return 'Please enter your email.';
                               }
-                              if (!v.contains('@')) {
-                                return 'Please enter a valid email.';
+                              if (!RegExp(r'^[\w.+\-]+@[\w\-]+\.[a-zA-Z]{2,}$')
+                                  .hasMatch(email)) {
+                                return 'Please enter a valid email address.';
                               }
                               return null;
                             },
