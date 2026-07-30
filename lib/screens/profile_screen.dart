@@ -70,6 +70,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late String _snapCalorie;
   late String _snapProtein;
   late String _snapLanguage;
+  late bool _snapNotifyRecs;
+  late bool _snapNotifyFeatures;
+  late bool _snapNotifyWeekly;
 
   bool _isSaving = false;
   bool _notifyRecommendations = true;
@@ -80,16 +83,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _calorieError;
   String? _proteinError;
 
+  final _scrollController = ScrollController();
+  bool _actionButtonsVisible = false;
+
+  void _onFieldChanged() { if (mounted) setState(() {}); }
+
   @override
   void initState() {
     super.initState();
     _applyUser(widget.user);
-    _fullNameController = TextEditingController(text: _snapFullName);
+    _fullNameController = TextEditingController(text: _snapFullName)..addListener(_onFieldChanged);
     _emailController = TextEditingController(text: _snapEmail);
-    _ageController = TextEditingController(text: _snapAge);
-    _weightController = TextEditingController(text: _snapWeight);
-    _calorieTargetController = TextEditingController(text: _snapCalorie);
-    _proteinTargetController = TextEditingController(text: _snapProtein);
+    _ageController = TextEditingController(text: _snapAge)..addListener(_onFieldChanged);
+    _weightController = TextEditingController(text: _snapWeight)..addListener(_onFieldChanged);
+    _calorieTargetController = TextEditingController(text: _snapCalorie)..addListener(_onFieldChanged);
+    _proteinTargetController = TextEditingController(text: _snapProtein)..addListener(_onFieldChanged);
   }
 
   @override
@@ -114,19 +122,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _snapCalorie = user.calorieTarget?.toString() ?? '';
     _snapProtein = user.proteinTarget?.toString() ?? '';
     _snapLanguage = user.language ?? 'en';
-    _notifyRecommendations = user.notifyRecommendations;
-    _notifyNewFeatures = user.notifyNewFeatures;
-    _notifyWeeklySummary = user.notifyWeeklySummary;
+    _notifyRecommendations = _snapNotifyRecs = user.notifyRecommendations;
+    _notifyNewFeatures = _snapNotifyFeatures = user.notifyNewFeatures;
+    _notifyWeeklySummary = _snapNotifyWeekly = user.notifyWeeklySummary;
+  }
+
+  bool get _hasChanges {
+    if (_fullNameController.text.trim() != _snapFullName) return true;
+    if (_ageController.text.trim() != _snapAge) return true;
+    if (_weightController.text.trim() != _snapWeight) return true;
+    if (_calorieTargetController.text.trim() != _snapCalorie) return true;
+    if (_proteinTargetController.text.trim() != _snapProtein) return true;
+    if (widget.language != _snapLanguage) return true;
+    if (_notifyRecommendations != _snapNotifyRecs) return true;
+    if (_notifyNewFeatures != _snapNotifyFeatures) return true;
+    if (_notifyWeeklySummary != _snapNotifyWeekly) return true;
+    final userDiet = widget.user.dietaryRestrictions.toSet();
+    if (widget.selectedDietaryRestrictions.length != userDiet.length ||
+        !widget.selectedDietaryRestrictions.containsAll(userDiet)) return true;
+    if (widget.primaryGoal != (widget.user.primaryGoal ?? '')) return true;
+    return false;
   }
 
   @override
   void dispose() {
+    _fullNameController.removeListener(_onFieldChanged);
+    _ageController.removeListener(_onFieldChanged);
+    _weightController.removeListener(_onFieldChanged);
+    _calorieTargetController.removeListener(_onFieldChanged);
+    _proteinTargetController.removeListener(_onFieldChanged);
     _fullNameController.dispose();
     _emailController.dispose();
     _ageController.dispose();
     _weightController.dispose();
     _calorieTargetController.dispose();
     _proteinTargetController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -249,6 +280,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (widget.language != _snapLanguage) {
       widget.onLanguageChanged(_snapLanguage);
     }
+
+    // Reset dietary restrictions to original
+    final originalDiet = widget.user.dietaryRestrictions.toSet();
+    for (final tag in widget.selectedDietaryRestrictions.difference(originalDiet)) {
+      widget.onDietaryRestrictionToggled(tag, false);
+    }
+    for (final tag in originalDiet.difference(widget.selectedDietaryRestrictions)) {
+      widget.onDietaryRestrictionToggled(tag, true);
+    }
+
+    // Reset primary goal to original
+    final originalGoal = widget.user.primaryGoal ?? '';
+    if (widget.primaryGoal != originalGoal) {
+      widget.onPrimaryGoalChanged(originalGoal);
+    }
+
     setState(() {
       _fullNameController.text = _snapFullName;
       _emailController.text = _snapEmail;
@@ -256,6 +303,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _weightController.text = _snapWeight;
       _calorieTargetController.text = _snapCalorie;
       _proteinTargetController.text = _snapProtein;
+      _notifyRecommendations = _snapNotifyRecs;
+      _notifyNewFeatures = _snapNotifyFeatures;
+      _notifyWeeklySummary = _snapNotifyWeekly;
       _ageError = null;
       _weightError = null;
       _calorieError = null;
@@ -288,10 +338,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final s = S.of(context);
 
-    return Container(
-      color: _screenBackground,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 14),
+    return Stack(
+      children: [
+        Container(
+          color: _screenBackground,
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              final atBottom = notification.metrics.extentAfter < 50;
+              if (atBottom != _actionButtonsVisible) {
+                setState(() => _actionButtonsVisible = atBottom);
+              }
+              return false;
+            },
+            child: ListView(
+            controller: _scrollController,
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 14),
         children: [
           // ── Avatar card ─────────────────────────────────────────────────
           Container(
@@ -737,7 +798,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: FilledButton(
-                    onPressed: _isSaving ? null : _saveChanges,
+                    onPressed: (_isSaving || !_hasChanges) ? null : _saveChanges,
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF059669),
                       foregroundColor: Colors.white,
@@ -778,8 +839,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-        ],
+          ],
+          ),
+        ),
       ),
+        if (_hasChanges && !_actionButtonsVisible)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: SafeArea(
+              top: false,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isSaving ? null : _cancelChanges,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _primaryText,
+                        backgroundColor: _cardBackground,
+                        side: BorderSide.none,
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        elevation: 2,
+                        shadowColor: Colors.black26,
+                      ),
+                      child: Text(
+                        s.cancel,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _isSaving ? null : _saveChanges,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF059669),
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        elevation: 4,
+                        shadowColor: const Color(0xFF059669),
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              s.saveChanges,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

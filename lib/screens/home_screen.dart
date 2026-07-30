@@ -10,7 +10,6 @@ import 'package:foodhub_mobile/widgets/recipe_card.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 import 'package:image_picker/image_picker.dart';
 
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onDetailModeChanged});
 
@@ -143,11 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         _selectedRecipe = updated;
       });
-      showRecipeToast(
-        context,
-        recipeName: updated.name,
-        isNew: wasClone,
-      );
+      showRecipeToast(context, recipeName: updated.name, isNew: wasClone);
       if (wasClone && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -214,10 +209,15 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_selectedRecipe != null && _selectedRecipeCardIndex != null) {
       return PopScope(
         canPop: false,
-        onPopInvokedWithResult: (didPop, _) { if (!didPop) _closeRecipeDetails(); },
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _closeRecipeDetails();
+        },
         child: RecipeDetailView(
           recipe: _selectedRecipe!.toDetailData(),
-          cardColor: recipeCardTheme(_selectedRecipe!.id, _selectedRecipe!.labels).start,
+          cardColor: recipeCardTheme(
+            _selectedRecipe!.id,
+            _selectedRecipe!.labels,
+          ).start,
           onBack: _closeRecipeDetails,
           enableEdit: true,
           onSaveEdited: (data) => _onSaveEditedRecipe(data),
@@ -243,7 +243,10 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(_loadError!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _loadRecipes, child: Text(S.of(context).retry)),
+            FilledButton(
+              onPressed: _loadRecipes,
+              child: Text(S.of(context).retry),
+            ),
           ],
         ),
       );
@@ -465,12 +468,29 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
     TextEditingController(),
   ];
   final Set<String> _selectedLabels = {};
+  List<String> _availableLabels = [];
   bool _isSaving = false;
   Uint8List? _imageBytes;
   String _imageFilename = 'recipe.jpg';
 
+  @override
+  void initState() {
+    super.initState();
+    _loadDietaryLabels();
+  }
+
+  Future<void> _loadDietaryLabels() async {
+    try {
+      final options = await _recipeService.getDietaryRestrictions();
+      if (mounted) setState(() => _availableLabels = options);
+    } catch (_) {}
+  }
+
   Future<void> _pickImage() async {
-    final file = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
     if (file == null || !mounted) return;
     final bytes = await file.readAsBytes();
     setState(() {
@@ -545,7 +565,11 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
 
       String? imageUrl;
       if (_imageBytes != null) {
-        imageUrl = await _recipeService.uploadRecipeImage(created.id, _imageBytes!, _imageFilename);
+        imageUrl = await _recipeService.uploadRecipeImage(
+          created.id,
+          _imageBytes!,
+          _imageFilename,
+        );
       }
 
       if (!mounted) return;
@@ -585,10 +609,18 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final s = S.of(context);
     final cardBg = isDarkMode ? const Color(0xFF141414) : Colors.white;
-    final panelColor = isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF0F2F5);
-    final dividerColor = isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE2E4E8);
-    final hintColor = isDarkMode ? const Color(0xFF64748B) : const Color(0xFF9CA3AF);
-    final textColor = isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF111827);
+    final panelColor = isDarkMode
+        ? const Color(0xFF1E1E1E)
+        : const Color(0xFFF0F2F5);
+    final dividerColor = isDarkMode
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFE2E4E8);
+    final hintColor = isDarkMode
+        ? const Color(0xFF64748B)
+        : const Color(0xFF9CA3AF);
+    final textColor = isDarkMode
+        ? const Color(0xFFE2E8F0)
+        : const Color(0xFF111827);
     const accentColor = Color(0xFF059669);
 
     InputDecoration inlineFieldDecoration({String? hint, String? suffix}) =>
@@ -603,7 +635,10 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
           focusedBorder: const UnderlineInputBorder(
             borderSide: BorderSide(color: accentColor, width: 1.5),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 0,
+            vertical: 6,
+          ),
         );
 
     return Container(
@@ -632,7 +667,11 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                     color: accentColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.add_circle_outline, size: 16, color: accentColor),
+                  child: const Icon(
+                    Icons.add_circle_outline,
+                    size: 16,
+                    color: accentColor,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Text(
@@ -647,9 +686,15 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                 const Spacer(),
                 IconButton(
                   onPressed: widget.onCancel,
-                  icon: Icon(Icons.close_rounded, size: 18, color: colors.onSurfaceVariant),
+                  icon: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: colors.onSurfaceVariant,
+                  ),
                   style: IconButton.styleFrom(
-                    backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF3F4F6),
+                    backgroundColor: isDarkMode
+                        ? const Color(0xFF2A2A2A)
+                        : const Color(0xFFF3F4F6),
                     minimumSize: const Size(32, 32),
                     padding: EdgeInsets.zero,
                   ),
@@ -677,20 +722,35 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                                 SizedBox(
                                   width: double.infinity,
                                   height: 140,
-                                  child: Image.memory(_imageBytes!, fit: BoxFit.cover),
+                                  child: Image.memory(
+                                    _imageBytes!,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                                 Positioned.fill(
-                                  child: ColoredBox(color: Colors.black.withValues(alpha: 0.25)),
+                                  child: ColoredBox(
+                                    color: Colors.black.withValues(alpha: 0.25),
+                                  ),
                                 ),
                                 const Positioned.fill(
                                   child: Center(
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.photo_camera_outlined, size: 15, color: Colors.white),
+                                        Icon(
+                                          Icons.photo_camera_outlined,
+                                          size: 15,
+                                          color: Colors.white,
+                                        ),
                                         SizedBox(width: 6),
-                                        Text('Change Photo',
-                                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                        Text(
+                                          'Change Photo',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -704,11 +764,23 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.add_photo_alternate_outlined, size: 28,
-                                      color: isDarkMode ? const Color(0xFF64748B) : const Color(0xFF9CA3AF)),
+                                  Icon(
+                                    Icons.add_photo_alternate_outlined,
+                                    size: 28,
+                                    color: isDarkMode
+                                        ? const Color(0xFF64748B)
+                                        : const Color(0xFF9CA3AF),
+                                  ),
                                   const SizedBox(height: 4),
-                                  Text(S.of(context).addPhoto,
-                                      style: TextStyle(fontSize: 12, color: isDarkMode ? const Color(0xFF64748B) : const Color(0xFF9CA3AF))),
+                                  Text(
+                                    S.of(context).addPhoto,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDarkMode
+                                          ? const Color(0xFF64748B)
+                                          : const Color(0xFF9CA3AF),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -753,7 +825,11 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                     panelColor: panelColor,
                     child: Row(
                       children: [
-                        const Icon(Icons.schedule_rounded, size: 16, color: accentColor),
+                        const Icon(
+                          Icons.schedule_rounded,
+                          size: 16,
+                          color: accentColor,
+                        ),
                         const SizedBox(width: 8),
                         SizedBox(
                           width: 56,
@@ -765,9 +841,16 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Text(s.minSuffix, style: TextStyle(fontSize: 12, color: hintColor)),
+                        Text(
+                          s.minSuffix,
+                          style: TextStyle(fontSize: 12, color: hintColor),
+                        ),
                         const SizedBox(width: 20),
-                        const Icon(Icons.local_fire_department_outlined, size: 16, color: accentColor),
+                        const Icon(
+                          Icons.local_fire_department_outlined,
+                          size: 16,
+                          color: accentColor,
+                        ),
                         const SizedBox(width: 8),
                         SizedBox(
                           width: 56,
@@ -779,7 +862,10 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Text(s.calSuffix, style: TextStyle(fontSize: 12, color: hintColor)),
+                        Text(
+                          s.calSuffix,
+                          style: TextStyle(fontSize: 12, color: hintColor),
+                        ),
                       ],
                     ),
                   ),
@@ -794,7 +880,11 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.shopping_basket_outlined, size: 15, color: accentColor),
+                            const Icon(
+                              Icons.shopping_basket_outlined,
+                              size: 15,
+                              color: accentColor,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               s.ingredientsLabel,
@@ -827,8 +917,13 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                                     controller: entry.value,
                                     maxLines: 1,
                                     textInputAction: TextInputAction.next,
-                                    style: TextStyle(fontSize: 13, color: textColor),
-                                    decoration: inlineFieldDecoration(hint: s.ingredientHint(i)),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: textColor,
+                                    ),
+                                    decoration: inlineFieldDecoration(
+                                      hint: s.ingredientHint(i),
+                                    ),
                                   ),
                                 ),
                                 if (_ingredientControllers.length > 1) ...[
@@ -838,7 +933,11 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                                       _ingredientControllers[i].dispose();
                                       _ingredientControllers.removeAt(i);
                                     }),
-                                    child: Icon(Icons.close_rounded, size: 16, color: colors.onSurfaceVariant),
+                                    child: Icon(
+                                      Icons.close_rounded,
+                                      size: 16,
+                                      color: colors.onSurfaceVariant,
+                                    ),
                                   ),
                                 ],
                               ],
@@ -846,12 +945,19 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                           );
                         }),
                         TextButton.icon(
-                          onPressed: () => setState(() => _ingredientControllers.add(TextEditingController())),
+                          onPressed: () => setState(
+                            () => _ingredientControllers.add(
+                              TextEditingController(),
+                            ),
+                          ),
                           icon: const Icon(Icons.add, size: 14),
                           label: Text(s.addIngredient),
                           style: TextButton.styleFrom(
                             foregroundColor: accentColor,
-                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            textStyle: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -871,7 +977,11 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.format_list_numbered, size: 15, color: accentColor),
+                            const Icon(
+                              Icons.format_list_numbered,
+                              size: 15,
+                              color: accentColor,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               s.instructionsLabel,
@@ -895,7 +1005,9 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                                   width: 22,
                                   height: 22,
                                   decoration: BoxDecoration(
-                                    color: accentColor.withValues(alpha: isDarkMode ? 0.18 : 0.1),
+                                    color: accentColor.withValues(
+                                      alpha: isDarkMode ? 0.18 : 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(999),
                                   ),
                                   alignment: Alignment.center,
@@ -915,8 +1027,13 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                                     maxLines: null,
                                     minLines: 1,
                                     textInputAction: TextInputAction.next,
-                                    style: TextStyle(fontSize: 13, color: textColor),
-                                    decoration: inlineFieldDecoration(hint: s.stepHint(i)),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: textColor,
+                                    ),
+                                    decoration: inlineFieldDecoration(
+                                      hint: s.stepHint(i),
+                                    ),
                                   ),
                                 ),
                                 if (_stepControllers.length > 1) ...[
@@ -928,7 +1045,11 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                                         _stepControllers[i].dispose();
                                         _stepControllers.removeAt(i);
                                       }),
-                                      child: Icon(Icons.close_rounded, size: 16, color: colors.onSurfaceVariant),
+                                      child: Icon(
+                                        Icons.close_rounded,
+                                        size: 16,
+                                        color: colors.onSurfaceVariant,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -937,12 +1058,17 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                           );
                         }),
                         TextButton.icon(
-                          onPressed: () => setState(() => _stepControllers.add(TextEditingController())),
+                          onPressed: () => setState(
+                            () => _stepControllers.add(TextEditingController()),
+                          ),
                           icon: const Icon(Icons.add, size: 14),
                           label: Text(s.addStep),
                           style: TextButton.styleFrom(
                             foregroundColor: accentColor,
-                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            textStyle: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -962,7 +1088,11 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.sell_outlined, size: 15, color: accentColor),
+                            const Icon(
+                              Icons.sell_outlined,
+                              size: 15,
+                              color: accentColor,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               s.labelsLabel,
@@ -978,23 +1108,29 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                         Wrap(
                           spacing: 6,
                           runSpacing: 6,
-                          children: kAvailableLabels.map((label) {
+                          children: _availableLabels.map((label) {
                             final isSelected = _selectedLabels.contains(label);
                             return FilterChip(
                               selected: isSelected,
                               selectedColor: accentColor,
                               checkmarkColor: Colors.white,
-                              backgroundColor: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE4E6EA),
+                              backgroundColor: isDarkMode
+                                  ? const Color(0xFF2A2A2A)
+                                  : const Color(0xFFE4E6EA),
                               side: BorderSide.none,
                               label: Text(
                                 s.dietaryTagDisplay(label),
                                 style: TextStyle(
                                   fontSize: 10.5,
-                                  color: isSelected ? Colors.white : colors.onSurfaceVariant,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : colors.onSurfaceVariant,
                                 ),
                               ),
                               onSelected: (selected) => setState(() {
-                                selected ? _selectedLabels.add(label) : _selectedLabels.remove(label);
+                                selected
+                                    ? _selectedLabels.add(label)
+                                    : _selectedLabels.remove(label);
                               }),
                             );
                           }).toList(),
@@ -1019,10 +1155,17 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                       minimumSize: const Size.fromHeight(44),
                       foregroundColor: colors.onSurface,
                       side: BorderSide.none,
-                      backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: isDarkMode
+                          ? const Color(0xFF1E1E1E)
+                          : const Color(0xFFF3F4F6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: Text(s.cancel, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    child: Text(
+                      s.cancel,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1033,9 +1176,14 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                       minimumSize: const Size.fromHeight(44),
                       backgroundColor: accentColor,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: Text(s.saveRecipe, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    child: Text(
+                      s.saveRecipe,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
               ],
