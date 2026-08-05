@@ -36,6 +36,7 @@ class RagRecipeModel {
     this.directions = const [],
     this.dietaryRestrictions = const [],
     this.estimatedServings,
+    this.locale = 'en',
   });
 
   final String title;
@@ -45,6 +46,7 @@ class RagRecipeModel {
   final List<String> directions;
   final List<String> dietaryRestrictions;
   final int? estimatedServings;
+  final String locale;
 
   int? get recipeIdAsInt {
     final raw = recipeId?.trim();
@@ -55,12 +57,15 @@ class RagRecipeModel {
   factory RagRecipeModel.fromJson(Map<String, dynamic> json) {
     final rawId = json['recipe_id'] ?? json['id'];
     return RagRecipeModel(
-      title: json['title'] as String? ?? 'Untitled recipe',
+      title: json['title'] as String? ??
+          json['RecipeName'] as String? ??
+          'Untitled recipe',
       recipeId: rawId?.toString(),
       ingredients: _list(json['ingredients']),
       directions: _list(json['directions']),
       dietaryRestrictions: _list(json['dietary_restrictions']),
       estimatedServings: json['estimated_servings'] as int?,
+      locale: (json['locale'] as String?) ?? 'en',
     );
   }
 
@@ -164,6 +169,7 @@ class IngredientsDetectModel {
     this.ingredients = const [],
     this.imageUrl = '',
     this.detections = const [],
+    this.annotatedImageUrl = '',
     this.annotatedImageBytes,
   });
 
@@ -171,6 +177,8 @@ class IngredientsDetectModel {
   final List<String> ingredients;
   final String imageUrl;
   final List<DetectionItemModel> detections;
+  /// Server-uploaded annotated JPEG (`/media/...`); preferred over base64.
+  final String annotatedImageUrl;
   final Uint8List? annotatedImageBytes;
 
   factory IngredientsDetectModel.fromJson(Map<String, dynamic> json) {
@@ -196,6 +204,7 @@ class IngredientsDetectModel {
               .map(DetectionItemModel.fromJson)
               .toList() ??
           const [],
+      annotatedImageUrl: json['annotated_image_url'] as String? ?? '',
       annotatedImageBytes: annotated,
     );
   }

@@ -57,10 +57,11 @@ class ApiClient {
   Future<dynamic> patch(
     String path, {
     Map<String, dynamic>? body,
+    Map<String, String>? query,
     bool auth = true,
   }) async {
     final response = await http.patch(
-      _uri(path),
+      _uri(path, query),
       headers: await _headers(auth: auth),
       body: body == null ? null : jsonEncode(body),
     );

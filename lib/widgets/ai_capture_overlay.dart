@@ -1,6 +1,9 @@
+import 'dart:ui' as ui;
+
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/config/api_config.dart';
 import 'package:foodhub_mobile/models/ai.dart';
 import 'package:foodhub_mobile/services/ai_service.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
@@ -135,6 +138,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                 : result.detections.map((d) => d.label).toSet().toList(),
             sourceName: filename,
             captureBytes: Uint8List.fromList(bytes),
+            annotatedImageUrl: result.annotatedImageUrl,
             annotatedImageBytes: result.annotatedImageBytes,
             imageUrl: result.imageUrl,
             detections: result.detections,
@@ -557,6 +561,7 @@ class _DetectedIngredientsSheet extends StatefulWidget {
     required this.initialItems,
     required this.sourceName,
     required this.captureBytes,
+    this.annotatedImageUrl = '',
     this.annotatedImageBytes,
     this.imageUrl = '',
     this.detections = const [],
@@ -565,6 +570,7 @@ class _DetectedIngredientsSheet extends StatefulWidget {
   final List<String> initialItems;
   final String sourceName;
   final Uint8List captureBytes;
+  final String annotatedImageUrl;
   final Uint8List? annotatedImageBytes;
   final String imageUrl;
   final List<DetectionItemModel> detections;
@@ -614,6 +620,7 @@ class _DetectedIngredientsSheetState extends State<_DetectedIngredientsSheet> {
                 borderRadius: BorderRadius.circular(12),
                 child: _AnnotatedResultImage(
                   captureBytes: widget.captureBytes,
+                  annotatedImageUrl: widget.annotatedImageUrl,
                   annotatedImageBytes: widget.annotatedImageBytes,
                   imageUrl: widget.imageUrl,
                   detections: widget.detections,
@@ -661,76 +668,148 @@ class _DetectedIngredientsSheetState extends State<_DetectedIngredientsSheet> {
   }
 }
 
-class _AnnotatedResultImage extends StatelessWidget {
+class _AnnotatedResultImage extends StatefulWidget {
   const _AnnotatedResultImage({
     required this.captureBytes,
+    this.annotatedImageUrl = '',
     this.annotatedImageBytes,
     this.imageUrl = '',
     this.detections = const [],
   });
 
   final Uint8List captureBytes;
+  final String annotatedImageUrl;
   final Uint8List? annotatedImageBytes;
   final String imageUrl;
   final List<DetectionItemModel> detections;
 
   @override
+  State<_AnnotatedResultImage> createState() => _AnnotatedResultImageState();
+}
+
+enum _AnnotatedSource { url, base64, overlay }
+
+class _AnnotatedResultImageState extends State<_AnnotatedResultImage> {
+  double? _captureAspect;
+  bool _annotatedUrlFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _decodeCaptureAspect();
+  }
+
+  Future<void> _decodeCaptureAspect() async {
+    try {
+      final codec = await ui.instantiateImageCodec(widget.captureBytes);
+      final frame = await codec.getNextFrame();
+      final w = frame.image.width;
+      final h = frame.image.height;
+      frame.image.dispose();
+      if (!mounted || w <= 0 || h <= 0) return;
+      setState(() => _captureAspect = w / h);
+    } catch (_) {
+      // Fallback overlay uses fitWidth without AspectRatio if decode fails.
+    }
+  }
+
+  _AnnotatedSource get _source {
+    final resolved = ApiConfig.resolveImageUrl(widget.annotatedImageUrl);
+    if (resolved.isNotEmpty && !_annotatedUrlFailed) {
+      return _AnnotatedSource.url;
+    }
+    if (widget.annotatedImageBytes != null &&
+        widget.annotatedImageBytes!.isNotEmpty) {
+      return _AnnotatedSource.base64;
+    }
+    return _AnnotatedSource.overlay;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Prefer server-annotated JPEG when present.
-    if (annotatedImageBytes != null && annotatedImageBytes!.isNotEmpty) {
-      return Image.memory(
-        annotatedImageBytes!,
-        width: double.infinity,
-        fit: BoxFit.fitWidth,
-        errorBuilder: (_, __, ___) => _localPhotoWithBoxes(),
-      );
+    final source = _source;
+    Widget image;
+    switch (source) {
+      case _AnnotatedSource.url:
+        image = Image.network(
+          ApiConfig.resolveImageUrl(widget.annotatedImageUrl),
+          width: double.infinity,
+          fit: BoxFit.fitWidth,
+          errorBuilder: (_, __, ___) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && !_annotatedUrlFailed) {
+                setState(() => _annotatedUrlFailed = true);
+              }
+            });
+            return _localPhotoWithBoxes();
+          },
+        );
+      case _AnnotatedSource.base64:
+        image = Image.memory(
+          widget.annotatedImageBytes!,
+          width: double.infinity,
+          fit: BoxFit.fitWidth,
+          errorBuilder: (_, __, ___) => _localPhotoWithBoxes(),
+        );
+      case _AnnotatedSource.overlay:
+        image = _localPhotoWithBoxes();
     }
 
-    // Always fall back to the photo just captured/picked (reliable on web).
-    return _localPhotoWithBoxes();
+    return image;
   }
 
   Widget _localPhotoWithBoxes() {
-    // Stack sizes to the photo; boxes map 0..1 onto the full image (no cover-crop).
-    return ColoredBox(
-      color: const Color(0xFF0F172A),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Image.memory(
-            captureBytes,
-            width: double.infinity,
-            fit: BoxFit.fitWidth,
-            errorBuilder: (_, __, ___) {
-              if (imageUrl.isEmpty) {
-                return const SizedBox(
-                  height: 180,
-                  child: Center(
-                    child: Icon(
-                      Icons.image_not_supported_outlined,
-                      color: Colors.white38,
-                    ),
-                  ),
-                );
-              }
-              return Image.network(
-                imageUrl,
-                width: double.infinity,
-                fit: BoxFit.fitWidth,
-              );
-            },
-          ),
-          if (detections.isNotEmpty)
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _DetectionOverlayPainter(
-                  detections: detections,
-                  accent: const Color(0xFF059669),
-                ),
+    // Size stack to decoded capture aspect so normalized boxes map to pixels,
+    // not a letterboxed/fill mismatch.
+    final photo = Image.memory(
+      widget.captureBytes,
+      width: double.infinity,
+      fit: BoxFit.fitWidth,
+      errorBuilder: (_, __, ___) {
+        final resolved = ApiConfig.resolveImageUrl(widget.imageUrl);
+        if (resolved.isEmpty) {
+          return const SizedBox(
+            height: 180,
+            child: Center(
+              child: Icon(
+                Icons.image_not_supported_outlined,
+                color: Colors.white38,
               ),
             ),
-        ],
-      ),
+          );
+        }
+        return Image.network(
+          resolved,
+          width: double.infinity,
+          fit: BoxFit.fitWidth,
+        );
+      },
+    );
+
+    final stack = Stack(
+      fit: StackFit.passthrough,
+      children: [
+        photo,
+        if (widget.detections.isNotEmpty)
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _DetectionOverlayPainter(
+                detections: widget.detections,
+                accent: const Color(0xFF059669),
+              ),
+            ),
+          ),
+      ],
+    );
+
+    final aspect = _captureAspect;
+    if (aspect == null || aspect <= 0) {
+      return ColoredBox(color: const Color(0xFF0F172A), child: stack);
+    }
+
+    return ColoredBox(
+      color: const Color(0xFF0F172A),
+      child: AspectRatio(aspectRatio: aspect, child: stack),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:foodhub_mobile/models/favorite.dart';
 import 'package:foodhub_mobile/services/api_client.dart';
+import 'package:foodhub_mobile/services/session_service.dart';
 
 class FavoriteService {
   FavoriteService({ApiClient? apiClient}) : _api = apiClient ?? ApiClient();
@@ -11,8 +12,15 @@ class FavoriteService {
   /// Screens can listen to this to sync their local state.
   static final ValueNotifier<int> changes = ValueNotifier(0);
 
-  Future<List<FavoriteModel>> listFavorites() async {
-    final data = await _api.get('/favorites');
+  Future<List<FavoriteModel>> listFavorites({String? lang}) async {
+    final language =
+        lang ?? SessionService.instance.currentUser?.language;
+    final data = await _api.get(
+      '/favorites',
+      query: {
+        if (language != null && language.isNotEmpty) 'lang': language,
+      },
+    );
     return (data as List<dynamic>)
         .map((e) => FavoriteModel.fromJson(e as Map<String, dynamic>))
         .toList();

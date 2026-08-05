@@ -1,5 +1,6 @@
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_client.dart';
+import 'package:foodhub_mobile/services/session_service.dart';
 
 class RecipeSearchResult {
   const RecipeSearchResult({required this.totalCount, required this.recipes});
@@ -12,14 +13,34 @@ class RecipeService {
 
   final ApiClient _api;
 
+  String? get _lang {
+    final language = SessionService.instance.currentUser?.language;
+    if (language == null || language.isEmpty) return null;
+    return language;
+  }
+
+  Map<String, String> _withLang(Map<String, String> query) {
+    if (!query.containsKey('lang')) {
+      final lang = _lang;
+      if (lang != null) query['lang'] = lang;
+    }
+    return query;
+  }
+
   Future<List<RecipeModel>> listRecipes({
     int skip = 0,
     int limit = 50,
     bool mine = false,
+    String? lang,
   }) async {
     final data = await _api.get(
       '/recipes',
-      query: {'skip': '$skip', 'limit': '$limit', if (mine) 'mine': 'true'},
+      query: _withLang({
+        'skip': '$skip',
+        'limit': '$limit',
+        if (mine) 'mine': 'true',
+        if (lang != null && lang.isNotEmpty) 'lang': lang,
+      }),
       auth: mine,
     );
     return (data as List<dynamic>)
@@ -33,14 +54,16 @@ class RecipeService {
     int skip = 0,
     int? limit = 50,
     bool mine = false,
+    String? lang,
   }) async {
-    final params = <String, String>{'skip': '$skip'};
+    final params = _withLang({'skip': '$skip'});
     if (limit != null) params['limit'] = '$limit';
     if (query != null && query.isNotEmpty) params['q'] = query;
     if (dietaryRestriction != null && dietaryRestriction.isNotEmpty) {
       params['dietary_restriction'] = dietaryRestriction;
     }
     if (mine) params['mine'] = 'true';
+    if (lang != null && lang.isNotEmpty) params['lang'] = lang;
 
     final data = await _api.get('/recipes/search', query: params, auth: mine);
     final map = data as Map<String, dynamic>;
@@ -52,8 +75,14 @@ class RecipeService {
     );
   }
 
-  Future<RecipeModel> getRecipe(int id) async {
-    final data = await _api.get('/recipes/$id', auth: true);
+  Future<RecipeModel> getRecipe(int id, {String? lang}) async {
+    final data = await _api.get(
+      '/recipes/$id',
+      query: _withLang({
+        if (lang != null && lang.isNotEmpty) 'lang': lang,
+      }),
+      auth: true,
+    );
     return RecipeModel.fromJson(data as Map<String, dynamic>);
   }
 
@@ -92,7 +121,11 @@ class RecipeService {
       estimatedServings: estimatedServings,
     );
 
-    final data = await _api.patch('/recipes/$id', body: body);
+    final data = await _api.patch(
+      '/recipes/$id',
+      body: body,
+      query: _withLang({}),
+    );
     return RecipeModel.fromJson(data as Map<String, dynamic>);
   }
 

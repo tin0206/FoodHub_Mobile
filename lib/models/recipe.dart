@@ -12,6 +12,7 @@ class RecipeModel {
     this.dietaryRestrictions = const [],
     this.createdBy,
     this.visibility = 'private',
+    this.locale = 'en',
   });
 
   final int id;
@@ -24,6 +25,7 @@ class RecipeModel {
   final List<String> dietaryRestrictions;
   final int? createdBy;
   final String visibility;
+  final String locale;
 
   bool get isPrivate => visibility == 'private';
 
@@ -60,6 +62,7 @@ class RecipeModel {
       dietaryRestrictions: _parseStringList(json['dietary_restrictions']),
       createdBy: json['created_by'] as int?,
       visibility: (json['visibility'] as String?) ?? 'private',
+      locale: (json['locale'] as String?) ?? 'en',
     );
   }
 
