@@ -126,7 +126,9 @@ class RecipeCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(999),
                               boxShadow: [
                                 BoxShadow(
-                                  color: t.start.withValues(alpha: isDarkMode ? 0.12 : 0.15),
+                                  color: t.start.withValues(
+                                    alpha: isDarkMode ? 0.12 : 0.15,
+                                  ),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -148,10 +150,7 @@ class RecipeCard extends StatelessWidget {
                   ),
                 ] else
                   const SizedBox(height: 2),
-                if (footer != null) ...[
-                  const SizedBox(height: 10),
-                  footer!,
-                ],
+                if (footer != null) ...[const SizedBox(height: 10), footer!],
               ],
             ),
           ),
@@ -180,19 +179,22 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor =
-        isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
-    final divColor =
-        isDarkMode ? const Color(0xFF374151) : const Color(0xFFE5E7EB);
-    final iconColor =
-        isDarkMode ? const Color(0xFF64748B) : const Color(0xFF9CA3AF);
+    final textColor = isDarkMode
+        ? const Color(0xFF94A3B8)
+        : const Color(0xFF6B7280);
+    final divColor = isDarkMode
+        ? const Color(0xFF374151)
+        : const Color(0xFFE5E7EB);
+    final iconColor = isDarkMode
+        ? const Color(0xFF64748B)
+        : const Color(0xFF9CA3AF);
 
     Widget dot() => Container(
-          width: 1,
-          height: 10,
-          margin: const EdgeInsets.symmetric(horizontal: 7),
-          color: divColor,
-        );
+      width: 1,
+      height: 10,
+      margin: const EdgeInsets.symmetric(horizontal: 7),
+      color: divColor,
+    );
 
     return Row(
       children: [
@@ -214,7 +216,7 @@ class _StatsRow extends StatelessWidget {
         ),
         const SizedBox(width: 3),
         Text(
-          '${recipe.calories} kcal',
+          '${recipe.calories} cal',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w500,
@@ -225,4 +227,3 @@ class _StatsRow extends StatelessWidget {
     );
   }
 }
-

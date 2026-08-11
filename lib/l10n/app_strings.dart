@@ -130,6 +130,7 @@ class S {
 
   // ── Recipe detail / cooking mode ────────────────────────────────────────────
   String get addPhoto => _vi ? 'Thêm ảnh' : 'Add Photo';
+  String get recipeTitleHint => _vi ? 'Tên món ăn...' : 'Recipe title...';
   String get changePhoto => _vi ? 'Đổi ảnh' : 'Change Photo';
 
   String get startCooking => _vi ? 'Bắt đầu nấu' : 'Start Cooking';

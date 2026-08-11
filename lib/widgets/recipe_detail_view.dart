@@ -136,6 +136,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
 
   late List<TextEditingController> _ingredientControllers;
   late List<TextEditingController> _stepControllers;
+  late TextEditingController _titleController;
   late TextEditingController _cookingMinutesController;
   late TextEditingController _caloriesController;
   late Set<String> _selectedEditLabels;
@@ -157,6 +158,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     if (_stepControllers.isEmpty) {
       _stepControllers.add(TextEditingController());
     }
+    _titleController = TextEditingController(text: widget.recipe.name);
     _cookingMinutesController = TextEditingController(
       text: widget.recipe.cookingMinutes.toString(),
     );
@@ -195,6 +197,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       if (_stepControllers.isEmpty) {
         _stepControllers.add(TextEditingController());
       }
+      _titleController.text = widget.recipe.name;
       _cookingMinutesController.text = widget.recipe.cookingMinutes.toString();
       _caloriesController.text = widget.recipe.calories.toString();
       _selectedEditLabels = widget.recipe.labels.toSet();
@@ -227,6 +230,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     for (final c in _stepControllers) {
       c.dispose();
     }
+    _titleController.dispose();
     _cookingMinutesController.dispose();
     _caloriesController.dispose();
     super.dispose();
@@ -284,6 +288,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   }
 
   Future<void> _saveEditedRecipe() async {
+    final title = _titleController.text.trim();
     final ingredients = _ingredientControllers
         .map((c) => c.text.trim())
         .where((s) => s.isNotEmpty)
@@ -295,13 +300,14 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     final cookingMinutes = int.tryParse(_cookingMinutesController.text.trim());
     final calories = int.tryParse(_caloriesController.text.trim());
 
-    if (ingredients.isEmpty ||
+    if (title.isEmpty ||
+        ingredients.isEmpty ||
         steps.isEmpty ||
         cookingMinutes == null ||
         calories == null ||
         cookingMinutes <= 0 ||
         calories <= 0) {
-      showErrorToast(context, 'Ingredients, instructions, time and calories are required.');
+      showErrorToast(context, 'Title, ingredients, instructions, time and calories are required.');
       return;
     }
 
@@ -334,7 +340,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
 
     final updated = RecipeDetailData(
       id: widget.recipe.id,
-      name: widget.recipe.name,
+      name: title,
       imageUrl: uploadedImageUrl ?? widget.recipe.imageUrl,
       cookingMinutes: cookingMinutes,
       calories: calories,
@@ -1347,6 +1353,55 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                         ),
                         child: Row(
                           children: [
+                            Icon(Icons.edit_outlined, size: 14, color: accentColor),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _titleController,
+                                maxLines: 1,
+                                textInputAction: TextInputAction.next,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: colors.onSurface,
+                                ),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  filled: false,
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: UnderlineInputBorder(
+                                    borderSide: BorderSide(color: accentColor, width: 1.5),
+                                  ),
+                                  hintText: S.of(context).recipeTitleHint,
+                                  hintStyle: TextStyle(
+                                    fontSize: 14,
+                                    color: colors.onSurfaceVariant.withValues(alpha: 0.5),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: panelColor,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDarkMode ? 0.28 : 0.07),
+                              blurRadius: isDarkMode ? 8 : 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
                             Icon(Icons.schedule, size: 14, color: accentColor),
                             const SizedBox(width: 6),
                             SizedBox(
@@ -1581,6 +1636,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                             onPressed: () {
                               setState(() {
                                 _isEditMode = false;
+                                _titleController.text = widget.recipe.name;
                                 _selectedEditLabels = widget.recipe.labels.toSet();
                                 _editImageBytes = null;
                               });
