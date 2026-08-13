@@ -212,7 +212,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 return 'Please enter your email.';
                               }
                               if (!RegExp(
-                                r'^[\w.+\-]+@[\w\-]+\.[a-zA-Z]{2,}$',
+                                r'^[\w.+\-]+@([\w\-]+\.)+[a-zA-Z]{2,}$',
                               ).hasMatch(email)) {
                                 return 'Please enter a valid email address.';
                               }
