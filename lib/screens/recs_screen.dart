@@ -139,13 +139,13 @@ class _RecsScreenState extends State<RecsScreen> {
   }
 
   /// Prefer top match for the initial compose line.
-  void _setDishComposeFrom(DishRecognitionModel dish) {
+  void _setDishComposeFrom(DishRecognitionModel dish, BuildContext ctx) {
     final names = _dishNamesFrom(dish);
     if (names.isEmpty) {
       _composeDishText = null;
       return;
     }
-    _composeDishText = 'Dishes detected: ${names.first}';
+    _composeDishText = S.of(ctx).dishDetectedName(names.first);
   }
 
   List<String> _ingredientsForApi() {
@@ -444,9 +444,9 @@ class _RecsScreenState extends State<RecsScreen> {
       switch (result) {
         case AiCaptureIngredientsResult(:final ingredients):
           _composeIngredientsText =
-              'Ingredients detected: ${ingredients.join(', ')}';
+              S.of(context).ingredientsDetectedList(ingredients.join(', '));
         case AiCaptureDishResult(:final dish):
-          _setDishComposeFrom(dish);
+          _setDishComposeFrom(dish, context);
       }
     });
   }

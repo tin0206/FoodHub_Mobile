@@ -134,7 +134,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
           context: context,
           isScrollControlled: true,
           showDragHandle: true,
-          backgroundColor: const Color(0xFF0B1B38),
+          backgroundColor: Theme.of(context).colorScheme.surface,
           builder: (ctx) => LangScope(
             lang: lang,
             child: _DetectedIngredientsSheet(
@@ -332,18 +332,25 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                         alignment: WrapAlignment.center,
                         children: _accumulatedIngredients
                             .map(
-                              (item) => Chip(
-                                label: Text(
+                              (item) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.35),
+                                  ),
+                                ),
+                                child: Text(
                                   item,
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 11,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                ),
-                                backgroundColor:
-                                    Colors.white.withValues(alpha: 0.15),
-                                side: BorderSide(
-                                  color: Colors.white.withValues(alpha: 0.25),
                                 ),
                               ),
                             )
@@ -614,16 +621,11 @@ class _DetectedIngredientsSheetState extends State<_DetectedIngredientsSheet> {
             children: [
               Text(
                 S.of(context).confirmDetectedIngredients,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFFF8FAFC),
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                widget.sourceName,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
               ),
               const SizedBox(height: 12),
               ClipRRect(
@@ -641,10 +643,7 @@ class _DetectedIngredientsSheetState extends State<_DetectedIngredientsSheet> {
                 (item) => CheckboxListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    item,
-                    style: const TextStyle(color: Color(0xFFF8FAFC)),
-                  ),
+                  title: Text(item),
                   activeColor: const Color(0xFF059669),
                   value: _selected.contains(item),
                   onChanged: (value) {
