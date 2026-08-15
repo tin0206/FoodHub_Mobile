@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/api_config.dart';
+import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/ai.dart';
 import 'package:foodhub_mobile/services/ai_service.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
@@ -14,10 +15,14 @@ class AiCaptureScreen extends StatefulWidget {
   const AiCaptureScreen({super.key});
 
   static Future<AiCaptureResult?> show(BuildContext context) {
+    final lang = LangScope.of(context);
     return Navigator.of(context).push<AiCaptureResult>(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => const AiCaptureScreen(),
+        builder: (_) => LangScope(
+          lang: lang,
+          child: const AiCaptureScreen(),
+        ),
       ),
     );
   }
@@ -57,7 +62,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
       _cameras = await availableCameras();
       if (_cameras.isEmpty) {
         setState(() {
-          _initError = 'No camera found on this device.';
+          _initError = S.of(context).noCameraFound;
           _isInitializing = false;
         });
         return;
@@ -88,7 +93,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _initError = 'Unable to start camera. Check permissions.';
+        _initError = S.of(context).cameraInitError;
         _isInitializing = false;
       });
       debugPrint('Camera init failed: $e');
@@ -105,10 +110,6 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
       ? const Color(0xFF059669)
       : const Color(0xFFA855F7);
 
-  String get _hintText => _mode == AiCaptureMode.ingredients
-      ? 'Point at ingredients'
-      : 'Frame the full dish';
-
   Future<void> _processBytes(List<int> bytes, String filename) async {
     setState(() => _isProcessing = true);
 
@@ -123,16 +124,19 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
         setState(() => _isProcessing = false);
 
         if (result.ingredients.isEmpty && result.detections.isEmpty) {
-          _showSnack('No ingredients detected. Try another photo.');
+          _showSnack(S.of(context).noIngredientsDetected);
           return;
         }
 
+        final lang = LangScope.of(context);
         final selected = await showModalBottomSheet<List<String>>(
           context: context,
           isScrollControlled: true,
           showDragHandle: true,
           backgroundColor: const Color(0xFF0B1B38),
-          builder: (context) => _DetectedIngredientsSheet(
+          builder: (ctx) => LangScope(
+            lang: lang,
+            child: _DetectedIngredientsSheet(
             initialItems: result.ingredients.isNotEmpty
                 ? result.ingredients
                 : result.detections.map((d) => d.label).toSet().toList(),
@@ -142,6 +146,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
             annotatedImageBytes: result.annotatedImageBytes,
             imageUrl: result.imageUrl,
             detections: result.detections,
+          ),
           ),
         );
 
@@ -173,8 +178,8 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
       setState(() => _isProcessing = false);
       _showSnack(
         _mode == AiCaptureMode.ingredients
-            ? 'Ingredients detection failed.'
-            : 'Dish recognition failed. Please try another photo.',
+            ? S.of(context).ingredientsDetectionFailed
+            : S.of(context).dishRecognitionFailed,
       );
     }
   }
@@ -191,7 +196,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
       await _processBytes(bytes, xFile.name);
     } catch (_) {
       if (!mounted) return;
-      _showSnack('Failed to capture photo.');
+      _showSnack(S.of(context).capturePhotoFailed);
     }
   }
 
@@ -215,7 +220,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
 
   void _finishIngredients() {
     if (_accumulatedIngredients.isEmpty) {
-      _showSnack('Scan at least one ingredient or tap close.');
+      _showSnack(S.of(context).scanAtLeastOneIngredient);
       return;
     }
     Navigator.of(context).pop(
@@ -228,6 +233,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -241,7 +247,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
             CameraPreview(_controller!)
           else
             _CameraUnavailableBackdrop(
-              message: _initError ?? 'Camera unavailable',
+              message: _initError ?? s.cameraUnavailable,
             ),
 
           if (!_isInitializing) ...[
@@ -280,7 +286,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                           TextButton(
                             onPressed: _finishIngredients,
                             child: Text(
-                              'Done (${_accumulatedIngredients.length})',
+                              s.doneWithCount(_accumulatedIngredients.length),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
@@ -295,8 +301,10 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
                       _cameraReady
-                          ? _hintText
-                          : 'Upload a photo from your gallery',
+                          ? (_mode == AiCaptureMode.ingredients
+                              ? s.pointAtIngredients
+                              : s.frameFullDish)
+                          : s.uploadFromGalleryHint,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.9),
@@ -350,7 +358,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                           IconButton(
                             onPressed:
                                 _isProcessing ? null : _pickFromGallery,
-                            tooltip: 'Upload from gallery',
+                            tooltip: s.uploadFromGalleryTooltip,
                             icon: Icon(
                               Icons.photo_library_outlined,
                               color: Colors.white.withValues(alpha: 0.9),
@@ -397,7 +405,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                               ),
                             ),
                             icon: const Icon(Icons.upload_rounded, size: 20),
-                            label: const Text('Upload photo'),
+                            label: Text(s.uploadPhoto),
                           ),
                       ],
                     ),
@@ -418,8 +426,8 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                     const SizedBox(height: 12),
                     Text(
                       _mode == AiCaptureMode.ingredients
-                          ? 'Queued — detecting ingredients...'
-                          : 'Queued — recognizing dish...',
+                          ? s.detectingIngredients
+                          : s.recognizingDish,
                       style: const TextStyle(color: Colors.white),
                     ),
                   ],
@@ -440,6 +448,7 @@ class _ModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -450,7 +459,7 @@ class _ModeToggle extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _ModeButton(
-            label: 'Ingredient detect',
+            label: s.ingredientDetectMode,
             selected: mode == AiCaptureMode.ingredients,
             color: const Color(0xFF059669),
             onTap: onChanged == null
@@ -458,7 +467,7 @@ class _ModeToggle extends StatelessWidget {
                 : () => onChanged!(AiCaptureMode.ingredients),
           ),
           _ModeButton(
-            label: 'Dish detect',
+            label: s.dishDetectMode,
             selected: mode == AiCaptureMode.dish,
             color: const Color(0xFFA855F7),
             onTap: onChanged == null
@@ -540,7 +549,7 @@ class _CameraUnavailableBackdrop extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Use the upload button below to choose a photo.',
+                S.of(context).useUploadButtonHint,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.55),
@@ -602,9 +611,9 @@ class _DetectedIngredientsSheetState extends State<_DetectedIngredientsSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Confirm detected ingredients',
-                style: TextStyle(
+              Text(
+                S.of(context).confirmDetectedIngredients,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFFF8FAFC),
@@ -657,7 +666,7 @@ class _DetectedIngredientsSheetState extends State<_DetectedIngredientsSheet> {
                     backgroundColor: const Color(0xFF059669),
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Add selected'),
+                  child: Text(S.of(context).addSelected),
                 ),
               ),
             ],

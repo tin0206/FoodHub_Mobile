@@ -110,6 +110,29 @@ class S {
   String get editNote => _vi ? 'Sửa ghi chú' : 'Edit Note';
   String get unableToLoadFavorites => _vi ? 'Không thể tải yêu thích.' : 'Unable to load favorites.';
 
+  // ── AI Capture screen ───────────────────────────────────────────────────────
+  String get noCameraFound => _vi ? 'Không tìm thấy camera trên thiết bị.' : 'No camera found on this device.';
+  String get cameraInitError => _vi ? 'Không thể khởi động camera. Kiểm tra quyền truy cập.' : 'Unable to start camera. Check permissions.';
+  String get cameraUnavailable => _vi ? 'Camera không khả dụng' : 'Camera unavailable';
+  String get pointAtIngredients => _vi ? 'Hướng camera vào nguyên liệu' : 'Point at ingredients';
+  String get frameFullDish => _vi ? 'Hướng camera vào món ăn' : 'Frame the full dish';
+  String get uploadFromGalleryHint => _vi ? 'Tải ảnh từ thư viện của bạn' : 'Upload a photo from your gallery';
+  String get uploadFromGalleryTooltip => _vi ? 'Tải từ thư viện' : 'Upload from gallery';
+  String get uploadPhoto => _vi ? 'Tải ảnh lên' : 'Upload photo';
+  String get useUploadButtonHint => _vi ? 'Dùng nút tải ảnh bên dưới để chọn ảnh.' : 'Use the upload button below to choose a photo.';
+  String doneWithCount(int n) => _vi ? 'Xong ($n)' : 'Done ($n)';
+  String get ingredientDetectMode => _vi ? 'Nhận diện nguyên liệu' : 'Ingredient detect';
+  String get dishDetectMode => _vi ? 'Nhận diện món ăn' : 'Dish detect';
+  String get detectingIngredients => _vi ? 'Đang phát hiện nguyên liệu...' : 'Queued — detecting ingredients...';
+  String get recognizingDish => _vi ? 'Đang nhận diện món ăn...' : 'Queued — recognizing dish...';
+  String get noIngredientsDetected => _vi ? 'Không phát hiện nguyên liệu. Thử ảnh khác.' : 'No ingredients detected. Try another photo.';
+  String get scanAtLeastOneIngredient => _vi ? 'Quét ít nhất một nguyên liệu hoặc nhấn đóng.' : 'Scan at least one ingredient or tap close.';
+  String get capturePhotoFailed => _vi ? 'Chụp ảnh thất bại.' : 'Failed to capture photo.';
+  String get ingredientsDetectionFailed => _vi ? 'Phát hiện nguyên liệu thất bại.' : 'Ingredients detection failed.';
+  String get dishRecognitionFailed => _vi ? 'Nhận diện món ăn thất bại. Thử ảnh khác.' : 'Dish recognition failed. Please try another photo.';
+  String get confirmDetectedIngredients => _vi ? 'Xác nhận nguyên liệu phát hiện' : 'Confirm detected ingredients';
+  String get addSelected => _vi ? 'Thêm đã chọn' : 'Add selected';
+
   // ── AI Recs screen ──────────────────────────────────────────────────────────
   String get aiCompanion => _vi ? 'Trợ lý AI' : 'AI Companion';
   String phaseLabel(String phase) => _vi ? 'Giai đoạn: $phase' : 'Phase: $phase';
