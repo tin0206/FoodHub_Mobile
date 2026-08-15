@@ -148,6 +148,8 @@ class S {
   String get dishRecognitionFailed => _vi ? 'Nhận diện món ăn thất bại. Thử ảnh khác.' : 'Dish recognition failed. Please try another photo.';
   String get confirmDetectedIngredients => _vi ? 'Xác nhận nguyên liệu phát hiện' : 'Confirm detected ingredients';
   String get addSelected => _vi ? 'Thêm đã chọn' : 'Add selected';
+  String ingredientsDetectedList(String items) => _vi ? 'Nguyên liệu phát hiện: $items' : 'Ingredients detected: $items';
+  String dishDetectedName(String name) => _vi ? 'Món ăn phát hiện: $name' : 'Dishes detected: $name';
 
   // ── AI Recs screen ──────────────────────────────────────────────────────────
   String get aiCompanion => _vi ? 'Trợ lý AI' : 'AI Companion';
