@@ -1,3 +1,4 @@
+import 'package:foodhub_mobile/models/ingredient.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_client.dart';
 import 'package:foodhub_mobile/services/session_service.dart';
@@ -88,18 +89,19 @@ class RecipeService {
 
   Future<RecipeModel> createRecipe({
     required String title,
-    required List<String> ingredients,
+    required List<IngredientItemInput> ingredientItems,
     required List<String> directions,
     List<String>? dietaryRestrictions,
     int? estimatedServings,
   }) async {
-    final body = RecipeModel(id: 0, title: title).toCreateJson(
-      title: title,
-      ingredients: ingredients,
-      directions: directions,
-      dietaryRestrictions: dietaryRestrictions,
-      estimatedServings: estimatedServings,
-    );
+    final body = <String, dynamic>{
+      'title': title,
+      'ingredient_items': ingredientItems.map((e) => e.toJson()).toList(),
+      'directions': directions,
+      if (dietaryRestrictions != null && dietaryRestrictions.isNotEmpty)
+        'dietary_restrictions': dietaryRestrictions,
+      'estimated_servings': ?estimatedServings,
+    };
 
     final data = await _api.post('/recipes', body: body);
     return RecipeModel.fromJson(data as Map<String, dynamic>);
@@ -108,18 +110,24 @@ class RecipeService {
   Future<RecipeModel> updateRecipe(
     int id, {
     String? title,
-    List<String>? ingredients,
+    List<IngredientItemInput>? ingredientItems,
     List<String>? directions,
     List<String>? dietaryRestrictions,
     int? estimatedServings,
   }) async {
-    final body = RecipeModel(id: 0, title: '').toUpdateJson(
-      title: title,
-      ingredients: ingredients,
-      directions: directions,
-      dietaryRestrictions: dietaryRestrictions,
-      estimatedServings: estimatedServings,
-    );
+    final body = <String, dynamic>{};
+    if (title != null) body['title'] = title;
+    if (ingredientItems != null) {
+      body['ingredient_items'] =
+          ingredientItems.map((e) => e.toJson()).toList();
+    }
+    if (directions != null) body['directions'] = directions;
+    if (dietaryRestrictions != null) {
+      body['dietary_restrictions'] = dietaryRestrictions;
+    }
+    if (estimatedServings != null) {
+      body['estimated_servings'] = estimatedServings;
+    }
 
     final data = await _api.patch(
       '/recipes/$id',
@@ -127,6 +135,20 @@ class RecipeService {
       query: _withLang({}),
     );
     return RecipeModel.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<List<IngredientHit>> searchIngredients(String query, {int limit = 8}) async {
+    final data = await _api.get(
+      '/ingredients/search',
+      query: {
+        'q': query,
+        'limit': '$limit',
+      },
+    );
+    final map = data as Map<String, dynamic>;
+    return (map['ingredients'] as List<dynamic>? ?? [])
+        .map((e) => IngredientHit.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<String>> getDietaryRestrictions() async {
