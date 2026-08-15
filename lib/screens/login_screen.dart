@@ -24,6 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isSubmitting = false;
   bool _isGoogleLoading = false;
   bool _obscurePassword = true;
+  bool _loginError = false;
 
   final _authService = AuthService();
 
@@ -53,9 +54,11 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } on ApiException catch (e) {
       if (!mounted) return;
+      setState(() => _loginError = true);
       showErrorToast(context, e.message);
     } catch (_) {
       if (!mounted) return;
+      setState(() => _loginError = true);
       showErrorToast(context, 'Unable to sign in. Please try again.');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -180,9 +183,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
+                            onChanged: (_) {
+                              if (_loginError) setState(() => _loginError = false);
+                            },
                             decoration: authInputDecoration(
                               hint: 'you@example.com',
                               icon: Icons.mail_outline_rounded,
+                              hasError: _loginError,
                             ),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) {
@@ -200,10 +207,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
+                            onChanged: (_) {
+                              if (_loginError) setState(() => _loginError = false);
+                            },
                             decoration:
                                 authInputDecoration(
                                   hint: '••••••••',
                                   icon: Icons.lock_outline_rounded,
+                                  hasError: _loginError,
                                 ).copyWith(
                                   suffixIcon: IconButton(
                                     icon: Icon(
@@ -534,13 +545,19 @@ class AuthGradientButton extends StatelessWidget {
 InputDecoration authInputDecoration({
   required String hint,
   required IconData icon,
+  bool hasError = false,
 }) {
+  const errorColor = Color(0xFFEF4444);
   return InputDecoration(
     hintText: hint,
     hintStyle: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 13.5),
-    prefixIcon: Icon(icon, size: 20, color: const Color(0xFF94A3B8)),
+    prefixIcon: Icon(
+      icon,
+      size: 20,
+      color: hasError ? errorColor : const Color(0xFF94A3B8),
+    ),
     filled: true,
-    fillColor: Colors.white,
+    fillColor: hasError ? const Color(0xFFFFF5F5) : Colors.white,
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(11),
@@ -548,19 +565,23 @@ InputDecoration authInputDecoration({
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(11),
-      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      borderSide: hasError
+          ? const BorderSide(color: errorColor)
+          : const BorderSide(color: Color(0xFFE2E8F0)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(11),
-      borderSide: const BorderSide(color: Color(0xFF059669), width: 1.5),
+      borderSide: hasError
+          ? const BorderSide(color: errorColor, width: 1.5)
+          : const BorderSide(color: Color(0xFF059669), width: 1.5),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(11),
-      borderSide: const BorderSide(color: Color(0xFFEF4444)),
+      borderSide: const BorderSide(color: errorColor),
     ),
     focusedErrorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(11),
-      borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+      borderSide: const BorderSide(color: errorColor, width: 1.5),
     ),
   );
 }

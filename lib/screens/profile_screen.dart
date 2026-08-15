@@ -75,6 +75,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late bool _snapNotifyFeatures;
   late bool _snapNotifyWeekly;
 
+  late bool _pendingDarkMode;
+  late String _pendingLanguage;
+
   bool _isSaving = false;
   bool _notifyRecommendations = true;
   bool _notifyNewFeatures = true;
@@ -93,6 +96,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _applyUser(widget.user);
+    _pendingDarkMode = widget.isDarkMode;
+    _pendingLanguage = widget.language;
     _fullNameController = TextEditingController(text: _snapFullName)..addListener(_onFieldChanged);
     _emailController = TextEditingController(text: _snapEmail);
     _ageController = TextEditingController(text: _snapAge)..addListener(_onFieldChanged);
@@ -106,6 +111,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.user != widget.user) {
       _applyUser(widget.user);
+      _pendingDarkMode = widget.isDarkMode;
+      _pendingLanguage = widget.language;
       _fullNameController.text = _snapFullName;
       _emailController.text = _snapEmail;
       _ageController.text = _snapAge;
@@ -135,8 +142,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_weightController.text.trim() != _snapWeight) return true;
     if (_calorieTargetController.text.trim() != _snapCalorie) return true;
     if (_proteinTargetController.text.trim() != _snapProtein) return true;
-    if (widget.language != _snapLanguage) return true;
-    if (widget.isDarkMode != (_snapTheme == 'dark')) return true;
+    if (_pendingLanguage != _snapLanguage) return true;
+    if (_pendingDarkMode != (_snapTheme == 'dark')) return true;
     if (_notifyRecommendations != _snapNotifyRecs) return true;
     if (_notifyNewFeatures != _snapNotifyFeatures) return true;
     if (_notifyWeeklySummary != _snapNotifyWeekly) return true;
@@ -229,8 +236,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (proteinVal.isNotEmpty) 'protein_target': int.parse(proteinVal),
         'dietary_restrictions': widget.selectedDietaryRestrictions.toList(),
         'primary_goal': widget.primaryGoal,
-        'language': widget.language,
-        'theme': widget.isDarkMode ? 'dark' : 'light',
+        'language': _pendingLanguage,
+        'theme': _pendingDarkMode ? 'dark' : 'light',
         'notify_recommendations': _notifyRecommendations,
         'notify_new_features': _notifyNewFeatures,
         'notify_weekly_summary': _notifyWeeklySummary,
@@ -281,13 +288,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _cancelChanges() {
-    if (widget.language != _snapLanguage) {
-      widget.onLanguageChanged(_snapLanguage);
-    }
-    if (widget.isDarkMode != (_snapTheme == 'dark')) {
-      widget.onThemeChanged(_snapTheme == 'dark');
-    }
-
     // Reset dietary restrictions to original
     final originalDiet = widget.user.dietaryRestrictions.toSet();
     for (final tag in widget.selectedDietaryRestrictions.difference(originalDiet)) {
@@ -304,6 +304,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     setState(() {
+      _pendingDarkMode = _snapTheme == 'dark';
+      _pendingLanguage = _snapLanguage;
       _fullNameController.text = _snapFullName;
       _emailController.text = _snapEmail;
       _ageController.text = _snapAge;
@@ -443,7 +445,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Text(s.themeLabel, style: TextStyle(fontSize: 13, color: _primaryText)),
                           const SizedBox(height: 1),
                           Text(
-                            widget.isDarkMode ? s.darkMode : s.lightMode,
+                            _pendingDarkMode ? s.darkMode : s.lightMode,
                             style: TextStyle(fontSize: 11, color: _secondaryText),
                           ),
                         ],
@@ -452,8 +454,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Transform.scale(
                       scale: 0.9,
                       child: Switch(
-                        value: widget.isDarkMode,
-                        onChanged: widget.onThemeChanged,
+                        value: _pendingDarkMode,
+                        onChanged: (v) => setState(() => _pendingDarkMode = v),
                         activeThumbColor: const Color(0xFFF59E0B),
                         activeTrackColor: const Color(0xFF10B981),
                         inactiveThumbColor: const Color(0xFFE5E7EB),
@@ -480,17 +482,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _LangOption(
                       label: s.langVietnamese,
                       flag: '🇻🇳',
-                      isSelected: widget.language == 'vi',
+                      isSelected: _pendingLanguage == 'vi',
                       isDarkMode: widget.isDarkMode,
-                      onTap: () => widget.onLanguageChanged('vi'),
+                      onTap: () => setState(() => _pendingLanguage = 'vi'),
                     ),
                     const SizedBox(width: 8),
                     _LangOption(
                       label: s.langEnglish,
                       flag: '🇺🇸',
-                      isSelected: widget.language == 'en',
+                      isSelected: _pendingLanguage == 'en',
                       isDarkMode: widget.isDarkMode,
-                      onTap: () => widget.onLanguageChanged('en'),
+                      onTap: () => setState(() => _pendingLanguage = 'en'),
                     ),
                   ],
                 ),
