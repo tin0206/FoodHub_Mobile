@@ -9,6 +9,7 @@ class UserModel {
     this.age,
     this.weight,
     this.language,
+    this.theme = 'light',
     this.calorieTarget,
     this.proteinTarget,
     this.dietaryRestrictions = const [],
@@ -27,6 +28,7 @@ class UserModel {
   final int? age;
   final double? weight;
   final String? language;
+  final String theme;
   final int? calorieTarget;
   final int? proteinTarget;
   final List<String> dietaryRestrictions;
@@ -46,6 +48,7 @@ class UserModel {
       age: json['age'] as int?,
       weight: (json['weight'] as num?)?.toDouble(),
       language: json['language'] as String?,
+      theme: json['theme'] as String? ?? 'light',
       calorieTarget: json['calorie_target'] as int?,
       proteinTarget: json['protein_target'] as int?,
       dietaryRestrictions:
@@ -72,6 +75,7 @@ class UserModel {
     bool? notifyNewFeatures,
     bool? notifyWeeklySummary,
     String? language,
+    String? theme,
   }) {
     final data = <String, dynamic>{};
     if (fullName != null) data['full_name'] = fullName;
@@ -95,6 +99,9 @@ class UserModel {
     if (language != null) {
       data['language'] = language;
     }
+    if (theme != null) {
+      data['theme'] = theme;
+    }
     return data;
   }
 
@@ -110,6 +117,7 @@ class UserModel {
     bool? notifyNewFeatures,
     bool? notifyWeeklySummary,
     String? language,
+    String? theme,
   }) {
     return UserModel(
       id: id,
@@ -124,6 +132,7 @@ class UserModel {
       dietaryRestrictions: dietaryRestrictions ?? this.dietaryRestrictions,
       primaryGoal: primaryGoal ?? this.primaryGoal,
       language: language ?? this.language,
+      theme: theme ?? this.theme,
       notifyRecommendations:
           notifyRecommendations ?? this.notifyRecommendations,
       notifyNewFeatures: notifyNewFeatures ?? this.notifyNewFeatures,

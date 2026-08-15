@@ -28,7 +28,7 @@ class ProfileScreen extends StatefulWidget {
     required this.user,
     required this.isDarkMode,
     required this.language,
-    required this.onToggleTheme,
+    required this.onThemeChanged,
     required this.onLanguageChanged,
     required this.onLogout,
     required this.selectedDietaryRestrictions,
@@ -41,7 +41,7 @@ class ProfileScreen extends StatefulWidget {
   final UserModel user;
   final bool isDarkMode;
   final String language;
-  final VoidCallback onToggleTheme;
+  final ValueChanged<bool> onThemeChanged;
   final ValueChanged<String> onLanguageChanged;
   final VoidCallback onLogout;
   final Set<String> selectedDietaryRestrictions;
@@ -70,6 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late String _snapCalorie;
   late String _snapProtein;
   late String _snapLanguage;
+  late String _snapTheme;
   late bool _snapNotifyRecs;
   late bool _snapNotifyFeatures;
   late bool _snapNotifyWeekly;
@@ -122,6 +123,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _snapCalorie = user.calorieTarget?.toString() ?? '';
     _snapProtein = user.proteinTarget?.toString() ?? '';
     _snapLanguage = user.language ?? 'en';
+    _snapTheme = user.theme;
     _notifyRecommendations = _snapNotifyRecs = user.notifyRecommendations;
     _notifyNewFeatures = _snapNotifyFeatures = user.notifyNewFeatures;
     _notifyWeeklySummary = _snapNotifyWeekly = user.notifyWeeklySummary;
@@ -134,6 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_calorieTargetController.text.trim() != _snapCalorie) return true;
     if (_proteinTargetController.text.trim() != _snapProtein) return true;
     if (widget.language != _snapLanguage) return true;
+    if (widget.isDarkMode != (_snapTheme == 'dark')) return true;
     if (_notifyRecommendations != _snapNotifyRecs) return true;
     if (_notifyNewFeatures != _snapNotifyFeatures) return true;
     if (_notifyWeeklySummary != _snapNotifyWeekly) return true;
@@ -227,6 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'dietary_restrictions': widget.selectedDietaryRestrictions.toList(),
         'primary_goal': widget.primaryGoal,
         'language': widget.language,
+        'theme': widget.isDarkMode ? 'dark' : 'light',
         'notify_recommendations': _notifyRecommendations,
         'notify_new_features': _notifyNewFeatures,
         'notify_weekly_summary': _notifyWeeklySummary,
@@ -279,6 +283,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _cancelChanges() {
     if (widget.language != _snapLanguage) {
       widget.onLanguageChanged(_snapLanguage);
+    }
+    if (widget.isDarkMode != (_snapTheme == 'dark')) {
+      widget.onThemeChanged(_snapTheme == 'dark');
     }
 
     // Reset dietary restrictions to original
@@ -446,7 +453,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       scale: 0.9,
                       child: Switch(
                         value: widget.isDarkMode,
-                        onChanged: (_) => widget.onToggleTheme(),
+                        onChanged: widget.onThemeChanged,
                         activeThumbColor: const Color(0xFFF59E0B),
                         activeTrackColor: const Color(0xFF10B981),
                         inactiveThumbColor: const Color(0xFFE5E7EB),

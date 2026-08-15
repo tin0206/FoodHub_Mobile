@@ -21,7 +21,13 @@ class AdminShellScreen extends StatefulWidget {
 
 class _AdminShellScreenState extends State<AdminShellScreen> {
   int _tab = 0;
-  bool _isDarkMode = false;
+  late bool _isDarkMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDarkMode = widget.user.theme == 'dark';
+  }
 
   Future<void> _logout() async {
     await AuthService().signOut();

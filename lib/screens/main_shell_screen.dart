@@ -37,6 +37,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     super.initState();
     _user = widget.initialUser;
     _language = widget.initialUser.language ?? 'en';
+    _isDarkMode = widget.initialUser.theme == 'dark';
     _dietaryRestrictions = {..._user.dietaryRestrictions};
     _primaryGoal = _user.primaryGoal ?? 'Balanced Nutrition';
   }
@@ -45,6 +46,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     setState(() {
       _user = user;
       _language = user.language ?? _language;
+      _isDarkMode = user.theme == 'dark';
       _dietaryRestrictions = {...user.dietaryRestrictions};
       if (user.primaryGoal != null && user.primaryGoal!.isNotEmpty) {
         _primaryGoal = user.primaryGoal!;
@@ -84,10 +86,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
     });
   }
 
-  void _toggleTheme() {
-    setState(() {
-      _isDarkMode = !_isDarkMode;
-    });
+  void _onThemeChanged(bool isDark) {
+    setState(() => _isDarkMode = isDark);
   }
 
   void _openProfile() {
@@ -123,7 +123,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
         user: _user,
         isDarkMode: _isDarkMode,
         language: _language,
-        onToggleTheme: _toggleTheme,
+        onThemeChanged: _onThemeChanged,
         onLanguageChanged: _onLanguageChanged,
         onLogout: _logout,
         selectedDietaryRestrictions: _dietaryRestrictions,
