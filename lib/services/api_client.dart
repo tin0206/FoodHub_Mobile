@@ -82,12 +82,14 @@ class ApiClient {
     required List<int> bytes,
     required String filename,
     String contentType = 'image/jpeg',
+    Map<String, String>? fields,
     bool auth = true,
   }) async {
     final request = http.MultipartRequest('POST', _uri(path));
     final headers = await _headers(auth: auth);
     headers.remove('Content-Type');
     request.headers.addAll(headers);
+    if (fields != null) request.fields.addAll(fields);
     request.files.add(
       http.MultipartFile.fromBytes(
         fieldName,

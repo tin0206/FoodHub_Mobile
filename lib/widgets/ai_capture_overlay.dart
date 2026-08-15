@@ -118,6 +118,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
         final result = await _aiService.detectIngredients(
           bytes: bytes,
           filename: filename,
+          language: LangScope.of(context),
         );
 
         if (!mounted) return;

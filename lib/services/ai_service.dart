@@ -104,6 +104,7 @@ class AiService {
     required List<int> bytes,
     required String filename,
     String contentType = 'image/jpeg',
+    String language = 'en',
   }) async {
     final accepted = await _api.postMultipart(
       '/ai/ingredients/detect',
@@ -111,6 +112,7 @@ class AiService {
       bytes: bytes,
       filename: filename,
       contentType: contentType,
+      fields: {'language': language},
     );
     final job = AiJobAcceptedModel.fromJson(accepted as Map<String, dynamic>);
     final detail = await _waitForResult(job.taskId, timeout: _visionTimeout);
