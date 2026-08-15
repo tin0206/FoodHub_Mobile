@@ -2,10 +2,12 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
+import 'package:foodhub_mobile/models/ingredient.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
+import 'package:foodhub_mobile/widgets/ingredient_picker.dart';
 import 'package:foodhub_mobile/widgets/recipe_card.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 import 'package:image_picker/image_picker.dart';
@@ -123,9 +125,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final updated = await _recipeService.updateRecipe(
         current.id,
         title: data.name,
-        ingredients: RecipeModel.splitLines(data.ingredients),
+        ingredientItems: data.catalogItems,
         directions: RecipeModel.splitLines(data.steps),
         dietaryRestrictions: data.labels,
+        estimatedServings: data.estimatedServings,
       );
       if (!mounted) return;
       final wasClone = updated.id != current.id;
@@ -460,10 +463,8 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
   final _recipeService = RecipeService();
   final _nameController = TextEditingController();
   final _cookingMinutesController = TextEditingController();
-  final _caloriesController = TextEditingController();
-  final List<TextEditingController> _ingredientControllers = [
-    TextEditingController(),
-  ];
+  final _servingsController = TextEditingController(text: '2');
+  List<SelectedCatalogIngredient?> _ingredientLines = [null];
   final List<TextEditingController> _stepControllers = [
     TextEditingController(),
   ];
@@ -502,14 +503,11 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
   @override
   void dispose() {
     _nameController.dispose();
-    for (final c in _ingredientControllers) {
-      c.dispose();
-    }
     for (final c in _stepControllers) {
       c.dispose();
     }
     _cookingMinutesController.dispose();
-    _caloriesController.dispose();
+    _servingsController.dispose();
     super.dispose();
   }
 
@@ -517,25 +515,24 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
     if (_isSaving) return;
 
     final name = _nameController.text.trim();
-    final ingredients = _ingredientControllers
-        .map((c) => c.text.trim())
-        .where((s) => s.isNotEmpty)
-        .join('\n');
+    final catalogItems = selectedIngredientInputs(_ingredientLines);
     final steps = _stepControllers
         .map((c) => c.text.trim())
         .where((s) => s.isNotEmpty)
         .join('\n');
-    final cookingMinutes = int.tryParse(_cookingMinutesController.text.trim());
-    final calories = int.tryParse(_caloriesController.text.trim());
+    final servings = int.tryParse(_servingsController.text.trim());
 
     if (name.isEmpty ||
-        ingredients.isEmpty ||
+        catalogItems.isEmpty ||
         steps.isEmpty ||
-        cookingMinutes == null ||
-        calories == null ||
-        cookingMinutes <= 0 ||
-        calories <= 0) {
-      showErrorToast(context, S.of(context).fillAllFields);
+        servings == null ||
+        servings <= 0) {
+      showErrorToast(
+        context,
+        catalogItems.isEmpty
+            ? S.of(context).selectCatalogIngredients
+            : S.of(context).fillAllFields,
+      );
       return;
     }
 
@@ -557,10 +554,10 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
     try {
       final created = await _recipeService.createRecipe(
         title: name,
-        ingredients: RecipeModel.splitLines(ingredients),
+        ingredientItems: catalogItems,
         directions: RecipeModel.splitLines(steps),
         dietaryRestrictions: _selectedLabels.toList(),
-        estimatedServings: (calories / 200).round().clamp(1, 12),
+        estimatedServings: servings,
       );
 
       String? imageUrl;
@@ -587,6 +584,8 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
               dietaryRestrictions: created.dietaryRestrictions,
               createdBy: created.createdBy,
               visibility: created.visibility,
+              mappedIngredients: created.mappedIngredients,
+              nutrition: created.nutrition,
             )
           : created;
       widget.onSave(finalRecipe);
@@ -819,7 +818,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Time + Calories
+                  // Time + Servings
                   _AddSectionCard(
                     isDarkMode: isDarkMode,
                     panelColor: panelColor,
@@ -847,7 +846,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                         ),
                         const SizedBox(width: 20),
                         const Icon(
-                          Icons.local_fire_department_outlined,
+                          Icons.restaurant_outlined,
                           size: 16,
                           color: accentColor,
                         ),
@@ -855,15 +854,15 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                         SizedBox(
                           width: 56,
                           child: TextField(
-                            controller: _caloriesController,
+                            controller: _servingsController,
                             keyboardType: TextInputType.number,
                             style: TextStyle(fontSize: 13, color: textColor),
-                            decoration: inlineFieldDecoration(hint: '0'),
+                            decoration: inlineFieldDecoration(hint: '2'),
                           ),
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          s.calSuffix,
+                          s.servingsSuffix,
                           style: TextStyle(fontSize: 12, color: hintColor),
                         ),
                       ],
@@ -897,71 +896,10 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        ..._ingredientControllers.asMap().entries.map((entry) {
-                          final i = entry.key;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 7,
-                                  height: 7,
-                                  decoration: const BoxDecoration(
-                                    color: accentColor,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: TextField(
-                                    controller: entry.value,
-                                    maxLines: 1,
-                                    textInputAction: TextInputAction.next,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: textColor,
-                                    ),
-                                    decoration: inlineFieldDecoration(
-                                      hint: s.ingredientHint(i),
-                                    ),
-                                  ),
-                                ),
-                                if (_ingredientControllers.length > 1) ...[
-                                  const SizedBox(width: 4),
-                                  GestureDetector(
-                                    onTap: () => setState(() {
-                                      _ingredientControllers[i].dispose();
-                                      _ingredientControllers.removeAt(i);
-                                    }),
-                                    child: Icon(
-                                      Icons.close_rounded,
-                                      size: 16,
-                                      color: colors.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          );
-                        }),
-                        TextButton.icon(
-                          onPressed: () => setState(
-                            () => _ingredientControllers.add(
-                              TextEditingController(),
-                            ),
-                          ),
-                          icon: const Icon(Icons.add, size: 14),
-                          label: Text(s.addIngredient),
-                          style: TextButton.styleFrom(
-                            foregroundColor: accentColor,
-                            textStyle: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
+                        IngredientPickerList(
+                          lines: _ingredientLines,
+                          onChanged: (next) =>
+                              setState(() => _ingredientLines = next),
                         ),
                       ],
                     ),

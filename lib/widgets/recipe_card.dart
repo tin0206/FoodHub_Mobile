@@ -208,21 +208,23 @@ class _StatsRow extends StatelessWidget {
             color: textColor,
           ),
         ),
-        dot(),
-        Icon(
-          Icons.local_fire_department_outlined,
-          size: 12,
-          color: const Color(0xFFEF4444).withValues(alpha: 0.8),
-        ),
-        const SizedBox(width: 3),
-        Text(
-          '${recipe.calories} cal',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: textColor,
+        if (recipe.calories != null) ...[
+          dot(),
+          Icon(
+            Icons.local_fire_department_outlined,
+            size: 12,
+            color: const Color(0xFFEF4444).withValues(alpha: 0.8),
           ),
-        ),
+          const SizedBox(width: 3),
+          Text(
+            '${recipe.calories} cal',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: textColor,
+            ),
+          ),
+        ],
       ],
     );
   }

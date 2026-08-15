@@ -48,6 +48,8 @@ class S {
   String get addFirstRecipe => _vi ? 'Thêm công thức đầu tiên' : 'Add your first recipe';
   String get unableToLoadRecipes => _vi ? 'Không thể tải công thức.' : 'Unable to load recipes.';
   String get fillAllFields => _vi ? 'Vui lòng điền đầy đủ thông tin.' : 'Please fill in all required fields.';
+  String get selectCatalogIngredients =>
+      _vi ? 'Chọn nguyên liệu từ danh sách và nhập số lượng.' : 'Choose ingredients from the list and enter an amount.';
   String get unableToSaveRecipe => _vi ? 'Không thể lưu công thức.' : 'Unable to save recipe.';
 
   // Add recipe panel
@@ -55,9 +57,23 @@ class S {
   String get recipeNameHint => _vi ? 'Tên công thức…' : 'Recipe name…';
   String get minSuffix => _vi ? 'phút' : 'min';
   String get calSuffix => _vi ? 'calo' : 'cal';
+  String get servingsSuffix => _vi ? 'khẩu phần' : 'servings';
+  String get servingsLabel => _vi ? 'Khẩu phần' : 'Servings';
   String get ingredientsLabel => _vi ? 'Nguyên liệu' : 'Ingredients';
   String ingredientHint(int i) => _vi ? 'Nguyên liệu ${i + 1}' : 'Ingredient ${i + 1}';
+  String get searchIngredientHint =>
+      _vi ? 'Gõ để tìm nguyên liệu…' : 'Type to find an ingredient…';
+  String get amountHint => _vi ? 'SL' : 'Amt';
+  String get noMatchingIngredient =>
+      _vi ? 'Không có nguyên liệu phù hợp.' : 'No matching ingredient.';
   String get addIngredient => _vi ? 'Thêm nguyên liệu' : 'Add ingredient';
+  String get nutritionLabel => _vi ? 'Dinh dưỡng' : 'Nutrition';
+  String get perServingLabel => _vi ? 'Mỗi khẩu phần' : 'Per serving';
+  String get moreNutrition => _vi ? 'Xem thêm' : 'More';
+  String get hideNutrition => _vi ? 'Ẩn bớt' : 'Less';
+  String get proteinShort => _vi ? 'Đạm' : 'Protein';
+  String get carbsShort => _vi ? 'Carb' : 'Carbs';
+  String get fatShort => _vi ? 'Béo' : 'Fat';
   String get instructionsLabel => _vi ? 'Hướng dẫn' : 'Instructions';
   String stepHint(int i) => _vi ? 'Bước ${i + 1}...' : 'Step ${i + 1}...';
   String get addStep => _vi ? 'Thêm bước' : 'Add step';

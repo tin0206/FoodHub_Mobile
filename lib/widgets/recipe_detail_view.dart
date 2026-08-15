@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/api_config.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
+import 'package:foodhub_mobile/models/ingredient.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
+import 'package:foodhub_mobile/widgets/ingredient_picker.dart';
 import 'package:foodhub_mobile/widgets/recipe_image.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -33,22 +35,30 @@ class RecipeDetailData {
     required this.name,
     this.imageUrl,
     required this.cookingMinutes,
-    required this.calories,
+    this.calories,
+    this.estimatedServings,
     required this.ingredients,
     required this.steps,
     required this.labels,
     this.isPrivate = false,
+    this.mappedIngredients = const [],
+    this.nutrition,
+    this.catalogItems = const [],
   });
 
   final int id;
   final String name;
   final String? imageUrl;
   final int cookingMinutes;
-  final int calories;
+  final int? calories;
+  final int? estimatedServings;
   final String ingredients;
   final String steps;
   final List<String> labels;
   final bool isPrivate;
+  final List<MappedIngredient> mappedIngredients;
+  final RecipeNutrition? nutrition;
+  final List<IngredientItemInput> catalogItems;
 
   List<String> get ingredientItems => ingredients
       .split('\n')
@@ -77,6 +87,7 @@ class RecipeDetailData {
         other.imageUrl == imageUrl &&
         other.cookingMinutes == cookingMinutes &&
         other.calories == calories &&
+        other.estimatedServings == estimatedServings &&
         other.ingredients == ingredients &&
         other.steps == steps &&
         listEquals(other.labels, labels);
@@ -88,6 +99,7 @@ class RecipeDetailData {
     imageUrl,
     cookingMinutes,
     calories,
+    estimatedServings,
     ingredients,
     steps,
     Object.hashAll(labels),
@@ -134,24 +146,25 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   String _editImageFilename = 'recipe.jpg';
   final _recipeService = RecipeService();
 
-  late List<TextEditingController> _ingredientControllers;
+  late List<SelectedCatalogIngredient?> _ingredientLines;
   late List<TextEditingController> _stepControllers;
   late TextEditingController _titleController;
   late TextEditingController _cookingMinutesController;
-  late TextEditingController _caloriesController;
+  late TextEditingController _servingsController;
   late Set<String> _selectedEditLabels;
   List<String> _availableLabels = [];
+  bool _showMoreNutrition = false;
 
   @override
   void initState() {
     super.initState();
     _loadAvailableLabels();
-    _ingredientControllers = widget.recipe.ingredientItems
-        .map((s) => TextEditingController(text: s))
-        .toList();
-    if (_ingredientControllers.isEmpty) {
-      _ingredientControllers.add(TextEditingController());
-    }
+    _ingredientLines = widget.recipe.mappedIngredients.isNotEmpty
+        ? widget.recipe.mappedIngredients
+            .map(SelectedCatalogIngredient.fromMapped)
+            .cast<SelectedCatalogIngredient?>()
+            .toList()
+        : [null];
     _stepControllers = widget.recipe.stepItems
         .map((s) => TextEditingController(text: s))
         .toList();
@@ -162,8 +175,8 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     _cookingMinutesController = TextEditingController(
       text: widget.recipe.cookingMinutes.toString(),
     );
-    _caloriesController = TextEditingController(
-      text: widget.recipe.calories.toString(),
+    _servingsController = TextEditingController(
+      text: (widget.recipe.estimatedServings ?? 1).toString(),
     );
     _selectedEditLabels = widget.recipe.labels.toSet();
   }
@@ -179,18 +192,15 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   void didUpdateWidget(covariant RecipeDetailView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.recipe != widget.recipe) {
-      for (final c in _ingredientControllers) {
-        c.dispose();
-      }
-      _ingredientControllers = widget.recipe.ingredientItems
-          .map((s) => TextEditingController(text: s))
-          .toList();
-      if (_ingredientControllers.isEmpty) {
-        _ingredientControllers.add(TextEditingController());
-      }
       for (final c in _stepControllers) {
         c.dispose();
       }
+      _ingredientLines = widget.recipe.mappedIngredients.isNotEmpty
+          ? widget.recipe.mappedIngredients
+              .map(SelectedCatalogIngredient.fromMapped)
+              .cast<SelectedCatalogIngredient?>()
+              .toList()
+          : [null];
       _stepControllers = widget.recipe.stepItems
           .map((s) => TextEditingController(text: s))
           .toList();
@@ -199,7 +209,8 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       }
       _titleController.text = widget.recipe.name;
       _cookingMinutesController.text = widget.recipe.cookingMinutes.toString();
-      _caloriesController.text = widget.recipe.calories.toString();
+      _servingsController.text =
+          (widget.recipe.estimatedServings ?? 1).toString();
       _selectedEditLabels = widget.recipe.labels.toSet();
       _isEditMode = false;
       _isCookingMode = false;
@@ -224,15 +235,12 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
 
   @override
   void dispose() {
-    for (final c in _ingredientControllers) {
-      c.dispose();
-    }
     for (final c in _stepControllers) {
       c.dispose();
     }
     _titleController.dispose();
     _cookingMinutesController.dispose();
-    _caloriesController.dispose();
+    _servingsController.dispose();
     super.dispose();
   }
 
@@ -289,25 +297,20 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
 
   Future<void> _saveEditedRecipe() async {
     final title = _titleController.text.trim();
-    final ingredients = _ingredientControllers
-        .map((c) => c.text.trim())
-        .where((s) => s.isNotEmpty)
-        .join('\n');
+    final catalogItems = selectedIngredientInputs(_ingredientLines);
     final steps = _stepControllers
         .map((c) => c.text.trim())
         .where((s) => s.isNotEmpty)
         .join('\n');
     final cookingMinutes = int.tryParse(_cookingMinutesController.text.trim());
-    final calories = int.tryParse(_caloriesController.text.trim());
+    final servings = int.tryParse(_servingsController.text.trim());
 
     if (title.isEmpty ||
-        ingredients.isEmpty ||
+        catalogItems.isEmpty ||
         steps.isEmpty ||
-        cookingMinutes == null ||
-        calories == null ||
-        cookingMinutes <= 0 ||
-        calories <= 0) {
-      showErrorToast(context, 'Title, ingredients, instructions, time and calories are required.');
+        servings == null ||
+        servings <= 0) {
+      showErrorToast(context, S.of(context).selectCatalogIngredients);
       return;
     }
 
@@ -342,12 +345,18 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       id: widget.recipe.id,
       name: title,
       imageUrl: uploadedImageUrl ?? widget.recipe.imageUrl,
-      cookingMinutes: cookingMinutes,
-      calories: calories,
-      ingredients: ingredients,
+      cookingMinutes: cookingMinutes != null && cookingMinutes > 0
+          ? cookingMinutes
+          : widget.recipe.cookingMinutes,
+      calories: widget.recipe.calories,
+      estimatedServings: servings,
+      ingredients: widget.recipe.ingredients,
       steps: steps,
       labels: _selectedEditLabels.toList(),
       isPrivate: widget.recipe.isPrivate,
+      mappedIngredients: widget.recipe.mappedIngredients,
+      nutrition: widget.recipe.nutrition,
+      catalogItems: catalogItems,
     );
 
     widget.onSaveEdited?.call(updated);
@@ -362,76 +371,106 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     required ColorScheme colors,
   }) {
     return [
-      ..._ingredientControllers.asMap().entries.map((entry) {
-        final i = entry.key;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: accentColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: entry.value,
-                  maxLines: 1,
-                  textInputAction: TextInputAction.next,
-                  style: TextStyle(fontSize: 13, color: colors.onSurface),
-                  decoration: InputDecoration(
-                    hintText: S.of(context).ingredientHint(i),
-                    hintStyle: TextStyle(fontSize: 13, color: colors.onSurfaceVariant.withValues(alpha: 0.5)),
-                    isDense: true,
-                    filled: false,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: accentColor, width: 1.5),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
-                  ),
-                ),
-              ),
-              if (_ingredientControllers.length > 1) ...[
-                const SizedBox(width: 4),
-                GestureDetector(
-                  onTap: () => setState(() {
-                    _ingredientControllers[i].dispose();
-                    _ingredientControllers.removeAt(i);
-                  }),
-                  child: Icon(
-                    Icons.close,
-                    size: 16,
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      }),
-      TextButton.icon(
-        onPressed: () =>
-            setState(() => _ingredientControllers.add(TextEditingController())),
-        icon: const Icon(Icons.add, size: 14),
-        label: Text(S.of(context).addIngredient),
-        style: TextButton.styleFrom(
-          foregroundColor: accentColor,
-          textStyle: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
+      IngredientPickerList(
+        lines: _ingredientLines,
+        accentColor: accentColor,
+        onChanged: (next) => setState(() => _ingredientLines = next),
       ),
     ];
+  }
+
+  Widget _buildNutritionBlock(ColorScheme colors, Color accentColor) {
+    final nutrition = widget.recipe.nutrition!;
+    final s = S.of(context);
+    String fmt(double? v) => v == null ? '—' : (v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(1));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          s.perServingLabel,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _macroChip('${fmt(nutrition.kcalPerServing)} ${s.calSuffix}', accentColor, colors),
+            const SizedBox(width: 8),
+            _macroChip('${fmt(nutrition.proteinPerServing)}g ${s.proteinShort}', accentColor, colors),
+            const SizedBox(width: 8),
+            _macroChip('${fmt(nutrition.carbsPerServing)}g ${s.carbsShort}', accentColor, colors),
+            const SizedBox(width: 8),
+            _macroChip('${fmt(nutrition.fatPerServing)}g ${s.fatShort}', accentColor, colors),
+          ],
+        ),
+        if (nutrition.extraPerServing.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () => setState(() => _showMoreNutrition = !_showMoreNutrition),
+            child: Text(
+              _showMoreNutrition ? s.hideNutrition : s.moreNutrition,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: accentColor,
+              ),
+            ),
+          ),
+          if (_showMoreNutrition) ...[
+            const SizedBox(height: 8),
+            for (final entry in nutrition.extraPerServing)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        entry.key,
+                        style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
+                      ),
+                    ),
+                    Text(
+                      fmt(entry.value),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: colors.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ],
+      ],
+    );
+  }
+
+  Widget _macroChip(String label, Color accentColor, ColorScheme colors) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        decoration: BoxDecoration(
+          color: accentColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: colors.onSurface,
+          ),
+        ),
+      ),
+    );
   }
 
   List<Widget> _buildStepEditList({
@@ -1427,13 +1466,13 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                               ),
                             ),
                             const SizedBox(width: 20),
-                            Icon(Icons.local_fire_department_outlined, size: 14, color: accentColor),
+                            Icon(Icons.restaurant_outlined, size: 14, color: accentColor),
                             const SizedBox(width: 6),
                             SizedBox(
-                              width: 70,
+                              width: 78,
                               height: 34,
                               child: TextField(
-                                controller: _caloriesController,
+                                controller: _servingsController,
                                 keyboardType: TextInputType.number,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(fontSize: 13, color: colors.onSurface),
@@ -1446,7 +1485,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                     borderSide: BorderSide(color: accentColor, width: 1.5),
                                   ),
                                   contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                                  suffixText: S.of(context).calSuffix,
+                                  suffixText: S.of(context).servingsSuffix,
                                   suffixStyle: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
                                 ),
                               ),
@@ -1492,6 +1531,16 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                                 )
                                 .toList(),
                     ),
+                    if (!_isEditMode && widget.recipe.nutrition != null) ...[
+                      const SizedBox(height: 10),
+                      _RecipeDetailSectionCard(
+                        title: S.of(context).nutritionLabel,
+                        icon: Icons.monitor_heart_outlined,
+                        backgroundColor: panelColor,
+                        iconColor: accentColor,
+                        children: [_buildNutritionBlock(colors, accentColor)],
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     _RecipeDetailSectionCard(
                       title: S.of(context).instructionsLabel,
@@ -1888,20 +1937,22 @@ class _DetailHeaderInfo extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            const Icon(
-              Icons.local_fire_department_outlined,
-              size: 11,
-              color: Colors.white70,
-            ),
-            const SizedBox(width: 3),
-            Text(
-              '${recipe.calories} ${S.of(context).calSuffix}',
-              style: const TextStyle(
+            if (recipe.calories != null) ...[
+              const Icon(
+                Icons.local_fire_department_outlined,
+                size: 11,
                 color: Colors.white70,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
               ),
-            ),
+              const SizedBox(width: 3),
+              Text(
+                '${recipe.calories} ${S.of(context).calSuffix}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ],
         ),
         if (recipe.labels.isNotEmpty) ...[
