@@ -7,7 +7,6 @@ import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/ingredient.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
-import 'package:foodhub_mobile/widgets/ingredient_picker.dart';
 import 'package:foodhub_mobile/widgets/recipe_image.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -43,7 +42,6 @@ class RecipeDetailData {
     this.isPrivate = false,
     this.mappedIngredients = const [],
     this.nutrition,
-    this.catalogItems = const [],
   });
 
   final int id;
@@ -58,7 +56,6 @@ class RecipeDetailData {
   final bool isPrivate;
   final List<MappedIngredient> mappedIngredients;
   final RecipeNutrition? nutrition;
-  final List<IngredientItemInput> catalogItems;
 
   List<String> get ingredientItems => ingredients
       .split('\n')
@@ -146,7 +143,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   String _editImageFilename = 'recipe.jpg';
   final _recipeService = RecipeService();
 
-  late List<SelectedCatalogIngredient?> _ingredientLines;
+  late List<TextEditingController> _ingredientControllers;
   late List<TextEditingController> _stepControllers;
   late TextEditingController _titleController;
   late TextEditingController _cookingMinutesController;
@@ -159,12 +156,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   void initState() {
     super.initState();
     _loadAvailableLabels();
-    _ingredientLines = widget.recipe.mappedIngredients.isNotEmpty
-        ? widget.recipe.mappedIngredients
-            .map(SelectedCatalogIngredient.fromMapped)
-            .cast<SelectedCatalogIngredient?>()
-            .toList()
-        : [null];
+    _ingredientControllers = _controllersFromLines(widget.recipe.ingredientItems);
     _stepControllers = widget.recipe.stepItems
         .map((s) => TextEditingController(text: s))
         .toList();
@@ -195,12 +187,10 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       for (final c in _stepControllers) {
         c.dispose();
       }
-      _ingredientLines = widget.recipe.mappedIngredients.isNotEmpty
-          ? widget.recipe.mappedIngredients
-              .map(SelectedCatalogIngredient.fromMapped)
-              .cast<SelectedCatalogIngredient?>()
-              .toList()
-          : [null];
+      for (final c in _ingredientControllers) {
+        c.dispose();
+      }
+      _ingredientControllers = _controllersFromLines(widget.recipe.ingredientItems);
       _stepControllers = widget.recipe.stepItems
           .map((s) => TextEditingController(text: s))
           .toList();
@@ -220,6 +210,11 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     }
   }
 
+  List<TextEditingController> _controllersFromLines(List<String> lines) {
+    if (lines.isEmpty) return [TextEditingController()];
+    return lines.map((s) => TextEditingController(text: s)).toList();
+  }
+
   Future<void> _pickEditImage() async {
     final file = await ImagePicker().pickImage(
       source: ImageSource.gallery,
@@ -235,6 +230,9 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
 
   @override
   void dispose() {
+    for (final c in _ingredientControllers) {
+      c.dispose();
+    }
     for (final c in _stepControllers) {
       c.dispose();
     }
@@ -297,7 +295,10 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
 
   Future<void> _saveEditedRecipe() async {
     final title = _titleController.text.trim();
-    final catalogItems = selectedIngredientInputs(_ingredientLines);
+    final ingredients = _ingredientControllers
+        .map((c) => c.text.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
     final steps = _stepControllers
         .map((c) => c.text.trim())
         .where((s) => s.isNotEmpty)
@@ -306,11 +307,11 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     final servings = int.tryParse(_servingsController.text.trim());
 
     if (title.isEmpty ||
-        catalogItems.isEmpty ||
+        ingredients.isEmpty ||
         steps.isEmpty ||
         servings == null ||
         servings <= 0) {
-      showErrorToast(context, S.of(context).selectCatalogIngredients);
+      showErrorToast(context, S.of(context).fillAllFields);
       return;
     }
 
@@ -350,13 +351,12 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
           : widget.recipe.cookingMinutes,
       calories: widget.recipe.calories,
       estimatedServings: servings,
-      ingredients: widget.recipe.ingredients,
+      ingredients: ingredients.join('\n'),
       steps: steps,
       labels: _selectedEditLabels.toList(),
       isPrivate: widget.recipe.isPrivate,
       mappedIngredients: widget.recipe.mappedIngredients,
       nutrition: widget.recipe.nutrition,
-      catalogItems: catalogItems,
     );
 
     widget.onSaveEdited?.call(updated);
@@ -371,10 +371,88 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     required ColorScheme colors,
   }) {
     return [
-      IngredientPickerList(
-        lines: _ingredientLines,
-        accentColor: accentColor,
-        onChanged: (next) => setState(() => _ingredientLines = next),
+      ..._ingredientControllers.asMap().entries.map((entry) {
+        final i = entry.key;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: accentColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: entry.value,
+                  maxLines: 1,
+                  textInputAction: TextInputAction.next,
+                  style: TextStyle(fontSize: 13, color: colors.onSurface),
+                  decoration: InputDecoration(
+                    hintText: S.of(context).ingredientHint(i),
+                    hintStyle: TextStyle(
+                      fontSize: 13,
+                      color: colors.onSurfaceVariant.withValues(alpha: 0.5),
+                    ),
+                    isDense: true,
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: accentColor, width: 1.5),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 0,
+                      vertical: 6,
+                    ),
+                  ),
+                ),
+              ),
+              if (_ingredientControllers.length > 1) ...[
+                const SizedBox(width: 4),
+                GestureDetector(
+                  onTap: () => setState(() {
+                    _ingredientControllers[i].dispose();
+                    _ingredientControllers.removeAt(i);
+                  }),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Icon(
+                      Icons.close,
+                      size: 16,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      }),
+      TextButton.icon(
+        onPressed: () => setState(
+          () => _ingredientControllers.add(TextEditingController()),
+        ),
+        icon: const Icon(Icons.add, size: 14),
+        label: Text(S.of(context).addIngredient),
+        style: TextButton.styleFrom(
+          foregroundColor: accentColor,
+          textStyle: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
       ),
     ];
   }
