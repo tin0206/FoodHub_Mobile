@@ -461,7 +461,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
   final _recipeService = RecipeService();
   final _nameController = TextEditingController();
   final _cookingMinutesController = TextEditingController();
-  final _servingsController = TextEditingController(text: '2');
+  final _servingsController = TextEditingController();
   final List<TextEditingController> _ingredientControllers = [
     TextEditingController(),
   ];
@@ -528,11 +528,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
         .join('\n');
     final servings = int.tryParse(_servingsController.text.trim());
 
-    if (name.isEmpty ||
-        ingredients.isEmpty ||
-        steps.isEmpty ||
-        servings == null ||
-        servings <= 0) {
+    if (name.isEmpty || ingredients.isEmpty || steps.isEmpty) {
       showErrorToast(context, S.of(context).fillAllFields);
       return;
     }
@@ -558,7 +554,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
         ingredients: ingredients,
         directions: RecipeModel.splitLines(steps),
         dietaryRestrictions: _selectedLabels.toList(),
-        estimatedServings: servings,
+        estimatedServings: servings != null && servings > 0 ? servings : null,
       );
 
       String? imageUrl;
@@ -819,7 +815,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Time + Servings
+                  // Time
                   _AddSectionCard(
                     isDarkMode: isDarkMode,
                     panelColor: panelColor,
@@ -858,7 +854,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                             controller: _servingsController,
                             keyboardType: TextInputType.number,
                             style: TextStyle(fontSize: 13, color: textColor),
-                            decoration: inlineFieldDecoration(hint: '2'),
+                            decoration: inlineFieldDecoration(hint: ''),
                           ),
                         ),
                         const SizedBox(width: 4),

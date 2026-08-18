@@ -168,7 +168,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       text: widget.recipe.cookingMinutes.toString(),
     );
     _servingsController = TextEditingController(
-      text: (widget.recipe.estimatedServings ?? 1).toString(),
+      text: widget.recipe.estimatedServings?.toString() ?? '',
     );
     _selectedEditLabels = widget.recipe.labels.toSet();
   }
@@ -200,7 +200,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       _titleController.text = widget.recipe.name;
       _cookingMinutesController.text = widget.recipe.cookingMinutes.toString();
       _servingsController.text =
-          (widget.recipe.estimatedServings ?? 1).toString();
+          widget.recipe.estimatedServings?.toString() ?? '';
       _selectedEditLabels = widget.recipe.labels.toSet();
       _isEditMode = false;
       _isCookingMode = false;
@@ -306,11 +306,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     final cookingMinutes = int.tryParse(_cookingMinutesController.text.trim());
     final servings = int.tryParse(_servingsController.text.trim());
 
-    if (title.isEmpty ||
-        ingredients.isEmpty ||
-        steps.isEmpty ||
-        servings == null ||
-        servings <= 0) {
+    if (title.isEmpty || ingredients.isEmpty || steps.isEmpty) {
       showErrorToast(context, S.of(context).fillAllFields);
       return;
     }
@@ -350,7 +346,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
           ? cookingMinutes
           : widget.recipe.cookingMinutes,
       calories: widget.recipe.calories,
-      estimatedServings: servings,
+      estimatedServings: servings != null && servings > 0 ? servings : null,
       ingredients: ingredients.join('\n'),
       steps: steps,
       labels: _selectedEditLabels.toList(),
@@ -2014,6 +2010,23 @@ class _DetailHeaderInfo extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
             ),
+            if (recipe.estimatedServings != null) ...[
+              const SizedBox(width: 10),
+              const Icon(
+                Icons.restaurant_outlined,
+                size: 11,
+                color: Colors.white70,
+              ),
+              const SizedBox(width: 3),
+              Text(
+                '${recipe.estimatedServings} ${S.of(context).servingsSuffix}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
             const SizedBox(width: 10),
             if (recipe.calories != null) ...[
               const Icon(
