@@ -39,8 +39,9 @@ class RecipeModel {
   List<String> get labels => dietaryRestrictions;
 
   int get cookingMinutes {
-    if (directions.isEmpty) return 20;
-    return (directions.length * 5).clamp(15, 120);
+    final steps = directions.isEmpty ? 1 : directions.length;
+    final ingredientCount = ingredients.isEmpty ? 1 : ingredients.length;
+    return (8 * steps + 2 * ingredientCount).clamp(10, 120);
   }
 
   int? get calories {
