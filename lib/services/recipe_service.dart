@@ -89,14 +89,14 @@ class RecipeService {
 
   Future<RecipeModel> createRecipe({
     required String title,
-    required List<IngredientItemInput> ingredientItems,
+    required List<String> ingredients,
     required List<String> directions,
     List<String>? dietaryRestrictions,
     int? estimatedServings,
   }) async {
     final body = <String, dynamic>{
       'title': title,
-      'ingredient_items': ingredientItems.map((e) => e.toJson()).toList(),
+      'ingredients': ingredients,
       'directions': directions,
       if (dietaryRestrictions != null && dietaryRestrictions.isNotEmpty)
         'dietary_restrictions': dietaryRestrictions,
@@ -110,17 +110,14 @@ class RecipeService {
   Future<RecipeModel> updateRecipe(
     int id, {
     String? title,
-    List<IngredientItemInput>? ingredientItems,
+    List<String>? ingredients,
     List<String>? directions,
     List<String>? dietaryRestrictions,
     int? estimatedServings,
   }) async {
     final body = <String, dynamic>{};
     if (title != null) body['title'] = title;
-    if (ingredientItems != null) {
-      body['ingredient_items'] =
-          ingredientItems.map((e) => e.toJson()).toList();
-    }
+    if (ingredients != null) body['ingredients'] = ingredients;
     if (directions != null) body['directions'] = directions;
     if (dietaryRestrictions != null) {
       body['dietary_restrictions'] = dietaryRestrictions;
