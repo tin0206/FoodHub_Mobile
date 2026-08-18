@@ -26,6 +26,10 @@ migrate_working_dir/
 # Environment variables (contains secrets — commit .env.example instead)
 .env
 
+# Staging test credentials for integration tests (contains real passwords —
+# commit test/integration/.env.test.example instead)
+test/integration/.env.test
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
