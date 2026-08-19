@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:foodhub_mobile/models/ingredient.dart';
 import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/services/api_client.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
@@ -23,34 +22,57 @@ void main() {
   });
 
   group('listRecipes', () {
-    test('does not add a lang query param when the user has none set', () async {
-      when(
-        () => api.get('/recipes', query: any(named: 'query'), auth: false),
-      ).thenAnswer((_) async => <dynamic>[]);
+    test(
+      'does not add a lang query param when the user has none set',
+      () async {
+        when(
+          () => api.get('/recipes', query: any(named: 'query'), auth: false),
+        ).thenAnswer((_) async => <dynamic>[]);
 
-      await recipeService.listRecipes();
+        await recipeService.listRecipes();
 
-      final query = verify(
-        () => api.get('/recipes', query: captureAny(named: 'query'), auth: false),
-      ).captured.single as Map<String, String>;
-      expect(query, {'skip': '0', 'limit': '50'});
-    });
+        final query =
+            verify(
+                  () => api.get(
+                    '/recipes',
+                    query: captureAny(named: 'query'),
+                    auth: false,
+                  ),
+                ).captured.single
+                as Map<String, String>;
+        expect(query, {'skip': '0', 'limit': '50'});
+      },
+    );
 
-    test('injects the session language when no explicit lang is given', () async {
-      SessionService.instance.setUser(
-        const UserModel(id: 1, email: 'a@b.com', username: 'a', language: 'vi'),
-      );
-      when(
-        () => api.get('/recipes', query: any(named: 'query'), auth: false),
-      ).thenAnswer((_) async => <dynamic>[]);
+    test(
+      'injects the session language when no explicit lang is given',
+      () async {
+        SessionService.instance.setUser(
+          const UserModel(
+            id: 1,
+            email: 'a@b.com',
+            username: 'a',
+            language: 'vi',
+          ),
+        );
+        when(
+          () => api.get('/recipes', query: any(named: 'query'), auth: false),
+        ).thenAnswer((_) async => <dynamic>[]);
 
-      await recipeService.listRecipes();
+        await recipeService.listRecipes();
 
-      final query = verify(
-        () => api.get('/recipes', query: captureAny(named: 'query'), auth: false),
-      ).captured.single as Map<String, String>;
-      expect(query['lang'], 'vi');
-    });
+        final query =
+            verify(
+                  () => api.get(
+                    '/recipes',
+                    query: captureAny(named: 'query'),
+                    auth: false,
+                  ),
+                ).captured.single
+                as Map<String, String>;
+        expect(query['lang'], 'vi');
+      },
+    );
 
     test('an explicit lang argument wins over the session language', () async {
       SessionService.instance.setUser(
@@ -62,9 +84,15 @@ void main() {
 
       await recipeService.listRecipes(lang: 'en');
 
-      final query = verify(
-        () => api.get('/recipes', query: captureAny(named: 'query'), auth: false),
-      ).captured.single as Map<String, String>;
+      final query =
+          verify(
+                () => api.get(
+                  '/recipes',
+                  query: captureAny(named: 'query'),
+                  auth: false,
+                ),
+              ).captured.single
+              as Map<String, String>;
       expect(query['lang'], 'en');
     });
 
@@ -75,9 +103,15 @@ void main() {
 
       await recipeService.listRecipes(mine: true);
 
-      final query = verify(
-        () => api.get('/recipes', query: captureAny(named: 'query'), auth: true),
-      ).captured.single as Map<String, String>;
+      final query =
+          verify(
+                () => api.get(
+                  '/recipes',
+                  query: captureAny(named: 'query'),
+                  auth: true,
+                ),
+              ).captured.single
+              as Map<String, String>;
       expect(query['mine'], 'true');
     });
 
@@ -99,7 +133,8 @@ void main() {
   group('searchRecipes', () {
     test('parses total_count and the recipe list', () async {
       when(
-        () => api.get('/recipes/search', query: any(named: 'query'), auth: false),
+        () =>
+            api.get('/recipes/search', query: any(named: 'query'), auth: false),
       ).thenAnswer(
         (_) async => {
           'total_count': 42,
@@ -114,22 +149,35 @@ void main() {
       expect(result.totalCount, 42);
       expect(result.recipes.single.title, 'Match');
 
-      final query = verify(
-        () => api.get('/recipes/search', query: captureAny(named: 'query'), auth: false),
-      ).captured.single as Map<String, String>;
+      final query =
+          verify(
+                () => api.get(
+                  '/recipes/search',
+                  query: captureAny(named: 'query'),
+                  auth: false,
+                ),
+              ).captured.single
+              as Map<String, String>;
       expect(query['q'], 'pho');
     });
 
     test('omits q and dietary_restriction when not provided', () async {
       when(
-        () => api.get('/recipes/search', query: any(named: 'query'), auth: false),
+        () =>
+            api.get('/recipes/search', query: any(named: 'query'), auth: false),
       ).thenAnswer((_) async => {'total_count': 0, 'recipes': []});
 
       await recipeService.searchRecipes();
 
-      final query = verify(
-        () => api.get('/recipes/search', query: captureAny(named: 'query'), auth: false),
-      ).captured.single as Map<String, String>;
+      final query =
+          verify(
+                () => api.get(
+                  '/recipes/search',
+                  query: captureAny(named: 'query'),
+                  auth: false,
+                ),
+              ).captured.single
+              as Map<String, String>;
       expect(query.containsKey('q'), isFalse);
       expect(query.containsKey('dietary_restriction'), isFalse);
     });
@@ -147,66 +195,78 @@ void main() {
   });
 
   group('createRecipe', () {
-    test('omits estimated_servings and dietary_restrictions when not given', () async {
-      when(() => api.post('/recipes', body: any(named: 'body'))).thenAnswer(
-        (_) async => {'id': 1, 'title': 'New'},
-      );
+    test(
+      'omits estimated_servings and dietary_restrictions when not given',
+      () async {
+        when(
+          () => api.post('/recipes', body: any(named: 'body')),
+        ).thenAnswer((_) async => {'id': 1, 'title': 'New'});
 
-      await recipeService.createRecipe(
-        title: 'New',
-        ingredientItems: const [
-          IngredientItemInput(mappedId: 1, amount: 2, unit: 'g'),
-        ],
-        directions: const ['Step 1'],
-      );
+        await recipeService.createRecipe(
+          title: 'New',
+          ingredients: const ['2 g salt'],
+          directions: const ['Step 1'],
+        );
 
-      final body = verify(
-        () => api.post('/recipes', body: captureAny(named: 'body')),
-      ).captured.single as Map<String, dynamic>;
-      expect(body['title'], 'New');
-      expect(body.containsKey('estimated_servings'), isFalse);
-      expect(body.containsKey('dietary_restrictions'), isFalse);
-      expect(body['ingredient_items'], [
-        {'mapped_id': 1, 'amount': 2, 'unit': 'g'},
-      ]);
-    });
+        final body =
+            verify(
+                  () => api.post('/recipes', body: captureAny(named: 'body')),
+                ).captured.single
+                as Map<String, dynamic>;
+        expect(body['title'], 'New');
+        expect(body.containsKey('estimated_servings'), isFalse);
+        expect(body.containsKey('dietary_restrictions'), isFalse);
+        expect(body['ingredients'], ['2 g salt']);
+      },
+    );
 
-    test('includes estimated_servings and dietary_restrictions when given', () async {
-      when(() => api.post('/recipes', body: any(named: 'body'))).thenAnswer(
-        (_) async => {'id': 1, 'title': 'New'},
-      );
+    test(
+      'includes estimated_servings and dietary_restrictions when given',
+      () async {
+        when(
+          () => api.post('/recipes', body: any(named: 'body')),
+        ).thenAnswer((_) async => {'id': 1, 'title': 'New'});
 
-      await recipeService.createRecipe(
-        title: 'New',
-        ingredientItems: const [],
-        directions: const [],
-        dietaryRestrictions: const ['vegan'],
-        estimatedServings: 4,
-      );
+        await recipeService.createRecipe(
+          title: 'New',
+          ingredients: const [],
+          directions: const [],
+          dietaryRestrictions: const ['vegan'],
+          estimatedServings: 4,
+        );
 
-      final body = verify(
-        () => api.post('/recipes', body: captureAny(named: 'body')),
-      ).captured.single as Map<String, dynamic>;
-      expect(body['estimated_servings'], 4);
-      expect(body['dietary_restrictions'], ['vegan']);
-    });
+        final body =
+            verify(
+                  () => api.post('/recipes', body: captureAny(named: 'body')),
+                ).captured.single
+                as Map<String, dynamic>;
+        expect(body['estimated_servings'], 4);
+        expect(body['dietary_restrictions'], ['vegan']);
+      },
+    );
   });
 
   group('updateRecipe', () {
     test('only includes fields that were explicitly passed', () async {
       when(
-        () => api.patch('/recipes/5', body: any(named: 'body'), query: any(named: 'query')),
+        () => api.patch(
+          '/recipes/5',
+          body: any(named: 'body'),
+          query: any(named: 'query'),
+        ),
       ).thenAnswer((_) async => {'id': 5, 'title': 'Updated'});
 
       await recipeService.updateRecipe(5, title: 'Updated');
 
-      final body = verify(
-        () => api.patch(
-          '/recipes/5',
-          body: captureAny(named: 'body'),
-          query: any(named: 'query'),
-        ),
-      ).captured.single as Map<String, dynamic>;
+      final body =
+          verify(
+                () => api.patch(
+                  '/recipes/5',
+                  body: captureAny(named: 'body'),
+                  query: any(named: 'query'),
+                ),
+              ).captured.single
+              as Map<String, dynamic>;
       expect(body, {'title': 'Updated'});
     });
   });

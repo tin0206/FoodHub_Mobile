@@ -63,7 +63,7 @@ void main() {
       final recipeService = RecipeService(apiClient: api);
       final recipe = await recipeService.createRecipe(
         title: 'QA FAV fixture ${DateTime.now().millisecondsSinceEpoch}',
-        ingredientItems: await fixtureIngredientItems(recipeService),
+        ingredients: fixtureIngredients,
         directions: const ['Fixture recipe for the favorites integration test'],
       );
       fixtureRecipeId = recipe.id;

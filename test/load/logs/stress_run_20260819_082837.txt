@@ -1,0 +1,10 @@
+Ramping concurrency against https://api.foodhub.io.vn/api/v1/recipes/search
+Steps: [5, 10, 20, 40, 80, 150, 300, 500]
+Stop conditions: error rate > 10%  OR  p95 > 5000ms
+
+[   5 concurrent]   20/20   ok  errors=0%  p50=331ms  p95=488ms  p99=488ms  throughput=13.8 req/s   [OK]
+[  10 concurrent]   40/40   ok  errors=0%  p50=289ms  p95=429ms  p99=429ms  throughput=30.3 req/s   [OK]
+[  20 concurrent]   80/80   ok  errors=0%  p50=364ms  p95=1237ms  p99=1295ms  throughput=33.8 req/s   [OK]
+[  40 concurrent]  160/160  ok  errors=0%  p50=574ms  p95=886ms  p99=974ms  throughput=61.3 req/s   [OK]
+[  80 concurrent]   19/320  ok  errors=94%  p50=15180ms  p95=15266ms  p99=15301ms  throughput=5.2 req/s   [DEGRADED — stopping here]
+

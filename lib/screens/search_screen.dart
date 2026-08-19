@@ -37,6 +37,8 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  ScrollController _scrollController = ScrollController();
+  double _savedScrollOffset = 0;
   final _recipeService = RecipeService();
   final _favoriteService = FavoriteService();
 
@@ -138,6 +140,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void dispose() {
     FavoriteService.changes.removeListener(_onFavoritesChanged);
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -155,6 +158,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _openRecipeDetails(RecipeModel recipe) {
     final index = _recipes.indexWhere((r) => r.id == recipe.id);
+    if (_scrollController.hasClients) {
+      _savedScrollOffset = _scrollController.offset;
+    }
     widget.onDetailModeChanged?.call(true);
     setState(() {
       _selectedRecipeIndex = index >= 0 ? index : 0;
@@ -164,6 +170,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _closeRecipeDetails() {
     widget.onDetailModeChanged?.call(false);
+    _scrollController.dispose();
+    _scrollController = ScrollController(initialScrollOffset: _savedScrollOffset);
     setState(() {
       _selectedRecipeIndex = null;
     });
@@ -232,6 +240,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     return ListView(
+      controller: _scrollController,
       padding: const EdgeInsets.all(12),
       children: [
         Text(

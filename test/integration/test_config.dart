@@ -1,8 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:foodhub_mobile/models/ingredient.dart';
-import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/services/token_storage.dart';
 
 /// Staging credentials for live-backend integration tests.
@@ -114,17 +112,8 @@ class InMemoryTokenStorage implements TokenStorage {
   Future<void> clearToken() async => _token = null;
 }
 
-/// The real /recipes API requires at least one ingredient item. Looks up a
-/// real catalog ingredient (rather than hardcoding an id, which could go
-/// stale) so fixture recipes created by the integration tests pass
-/// validation.
-Future<List<IngredientItemInput>> fixtureIngredientItems(
-  RecipeService recipeService,
-) async {
-  final hits = await recipeService.searchIngredients('salt', limit: 1);
-  if (hits.isEmpty) {
-    throw StateError('No ingredient matched "salt" in the catalog — cannot build a fixture recipe.');
-  }
-  final unit = hits.first.units.isNotEmpty ? hits.first.units.first.unit : 'g';
-  return [IngredientItemInput(mappedId: hits.first.id, amount: 1, unit: unit)];
-}
+/// The real /recipes API requires at least one ingredient line. Since
+/// `createRecipe`/`updateRecipe` now take free-text ingredient strings
+/// (the backend auto-maps them server-side), a fixture recipe just needs
+/// any non-empty line — no catalog lookup required.
+const fixtureIngredients = ['1 tsp salt'];

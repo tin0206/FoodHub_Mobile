@@ -82,7 +82,7 @@ void main() {
       final admin = recipeService();
       final fixture = await admin.createRecipe(
         title: 'QA RCP-08 fixture ${DateTime.now().millisecondsSinceEpoch}',
-        ingredientItems: await fixtureIngredientItems(admin),
+        ingredients: fixtureIngredients,
         directions: const ['Do not edit me — automated ownership test fixture'],
       );
       fixtureRecipeId = fixture.id;
@@ -101,7 +101,7 @@ void main() {
       final admin = recipeService();
       final fixture = await admin.createRecipe(
         title: 'QA RCP-08 fixture ${DateTime.now().millisecondsSinceEpoch}',
-        ingredientItems: await fixtureIngredientItems(admin),
+        ingredients: fixtureIngredients,
         directions: const ['Do not delete me — automated ownership test fixture'],
       );
       fixtureRecipeId = fixture.id;
@@ -128,7 +128,7 @@ void main() {
 
       final created = await recipes.createRecipe(
         title: 'QA RCP-05/06/07 fixture ${DateTime.now().millisecondsSinceEpoch}',
-        ingredientItems: await fixtureIngredientItems(recipes),
+        ingredients: fixtureIngredients,
         directions: const ['Step one'],
       );
 

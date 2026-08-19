@@ -1093,104 +1093,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                 ),
               ),
             ],
-          ))
-        else if (hasImage)
-          Stack(
-            children: [
-              RecipeImageHeader(
-                imageUrl: widget.recipe.imageUrl,
-                recipeId: widget.recipe.id,
-                labels: widget.recipe.labels,
-                height: 200,
-                borderRadius: BorderRadius.zero,
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.35),
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.65),
-                      ],
-                      stops: const [0, 0.35, 1],
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 10,
-                left: 12,
-                child: InkWell(
-                  onTap: widget.onBack,
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back_rounded,
-                      size: 17,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 12,
-                right: 16,
-                bottom: 12,
-                child: _DetailHeaderInfo(recipe: widget.recipe),
-              ),
-            ],
-          )
-        else
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDarkMode
-                    ? [
-                        accentColor.withValues(alpha: 0.35),
-                        accentColor.withValues(alpha: 0.12),
-                      ]
-                    : [accentColor, accentColor.withValues(alpha: 0.75)],
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 16, 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  InkWell(
-                    onTap: widget.onBack,
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.22),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_rounded,
-                        size: 17,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(emoji, style: const TextStyle(fontSize: 26)),
-                  const SizedBox(width: 10),
-                  Expanded(child: _DetailHeaderInfo(recipe: widget.recipe)),
-                ],
-              ),
-            ),
-          ),
+          )),
           if (_isCookingMode)
             Expanded(
               child: Column(
@@ -1448,11 +1351,78 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
             )
           else
             Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (!_isEditMode && hasImage)
+                            Stack(
+                              children: [
+                                RecipeImageHeader(
+                                  imageUrl: widget.recipe.imageUrl,
+                                  recipeId: widget.recipe.id,
+                                  labels: widget.recipe.labels,
+                                  height: 200,
+                                  borderRadius: BorderRadius.zero,
+                                ),
+                                Positioned.fill(
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.black.withValues(alpha: 0.35),
+                                          Colors.transparent,
+                                          Colors.black.withValues(alpha: 0.65),
+                                        ],
+                                        stops: const [0, 0.35, 1],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  left: 12,
+                                  right: 16,
+                                  bottom: 12,
+                                  child: _DetailHeaderInfo(recipe: widget.recipe),
+                                ),
+                              ],
+                            )
+                          else if (!_isEditMode)
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: isDarkMode
+                                      ? [
+                                          accentColor.withValues(alpha: 0.35),
+                                          accentColor.withValues(alpha: 0.12),
+                                        ]
+                                      : [accentColor, accentColor.withValues(alpha: 0.75)],
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(56, 10, 16, 12),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(emoji, style: const TextStyle(fontSize: 26)),
+                                    const SizedBox(width: 10),
+                                    Expanded(child: _DetailHeaderInfo(recipe: widget.recipe)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                     if (_isEditMode) ...[
                       Container(
                         width: double.infinity,
@@ -1731,7 +1701,35 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                   ],
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+      if (!_isEditMode)
+        Positioned(
+          top: 10,
+          left: 12,
+          child: GestureDetector(
+            onTap: widget.onBack,
+            child: Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: hasImage
+                    ? Colors.black.withValues(alpha: 0.4)
+                    : Colors.white.withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.arrow_back_rounded,
+                size: 17,
+                color: Colors.white,
+              ),
             ),
+          ),
+        ),
+    ],
+  ),
+),
           if (!_isCookingMode)
           Container(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
