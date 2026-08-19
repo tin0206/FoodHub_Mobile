@@ -100,7 +100,7 @@ class RecipeService {
       'directions': directions,
       if (dietaryRestrictions != null && dietaryRestrictions.isNotEmpty)
         'dietary_restrictions': dietaryRestrictions,
-      'estimated_servings': ?estimatedServings,
+      if (estimatedServings != null) 'estimated_servings': estimatedServings,
     };
 
     final data = await _api.post('/recipes', body: body);
