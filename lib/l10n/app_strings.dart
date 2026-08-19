@@ -51,6 +51,17 @@ class S {
       _vi ? 'Thêm công thức đầu tiên' : 'Add your first recipe';
   String get unableToLoadRecipes =>
       _vi ? 'Không thể tải công thức.' : 'Unable to load recipes.';
+  String get topRecipes => _vi ? 'Công thức phổ biến' : 'Top Recipes';
+  String get recommendedRecipes => _vi ? 'Gợi ý cho bạn' : 'Recommended for you';
+  String get comingSoon => _vi ? 'Sắp ra mắt' : 'Coming soon';
+  String get comingSoonDesc => _vi
+      ? 'Chúng tôi đang xây dựng tính năng gợi ý cá nhân hóa.'
+      : 'Personalized recommendations are on the way.';
+  String favoriteCount(int n) =>
+      _vi ? '$n lượt yêu thích' : '$n favorite${n == 1 ? '' : 's'}';
+  String get noTopRecipesYet =>
+      _vi ? 'Chưa có công thức phổ biến' : 'No top recipes yet';
+  String get seeAll => _vi ? 'Xem tất cả' : 'See all';
   String get fillAllFields => _vi
       ? 'Vui lòng điền đầy đủ thông tin.'
       : 'Please fill in all required fields.';

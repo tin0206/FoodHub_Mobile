@@ -1,5 +1,25 @@
 import 'package:foodhub_mobile/models/recipe.dart';
 
+class TopFavoriteModel {
+  const TopFavoriteModel({
+    required this.recipeId,
+    required this.recipe,
+    required this.favoriteCount,
+  });
+
+  final int recipeId;
+  final RecipeModel recipe;
+  final int favoriteCount;
+
+  factory TopFavoriteModel.fromJson(Map<String, dynamic> json) {
+    return TopFavoriteModel(
+      recipeId: json['recipe_id'] as int,
+      recipe: RecipeModel.fromJson(json['recipe'] as Map<String, dynamic>),
+      favoriteCount: json['favorite_count'] as int,
+    );
+  }
+}
+
 class FavoriteModel {
   const FavoriteModel({
     required this.id,

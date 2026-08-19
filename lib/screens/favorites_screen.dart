@@ -441,7 +441,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final s = S.of(context);
     return Container(
       color: isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFE5E7EB),
-      child: ListView(
+      child: RefreshIndicator(
+        color: const Color(0xFF059669),
+        onRefresh: _loadFavorites,
+        child: ListView(
         padding: const EdgeInsets.all(8),
         children: [
           Row(
@@ -665,6 +668,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             );
           }),
         ],
+        ),
       ),
     );
   }

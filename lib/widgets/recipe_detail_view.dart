@@ -139,6 +139,10 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   bool _isPreparingIngredients = true;
   int _currentStepIndex = 0;
 
+  double _swipeDragStartX = 0;
+  double _swipeDragStartY = 0;
+  bool _swipeHandled = false;
+
   Uint8List? _editImageBytes;
   String _editImageFilename = 'recipe.jpg';
   final _recipeService = RecipeService();
@@ -945,15 +949,24 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
         widget.recipe.imageUrl!.isNotEmpty &&
         ApiConfig.resolveImageUrl(widget.recipe.imageUrl).isNotEmpty;
 
-    return GestureDetector(
-      onHorizontalDragEnd: (details) {
-        if (_isCookingMode) return;
-        final v = details.primaryVelocity;
-        if (v == null || v.abs() < 300) return;
-        if (_isEditMode) {
-          setState(() => _isEditMode = false);
-        } else {
-          widget.onBack();
+    return Listener(
+      onPointerDown: (e) {
+        _swipeDragStartX = e.position.dx;
+        _swipeDragStartY = e.position.dy;
+        _swipeHandled = false;
+      },
+      onPointerMove: (e) {
+        if (_swipeHandled || _isCookingMode) return;
+        final dx = e.position.dx - _swipeDragStartX;
+        final dy = (e.position.dy - _swipeDragStartY).abs();
+        // Left swipe >= 90px, dy < 50px to exclude vertical scroll
+        if (dx < -90 && dy < 50) {
+          _swipeHandled = true;
+          if (_isEditMode) {
+            setState(() => _isEditMode = false);
+          } else {
+            widget.onBack();
+          }
         }
       },
       child: Column(

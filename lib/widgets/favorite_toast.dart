@@ -69,6 +69,16 @@ void showRecipeToast(
   );
 }
 
+void showDeleteToast(BuildContext context, {required String recipeName}) {
+  _showAppToast(
+    context,
+    icon: Icons.delete_rounded,
+    iconColor: const Color(0xFFEF4444),
+    iconBg: const Color(0xFFEF4444).withValues(alpha: 0.12),
+    message: '$recipeName has been deleted',
+  );
+}
+
 void _showAppToast(
   BuildContext context, {
   required IconData icon,

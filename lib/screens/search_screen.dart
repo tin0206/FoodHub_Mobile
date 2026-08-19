@@ -239,7 +239,10 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
 
-    return ListView(
+    return RefreshIndicator(
+      color: const Color(0xFF059669),
+      onRefresh: () => _loadRecipes(),
+      child: ListView(
       controller: _scrollController,
       padding: const EdgeInsets.all(12),
       children: [
@@ -431,6 +434,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ),
       ],
+      ),
     );
   }
 }

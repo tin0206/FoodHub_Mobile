@@ -54,4 +54,17 @@ class FavoriteService {
     await _api.delete('/favorites/$favoriteId');
     changes.value++;
   }
+
+  Future<List<TopFavoriteModel>> getTopFavorites({String? lang}) async {
+    final language = lang ?? SessionService.instance.currentUser?.language;
+    final data = await _api.get(
+      '/favorites/top-favorites',
+      query: {
+        if (language != null && language.isNotEmpty) 'lang': language,
+      },
+    );
+    return (data as List<dynamic>)
+        .map((e) => TopFavoriteModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
 }
