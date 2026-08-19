@@ -310,277 +310,280 @@ class _HomeScreenState extends State<HomeScreen> {
       onRefresh: () async {
         await Future.wait([_loadRecipes(), _loadTopFavorites()]);
       },
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-        children: [
-          // ── Greeting hero ──────────────────────────────────────────────
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF059669), Color(0xFF047857)],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF059669).withValues(alpha: 0.3),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+          children: [
+            // ── Greeting hero ──────────────────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF059669), Color(0xFF047857)],
                 ),
-              ],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF059669).withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _greeting(context),
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          s.myRecipes,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  InkWell(
+                    onTap: _onAddRecipePressed,
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.add_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _greeting(context),
+            const SizedBox(height: 20),
+
+            // ── Section: Personal Recipes ──────────────────────────────────
+            _SectionHeader(
+              title: s.myRecipes,
+              trailing: _recipes.isNotEmpty
+                  ? Text(
+                      s.recipeCount(_recipes.length),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colors.onSurfaceVariant,
+                      ),
+                    )
+                  : null,
+            ),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: CircularProgressIndicator(color: Color(0xFF059669)),
+                ),
+              )
+            else if (_loadError != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _loadError!,
                         style: TextStyle(
-                          fontSize: 12.5,
-                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 12,
+                          color: colors.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                    ),
+                    TextButton(onPressed: _loadRecipes, child: Text(s.retry)),
+                  ],
+                ),
+              )
+            else if (_recipes.isEmpty)
+              GestureDetector(
+                onTap: _onAddRecipePressed,
+                child: Container(
+                  width: double.infinity,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: panelColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDarkMode
+                          ? const Color(0xFF2A2A2A)
+                          : const Color(0xFFE5E7EB),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xFF059669,
+                          ).withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.add_rounded,
+                          size: 20,
+                          color: Color(0xFF059669),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
                       Text(
-                        s.myRecipes,
+                        s.addFirstRecipe,
                         style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: -0.3,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF059669),
                         ),
                       ),
                     ],
                   ),
                 ),
-                InkWell(
-                  onTap: _onAddRecipePressed,
-                  borderRadius: BorderRadius.circular(999),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.add_rounded,
-                      color: Colors.white,
-                      size: 26,
+              )
+            else
+              _HorizontalScrollRow(
+                height: 175,
+                isDarkMode: isDarkMode,
+                builder: (ctrl) => ListView.separated(
+                  controller: ctrl,
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.zero,
+                  itemCount: _recipes.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 10),
+                  itemBuilder: (context, index) {
+                    final recipe = _recipes[index];
+                    return _PersonalRecipeCard(
+                      recipe: recipe,
+                      isDarkMode: isDarkMode,
+                      panelColor: panelColor,
+                      onTap: () => _openRecipeDetails(recipe, index),
+                    );
+                  },
+                ),
+              ),
+
+            // ── Section: Recommended ───────────────────────────────────────
+            _SectionHeader(title: s.recommendedRecipes),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+              decoration: BoxDecoration(
+                color: panelColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDarkMode
+                      ? const Color(0xFF2A2A2A)
+                      : const Color(0xFFE5E7EB),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.auto_awesome_outlined,
+                    size: 36,
+                    color: isDarkMode
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF9CA3AF),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    s.comingSoon,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: colors.onSurface,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // ── Section: Personal Recipes ──────────────────────────────────
-          _SectionHeader(
-            title: s.myRecipes,
-            trailing: _recipes.isNotEmpty
-                ? Text(
-                    s.recipeCount(_recipes.length),
+                  const SizedBox(height: 4),
+                  Text(
+                    s.comingSoonDesc,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12,
                       color: colors.onSurfaceVariant,
                     ),
-                  )
-                : null,
-          ),
-          const SizedBox(height: 10),
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: CircularProgressIndicator(color: Color(0xFF059669)),
-              ),
-            )
-          else if (_loadError != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _loadError!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
                   ),
-                  TextButton(onPressed: _loadRecipes, child: Text(s.retry)),
                 ],
               ),
-            )
-          else if (_recipes.isEmpty)
-            GestureDetector(
-              onTap: _onAddRecipePressed,
-              child: Container(
-                width: double.infinity,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: panelColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDarkMode
-                        ? const Color(0xFF2A2A2A)
-                        : const Color(0xFFE5E7EB),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF059669).withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.add_rounded,
-                        size: 20,
-                        color: Color(0xFF059669),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      s.addFirstRecipe,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF059669),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            _HorizontalScrollRow(
-              height: 175,
-              isDarkMode: isDarkMode,
-              builder: (ctrl) => ListView.separated(
-                controller: ctrl,
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.zero,
-                itemCount: _recipes.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final recipe = _recipes[index];
-                  return _PersonalRecipeCard(
-                    recipe: recipe,
-                    isDarkMode: isDarkMode,
-                    panelColor: panelColor,
-                    onTap: () => _openRecipeDetails(recipe, index),
-                  );
-                },
-              ),
             ),
+            const SizedBox(height: 12),
 
-          // ── Section: Recommended ───────────────────────────────────────
-          _SectionHeader(title: s.recommendedRecipes),
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-            decoration: BoxDecoration(
-              color: panelColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDarkMode
-                    ? const Color(0xFF2A2A2A)
-                    : const Color(0xFFE5E7EB),
-              ),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.auto_awesome_outlined,
-                  size: 36,
-                  color: isDarkMode
-                      ? const Color(0xFF94A3B8)
-                      : const Color(0xFF9CA3AF),
+            // ── Section: Top Recipes ───────────────────────────────────────
+            _SectionHeader(title: s.topRecipes),
+            if (_isTopLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: CircularProgressIndicator(color: Color(0xFF059669)),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  s.comingSoon,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: colors.onSurface,
+              )
+            else if (_topFavorites.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Text(
+                    s.noTopRecipesYet,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: colors.onSurfaceVariant,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  s.comingSoonDesc,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // ── Section: Top Recipes ───────────────────────────────────────
-          _SectionHeader(title: s.topRecipes),
-          const SizedBox(height: 10),
-          if (_isTopLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: CircularProgressIndicator(color: Color(0xFF059669)),
-              ),
-            )
-          else if (_topFavorites.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: Text(
-                  s.noTopRecipesYet,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: colors.onSurfaceVariant,
-                  ),
+              )
+            else
+              _HorizontalScrollRow(
+                height: 180,
+                isDarkMode: isDarkMode,
+                builder: (ctrl) => ListView.separated(
+                  controller: ctrl,
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.zero,
+                  itemCount: _topFavorites.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 10),
+                  itemBuilder: (context, index) {
+                    final top = _topFavorites[index];
+                    return _TopRecipeCard(
+                      rank: index + 1,
+                      topFavorite: top,
+                      isDarkMode: isDarkMode,
+                      panelColor: panelColor,
+                      onTap: () {
+                        widget.onDetailModeChanged?.call(true);
+                        setState(() => _selectedTopRecipe = top.recipe);
+                      },
+                    );
+                  },
                 ),
               ),
-            )
-          else
-            _HorizontalScrollRow(
-              height: 180,
-              isDarkMode: isDarkMode,
-              builder: (ctrl) => ListView.separated(
-                controller: ctrl,
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.zero,
-                itemCount: _topFavorites.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final top = _topFavorites[index];
-                  return _TopRecipeCard(
-                    rank: index + 1,
-                    topFavorite: top,
-                    isDarkMode: isDarkMode,
-                    panelColor: panelColor,
-                    onTap: () {
-                      widget.onDetailModeChanged?.call(true);
-                      setState(() => _selectedTopRecipe = top.recipe);
-                    },
-                  );
-                },
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -614,33 +617,19 @@ class _HorizontalScrollRowState extends State<_HorizontalScrollRow> {
 
   @override
   Widget build(BuildContext context) {
-    final thumbColor = widget.isDarkMode
-        ? const Color(0xFF4B5563)
-        : const Color(0xFFBEC3CA);
-    final trackColor = widget.isDarkMode
-        ? const Color(0xFF2A2A2A)
-        : const Color(0xFFEEF0F2);
+    final bg = widget.isDarkMode
+        ? const Color(0xFF1A1A1A)
+        : const Color(0xFFF3F4F6);
 
-    return ScrollbarTheme(
-      data: ScrollbarThemeData(
-        thumbColor: WidgetStatePropertyAll(thumbColor),
-        trackColor: WidgetStatePropertyAll(trackColor),
-        trackBorderColor: const WidgetStatePropertyAll(Colors.transparent),
-        thickness: const WidgetStatePropertyAll(5),
-        radius: const Radius.circular(999),
-        trackVisibility: const WidgetStatePropertyAll(true),
-        thumbVisibility: const WidgetStatePropertyAll(true),
-        crossAxisMargin: 2,
+    return Container(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Scrollbar(
-        controller: _ctrl,
-        child: SizedBox(
-          height: widget.height + 14,
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: widget.builder(_ctrl),
-          ),
-        ),
+      padding: const EdgeInsets.fromLTRB(12, 12, 0, 12),
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: SizedBox(height: widget.height, child: widget.builder(_ctrl)),
       ),
     );
   }

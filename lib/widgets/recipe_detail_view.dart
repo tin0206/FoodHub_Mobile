@@ -959,8 +959,8 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
         if (_swipeHandled || _isCookingMode) return;
         final dx = e.position.dx - _swipeDragStartX;
         final dy = (e.position.dy - _swipeDragStartY).abs();
-        // Left swipe >= 90px, dy < 50px to exclude vertical scroll
-        if (dx < -90 && dy < 50) {
+        // Left swipe >= 60px, dy < 50px to exclude vertical scroll
+        if (dx < -60 && dy < 50) {
           _swipeHandled = true;
           if (_isEditMode) {
             setState(() => _isEditMode = false);

@@ -445,6 +445,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         color: const Color(0xFF059669),
         onRefresh: _loadFavorites,
         child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(8),
         children: [
           Row(

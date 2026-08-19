@@ -243,6 +243,7 @@ class _SearchScreenState extends State<SearchScreen> {
       color: const Color(0xFF059669),
       onRefresh: () => _loadRecipes(),
       child: ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       controller: _scrollController,
       padding: const EdgeInsets.all(12),
       children: [
