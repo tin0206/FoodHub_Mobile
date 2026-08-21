@@ -1,7 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/ai.dart';
-import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/ai_service.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
@@ -42,6 +43,9 @@ class _RecsScreenState extends State<RecsScreen> {
   List<String> _lastSentIngredients = const [];
   RecipeDetailData? _selectedRecipeDetail;
   bool _openingRecipe = false;
+  int _recipeCacheEpoch = 0;
+  final Map<int, RecipeDetailData> _recipeCache = {};
+  final Map<int, Future<RecipeDetailData?>> _recipeFetches = {};
 
   bool _welcomeStarted = false;
 
@@ -72,6 +76,9 @@ class _RecsScreenState extends State<RecsScreen> {
         _messages.clear();
         _conversationHistory.clear();
         _selectedRecipeDetail = null;
+        _recipeCacheEpoch++;
+        _recipeCache.clear();
+        _recipeFetches.clear();
       });
     }
     widget.onDetailModeChanged?.call(false);
@@ -111,6 +118,7 @@ class _RecsScreenState extends State<RecsScreen> {
         _isBootstrapping = false;
       });
       _scrollToBottom();
+      _prefetchRecipes(response.reply, response.recipes);
     } catch (e, st) {
       debugPrint('[Recs] Welcome FAILED: $e\n$st');
       if (!mounted) return;
@@ -244,70 +252,72 @@ class _RecsScreenState extends State<RecsScreen> {
     await _bootstrapWelcome();
   }
 
-  RecipeDetailData _detailFromRag(RagRecipeModel recipe) {
-    final model = RecipeModel(
-      id: recipe.recipeIdAsInt ?? 0,
-      title: recipe.title,
-      ingredients: recipe.ingredients,
-      directions: recipe.directions,
-      dietaryRestrictions: recipe.dietaryRestrictions,
-      estimatedServings: recipe.estimatedServings,
+  List<int> _recipeIdsFrom(String markdown, List<RagRecipeModel> recipes) {
+    final links = mergeRecipeCtas(
+      fromMarkdown: extractRecipeMarkdownLinks(markdown).links,
+      recipes: recipes,
     );
-    return model.toDetailData();
+    final ids = <int>{};
+    for (final link in links) {
+      final id = int.tryParse(normalizeRecipeHref(link.recipeId));
+      if (id != null) ids.add(id);
+    }
+    return ids.toList();
   }
 
-  Future<void> _openRecipeFromChat({
-    required String title,
-    String? recipeId,
-    RagRecipeModel? ragRecipe,
-  }) async {
+  Future<RecipeDetailData?> _recipeById(int id) {
+    final cached = _recipeCache[id];
+    if (cached != null) return Future.value(cached);
+
+    return _recipeFetches.putIfAbsent(id, () async {
+      final epoch = _recipeCacheEpoch;
+      try {
+        final detail = (await _recipeService.getRecipe(id)).toDetailData();
+        if (epoch == _recipeCacheEpoch) _recipeCache[id] = detail;
+        return detail;
+      } catch (_) {
+        return null;
+      } finally {
+        if (epoch == _recipeCacheEpoch) _recipeFetches.remove(id);
+      }
+    });
+  }
+
+  void _prefetchRecipes(String markdown, List<RagRecipeModel> recipes) {
+    for (final id in _recipeIdsFrom(markdown, recipes)) {
+      unawaited(_recipeById(id));
+    }
+  }
+
+  Future<void> _openRecipeFromChat(RecipeLinkRef link) async {
     if (_openingRecipe) return;
+    final id = int.tryParse(normalizeRecipeHref(link.recipeId));
+    if (id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(S.of(context).unableToOpenRecipe(link.title)),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final cached = _recipeCache[id];
+    if (cached != null) {
+      widget.onDetailModeChanged?.call(true);
+      setState(() => _selectedRecipeDetail = cached);
+      return;
+    }
+
     setState(() => _openingRecipe = true);
-
-    RecipeDetailData? detail;
-
-    // Prefer payload already returned with the message.
-    if (ragRecipe != null &&
-        (ragRecipe.ingredients.isNotEmpty || ragRecipe.directions.isNotEmpty)) {
-      detail = _detailFromRag(ragRecipe);
-    } else {
-      // Fallback: match by id/title in recent messages.
-      for (final msg in _messages.reversed) {
-        for (final r in msg.recipes) {
-          final idMatch =
-              recipeId != null && recipeId.isNotEmpty && r.recipeId == recipeId;
-          final titleMatch = r.title.toLowerCase() == title.toLowerCase();
-          if (idMatch || titleMatch) {
-            if (r.ingredients.isNotEmpty || r.directions.isNotEmpty) {
-              detail = _detailFromRag(r);
-              break;
-            }
-          }
-        }
-        if (detail != null) break;
-      }
-    }
-
-    // Last resort: try FoodHub recipe API when id is numeric.
-    if (detail == null) {
-      final id = int.tryParse((recipeId ?? '').trim());
-      if (id != null) {
-        try {
-          final recipe = await _recipeService.getRecipe(id);
-          detail = recipe.toDetailData();
-        } catch (_) {
-          detail = null;
-        }
-      }
-    }
-
+    final detail = await _recipeById(id);
     if (!mounted) return;
     setState(() => _openingRecipe = false);
 
     if (detail == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(S.of(context).unableToOpenRecipe(title)),
+          content: Text(S.of(context).unableToOpenRecipe(link.title)),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -417,6 +427,7 @@ class _RecsScreenState extends State<RecsScreen> {
         _isSending = false;
       });
       _scrollToBottom();
+      _prefetchRecipes(response.reply, response.recipes);
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -568,23 +579,7 @@ class _RecsScreenState extends State<RecsScreen> {
                       message: message,
                       isDarkMode: isDarkMode,
                       onRerun: isLatestAiReply ? _rerunLast : null,
-                      onOpenRecipe: (link) {
-                        RagRecipeModel? match;
-                        for (final r in message.recipes) {
-                          if ((link.recipeId.isNotEmpty &&
-                                  r.recipeId == link.recipeId) ||
-                              r.title.toLowerCase() ==
-                                  link.title.toLowerCase()) {
-                            match = r;
-                            break;
-                          }
-                        }
-                        _openRecipeFromChat(
-                          title: link.title,
-                          recipeId: link.recipeId,
-                          ragRecipe: match,
-                        );
-                      },
+                      onOpenRecipe: _openRecipeFromChat,
                     ),
                   );
                 },

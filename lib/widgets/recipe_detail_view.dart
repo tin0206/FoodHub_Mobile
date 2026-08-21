@@ -153,13 +153,11 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   late TextEditingController _cookingMinutesController;
   late TextEditingController _servingsController;
   late Set<String> _selectedEditLabels;
-  List<String> _availableLabels = [];
   bool _showMoreNutrition = false;
 
   @override
   void initState() {
     super.initState();
-    _loadAvailableLabels();
     _ingredientControllers = _controllersFromLines(widget.recipe.ingredientItems);
     _stepControllers = widget.recipe.stepItems
         .map((s) => TextEditingController(text: s))
@@ -175,13 +173,6 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       text: widget.recipe.estimatedServings?.toString() ?? '',
     );
     _selectedEditLabels = widget.recipe.labels.toSet();
-  }
-
-  Future<void> _loadAvailableLabels() async {
-    try {
-      final options = await _recipeService.getDietaryRestrictions();
-      if (mounted) setState(() => _availableLabels = options);
-    } catch (_) {}
   }
 
   @override
@@ -1667,7 +1658,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                           Wrap(
                             spacing: 6,
                             runSpacing: 6,
-                            children: _availableLabels.map((label) {
+                            children: kAvailableLabels.map((label) {
                               final isSelected = _selectedEditLabels
                                   .contains(label);
                               return FilterChip(

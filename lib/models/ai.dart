@@ -48,28 +48,28 @@ class RagRecipeModel {
   final int? estimatedServings;
   final String locale;
 
-  int? get recipeIdAsInt {
-    final raw = recipeId?.trim();
-    if (raw == null || raw.isEmpty) return null;
-    return int.tryParse(raw);
-  }
-
   factory RagRecipeModel.fromJson(Map<String, dynamic> json) {
     final rawId = json['recipe_id'] ?? json['id'];
+    final title = json['title'];
+    final recipeName = json['RecipeName'];
     return RagRecipeModel(
-      title: json['title'] as String? ??
-          json['RecipeName'] as String? ??
-          'Untitled recipe',
+      title: (title is String && title.trim().isNotEmpty)
+          ? title.trim()
+          : (recipeName is String && recipeName.trim().isNotEmpty)
+              ? recipeName.trim()
+              : 'Untitled recipe',
       recipeId: rawId?.toString(),
-      ingredients: _list(json['ingredients']),
-      directions: _list(json['directions']),
-      dietaryRestrictions: _list(json['dietary_restrictions']),
-      estimatedServings: json['estimated_servings'] as int?,
+      ingredients: _stringList(json['ingredients']),
+      directions: _stringList(json['directions']),
+      dietaryRestrictions: _stringList(json['dietary_restrictions']),
+      estimatedServings: json['estimated_servings'] is num
+          ? (json['estimated_servings'] as num).toInt()
+          : null,
       locale: (json['locale'] as String?) ?? 'en',
     );
   }
 
-  static List<String> _list(dynamic value) {
+  static List<String> _stringList(dynamic value) {
     if (value is List) return value.map((e) => e.toString()).toList();
     return const [];
   }
@@ -99,8 +99,8 @@ class ChatResponseModel {
       phase: json['phase'] as String? ?? 'gather',
       sessionId: json['session_id'] as String?,
       recipes: (json['recipes'] as List<dynamic>?)
-              ?.whereType<Map<String, dynamic>>()
-              .map(RagRecipeModel.fromJson)
+              ?.whereType<Map>()
+              .map((e) => RagRecipeModel.fromJson(Map<String, dynamic>.from(e)))
               .toList() ??
           const [],
       knownInfo: json['known_info'] is Map<String, dynamic>

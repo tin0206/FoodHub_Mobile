@@ -19,6 +19,22 @@ class RecipeLinkRef {
 
 final _mdLinkPattern = RegExp(r'\[([^\]]+)\]\(([^)]+)\)');
 
+/// Normalize `[Name](id)`, `[Name](/id)`, `[Name](/recipes/id)` → recipe id.
+/// Matches foodhub_web `normalizeRecipeHref`.
+String normalizeRecipeHref(String href) {
+  final raw = href.trim();
+  if (raw.isEmpty) return '';
+  if (RegExp(r'^https?:\/\/', caseSensitive: false).hasMatch(raw)) return '';
+  var path = raw.replaceFirst(RegExp(r'^/+'), '');
+  path = path.replaceFirst(RegExp(r'^recipes\/', caseSensitive: false), '');
+  path = path.replaceFirst(
+    RegExp(r'^api\/v1\/recipes\/', caseSensitive: false),
+    '',
+  );
+  path = path.split('?').first.split('#').first;
+  return path.trim();
+}
+
 /// Extract `[Name](id)` links and replace them with plain bold names in markdown.
 ({String markdown, List<RecipeLinkRef> links}) extractRecipeMarkdownLinks(
   String markdown,
@@ -27,11 +43,11 @@ final _mdLinkPattern = RegExp(r'\[([^\]]+)\]\(([^)]+)\)');
   final seen = <String>{};
   final cleaned = markdown.replaceAllMapped(_mdLinkPattern, (match) {
     final title = match.group(1)!.trim();
-    final id = match.group(2)!.trim();
-    if (title.isNotEmpty && id.isNotEmpty && seen.add(id)) {
-      links.add(RecipeLinkRef(title: title, recipeId: id));
+    final recipeId = normalizeRecipeHref(match.group(2)!);
+    if (title.isNotEmpty && recipeId.isNotEmpty && seen.add(recipeId)) {
+      links.add(RecipeLinkRef(title: title, recipeId: recipeId));
     }
-    return '**$title**';
+    return title.isEmpty ? '' : '**$title**';
   });
   return (markdown: cleaned, links: links);
 }
