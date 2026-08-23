@@ -44,10 +44,25 @@ class ApiClient {
   Future<dynamic> post(
     String path, {
     Map<String, dynamic>? body,
+    Map<String, String>? query,
     bool auth = true,
   }) async {
     final response = await http.post(
-      _uri(path),
+      _uri(path, query),
+      headers: await _headers(auth: auth),
+      body: body == null ? null : jsonEncode(body),
+    );
+    return _handleResponse(response);
+  }
+
+  Future<dynamic> put(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? query,
+    bool auth = true,
+  }) async {
+    final response = await http.put(
+      _uri(path, query),
       headers: await _headers(auth: auth),
       body: body == null ? null : jsonEncode(body),
     );
@@ -68,12 +83,16 @@ class ApiClient {
     return _handleResponse(response);
   }
 
-  Future<void> delete(String path, {bool auth = true}) async {
+  Future<dynamic> delete(
+    String path, {
+    Map<String, String>? query,
+    bool auth = true,
+  }) async {
     final response = await http.delete(
-      _uri(path),
+      _uri(path, query),
       headers: await _headers(auth: auth),
     );
-    _handleResponse(response, allowEmpty: true);
+    return _handleResponse(response, allowEmpty: true);
   }
 
   Future<dynamic> postMultipart(

@@ -27,9 +27,14 @@ const _kDietaryEmojiMap = {
 };
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key, this.onDetailModeChanged});
+  const SearchScreen({
+    super.key,
+    this.onDetailModeChanged,
+    this.pickMode = false,
+  });
 
   final ValueChanged<bool>? onDetailModeChanged;
+  final bool pickMode;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -157,6 +162,10 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _openRecipeDetails(RecipeModel recipe) {
+    if (widget.pickMode) {
+      Navigator.of(context).pop(recipe);
+      return;
+    }
     final index = _recipes.indexWhere((r) => r.id == recipe.id);
     if (_scrollController.hasClients) {
       _savedScrollOffset = _scrollController.offset;
@@ -239,7 +248,7 @@ class _SearchScreenState extends State<SearchScreen> {
       );
     }
 
-    return RefreshIndicator(
+    final body = RefreshIndicator(
       color: const Color(0xFF059669),
       onRefresh: () => _loadRecipes(),
       child: ListView(
@@ -437,5 +446,13 @@ class _SearchScreenState extends State<SearchScreen> {
       ],
       ),
     );
+
+    if (widget.pickMode) {
+      return Scaffold(
+        appBar: AppBar(title: Text(s.pickARecipe)),
+        body: body,
+      );
+    }
+    return body;
   }
 }

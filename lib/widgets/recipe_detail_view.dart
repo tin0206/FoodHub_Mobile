@@ -114,6 +114,7 @@ class RecipeDetailView extends StatefulWidget {
     this.onDelete,
     this.isSaved,
     this.onToggleSave,
+    this.onAddToPlan,
   });
 
   final RecipeDetailData recipe;
@@ -128,6 +129,7 @@ class RecipeDetailView extends StatefulWidget {
   /// Null means no save button is shown (home screen with enableEdit).
   final bool? isSaved;
   final VoidCallback? onToggleSave;
+  final VoidCallback? onAddToPlan;
 
   @override
   State<RecipeDetailView> createState() => _RecipeDetailViewState();
@@ -1804,25 +1806,61 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                         ),
                     ],
                   )
-                : OutlinedButton.icon(
-                    onPressed: widget.onToggleSave,
-                    icon: Icon(
-                      (isSaved == true) ? Icons.favorite : Icons.favorite_border,
-                      size: 15,
-                      color: (isSaved == true) ? const Color(0xFFDC2626) : saveColor,
-                    ),
-                    label: Text((isSaved == true) ? S.of(context).saved : S.of(context).save),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(40),
-                      backgroundColor: panelColor,
-                      foregroundColor: saveColor,
-                      side: isDarkMode
-                          ? BorderSide.none
-                          : BorderSide(
-                              color: (isSaved == true) ? const Color(0xFFFCA5A5) : borderColor,
+                : Row(
+                    children: [
+                      if (widget.onAddToPlan != null) ...[
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: widget.onAddToPlan,
+                            icon: const Icon(Icons.add, size: 16),
+                            label: Text(S.of(context).addToPlan),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(40),
+                              backgroundColor: const Color(0xFF059669),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999),
+                              ),
                             ),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                    ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: widget.onToggleSave,
+                          icon: Icon(
+                            (isSaved == true)
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            size: 15,
+                            color: (isSaved == true)
+                                ? const Color(0xFFDC2626)
+                                : saveColor,
+                          ),
+                          label: Text(
+                            (isSaved == true)
+                                ? S.of(context).saved
+                                : S.of(context).save,
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(40),
+                            backgroundColor: panelColor,
+                            foregroundColor: saveColor,
+                            side: isDarkMode
+                                ? BorderSide.none
+                                : BorderSide(
+                                    color: (isSaved == true)
+                                        ? const Color(0xFFFCA5A5)
+                                        : borderColor,
+                                  ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
           ),
         ],

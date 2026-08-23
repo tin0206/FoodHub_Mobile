@@ -1,11 +1,15 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/favorite.dart';
+import 'package:foodhub_mobile/models/meal.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
+import 'package:foodhub_mobile/screens/meal_plan_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/favorite_service.dart';
+import 'package:foodhub_mobile/services/meal_service.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
@@ -24,6 +28,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _recipeService = RecipeService();
   final _favoriteService = FavoriteService();
+  final _mealService = MealService();
   final List<RecipeModel> _recipes = [];
   List<TopFavoriteModel> _topFavorites = [];
   bool _isLoading = true;
@@ -35,11 +40,25 @@ class _HomeScreenState extends State<HomeScreen> {
   int? _selectedRecipeCardIndex;
   RecipeModel? _selectedTopRecipe;
 
+  MealSuggestionModel? _suggestions;
+  bool _isSuggestionsLoading = true;
+  String? _suggestionsError;
+  MealPlanModel? _mealPlan;
+  Timer? _suggestionPoll;
+
   @override
   void initState() {
     super.initState();
     _loadRecipes();
     _loadTopFavorites();
+    _loadSuggestions();
+    _loadMealPlan();
+  }
+
+  @override
+  void dispose() {
+    _suggestionPoll?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadRecipes() async {
@@ -85,6 +104,196 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       setState(() => _isTopLoading = false);
     }
+  }
+
+  Future<void> _loadMealPlan() async {
+    try {
+      final plan = await _mealService.getPlan();
+      if (!mounted) return;
+      setState(() => _mealPlan = plan);
+    } catch (_) {}
+  }
+
+  Future<void> _loadSuggestions({bool refresh = false}) async {
+    _suggestionPoll?.cancel();
+    setState(() {
+      _isSuggestionsLoading = true;
+      _suggestionsError = null;
+    });
+    try {
+      final data = refresh
+          ? await _mealService.refreshTodaySuggestions()
+          : await _mealService.getTodaySuggestions();
+      if (!mounted) return;
+      setState(() {
+        _suggestions = data;
+        _isSuggestionsLoading = data.isPending;
+        _suggestionsError = data.isFailed ? (data.errorMessage ?? S.of(context).suggestionsFailed) : null;
+      });
+      if (data.isPending) {
+        _suggestionPoll = Timer.periodic(const Duration(seconds: 3), (_) async {
+          try {
+            final next = await _mealService.getTodaySuggestions();
+            if (!mounted) return;
+            setState(() {
+              _suggestions = next;
+              _isSuggestionsLoading = next.isPending;
+              _suggestionsError = next.isFailed
+                  ? (next.errorMessage ?? S.of(context).suggestionsFailed)
+                  : null;
+            });
+            if (!next.isPending) _suggestionPoll?.cancel();
+          } catch (e) {
+            _suggestionPoll?.cancel();
+            if (mounted) {
+              setState(() {
+                _isSuggestionsLoading = false;
+                _suggestionsError = e is ApiException ? e.message : S.of(context).suggestionsFailed;
+              });
+            }
+          }
+        });
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSuggestionsLoading = false;
+        _suggestionsError = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSuggestionsLoading = false;
+        _suggestionsError = S.of(context).suggestionsFailed;
+      });
+    }
+  }
+
+  Future<void> _openMealPlan() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MealPlanScreen(initialSuggestions: _suggestions),
+      ),
+    );
+    if (mounted) _loadMealPlan();
+  }
+
+  Future<void> _addRecipeToPlan(RecipeModel recipe) async {
+    final s = S.of(context);
+    final slotKey = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(title: Text(s.chooseMealSlot)),
+              ListTile(
+                title: Text(s.breakfast),
+                onTap: () => Navigator.pop(ctx, 'breakfast'),
+              ),
+              ListTile(
+                title: Text(s.lunch),
+                onTap: () => Navigator.pop(ctx, 'lunch'),
+              ),
+              ListTile(
+                title: Text(s.dinner),
+                onTap: () => Navigator.pop(ctx, 'dinner'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (slotKey == null || !mounted) return;
+    try {
+      final plan = await _mealService.addRecipeToSlot(
+        slotKey: slotKey,
+        recipeId: recipe.id,
+      );
+      if (!mounted) return;
+      setState(() => _mealPlan = plan);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(s.addedToPlan)),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      showErrorToast(context, e.message);
+    }
+  }
+
+  Widget _suggestionSection({
+    required String title,
+    required List<RecipeModel> recipes,
+    required bool isDarkMode,
+    required Color panelColor,
+  }) {
+    final s = S.of(context);
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(title: title),
+        if (_isSuggestionsLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: CircularProgressIndicator(color: Color(0xFF059669)),
+            ),
+          )
+        else if (_suggestionsError != null || _suggestions?.isFailed == true)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Expanded(child: Text(_suggestionsError ?? s.suggestionsFailed)),
+                TextButton(onPressed: () => _loadSuggestions(refresh: true), child: Text(s.retry)),
+              ],
+            ),
+          )
+        else if (recipes.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              _suggestions?.isPending == true
+                  ? s.suggestionsPending
+                  : s.noRecipesYet,
+              style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant),
+            ),
+          )
+        else
+          _HorizontalScrollRow(
+            height: 175,
+            isDarkMode: isDarkMode,
+            builder: (ctrl) => ListView.separated(
+              controller: ctrl,
+              scrollDirection: Axis.horizontal,
+              itemCount: recipes.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final recipe = recipes[index];
+                return _PersonalRecipeCard(
+                  recipe: recipe,
+                  isDarkMode: isDarkMode,
+                  panelColor: panelColor,
+                  onTap: () {
+                    widget.onDetailModeChanged?.call(true);
+                    setState(() {
+                      _isAddingRecipe = false;
+                      _selectedRecipe = null;
+                      _selectedRecipeCardIndex = null;
+                      _selectedTopRecipe = recipe;
+                    });
+                  },
+                  onAdd: () => _addRecipeToPlan(recipe),
+                );
+              },
+            ),
+          ),
+        const SizedBox(height: 12),
+      ],
+    );
   }
 
   void _onAddRecipePressed() {
@@ -257,6 +466,7 @@ class _HomeScreenState extends State<HomeScreen> {
           enableEdit: true,
           onSaveEdited: (data) => _onSaveEditedRecipe(data),
           onDelete: _onDeleteRecipe,
+          onAddToPlan: () => _addRecipeToPlan(_selectedRecipe!),
         ),
       );
     }
@@ -280,6 +490,7 @@ class _HomeScreenState extends State<HomeScreen> {
             widget.onDetailModeChanged?.call(false);
             setState(() => _selectedTopRecipe = null);
           },
+          onAddToPlan: () => _addRecipeToPlan(_selectedTopRecipe!),
         ),
       );
     }
@@ -308,7 +519,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return RefreshIndicator(
       color: const Color(0xFF059669),
       onRefresh: () async {
-        await Future.wait([_loadRecipes(), _loadTopFavorites()]);
+        await Future.wait([
+          _loadRecipes(),
+          _loadTopFavorites(),
+          _loadSuggestions(),
+          _loadMealPlan(),
+        ]);
       },
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
@@ -489,51 +705,75 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-            // ── Section: Recommended ───────────────────────────────────────
-            _SectionHeader(title: s.recommendedRecipes),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-              decoration: BoxDecoration(
-                color: panelColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isDarkMode
-                      ? const Color(0xFF2A2A2A)
-                      : const Color(0xFFE5E7EB),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.auto_awesome_outlined,
-                    size: 36,
+            // ── Section: Today's meal plan ────────────────────────────────
+            _SectionHeader(title: s.todaysMealPlan),
+            InkWell(
+              onTap: _openMealPlan,
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: panelColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
                     color: isDarkMode
-                        ? const Color(0xFF94A3B8)
-                        : const Color(0xFF9CA3AF),
+                        ? const Color(0xFF2A2A2A)
+                        : const Color(0xFFE5E7EB),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    s.comingSoon,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: colors.onSurface,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded, color: Color(0xFF059669)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        s.mealPlanPreview(_mealPlan?.dishCount ?? 0),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: colors.onSurface,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    s.comingSoonDesc,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colors.onSurfaceVariant,
+                    Text(
+                      s.openMealPlan,
+                      style: const TextStyle(
+                        color: Color(0xFF059669),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
+
+            _SectionHeader(
+              title: s.recommendedRecipes,
+              trailing: IconButton(
+                tooltip: s.refreshSuggestions,
+                onPressed: () => _loadSuggestions(refresh: true),
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ),
+            _suggestionSection(
+              title: s.breakfast,
+              recipes: _suggestions?.breakfast ?? const [],
+              isDarkMode: isDarkMode,
+              panelColor: panelColor,
+            ),
+            _suggestionSection(
+              title: s.lunch,
+              recipes: _suggestions?.lunch ?? const [],
+              isDarkMode: isDarkMode,
+              panelColor: panelColor,
+            ),
+            _suggestionSection(
+              title: s.dinner,
+              recipes: _suggestions?.dinner ?? const [],
+              isDarkMode: isDarkMode,
+              panelColor: panelColor,
+            ),
 
             // ── Section: Top Recipes ───────────────────────────────────────
             _SectionHeader(title: s.topRecipes),
@@ -674,12 +914,14 @@ class _PersonalRecipeCard extends StatelessWidget {
     required this.isDarkMode,
     required this.panelColor,
     required this.onTap,
+    this.onAdd,
   });
 
   final RecipeModel recipe;
   final bool isDarkMode;
   final Color panelColor;
   final VoidCallback onTap;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -701,14 +943,35 @@ class _PersonalRecipeCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            RecipeImageHeader(
-              imageUrl: recipe.imageUrl,
-              recipeId: recipe.id,
-              labels: recipe.labels,
-              height: 100,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
+            Stack(
+              children: [
+                RecipeImageHeader(
+                  imageUrl: recipe.imageUrl,
+                  recipeId: recipe.id,
+                  labels: recipe.labels,
+                  height: 100,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                ),
+                if (onAdd != null)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Material(
+                      color: const Color(0xFF059669),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: onAdd,
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(Icons.add, size: 16, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),

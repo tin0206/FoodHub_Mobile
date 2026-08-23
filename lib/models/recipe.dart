@@ -58,27 +58,39 @@ class RecipeModel {
     final rawImageUrl = json['image_url'] as String?;
     RecipeNutrition? nutrition;
     final rawNutrition = json['nutrition'];
-    if (rawNutrition is Map<String, dynamic>) {
-      nutrition = RecipeNutrition.fromJson(rawNutrition);
+    if (rawNutrition is Map) {
+      try {
+        nutrition = RecipeNutrition.fromJson(
+          Map<String, dynamic>.from(rawNutrition),
+        );
+      } catch (_) {
+        nutrition = null;
+      }
     }
+    final rawId = json['id'];
+    final id = rawId is int
+        ? rawId
+        : rawId is num
+            ? rawId.toInt()
+            : int.tryParse('$rawId') ?? 0;
     return RecipeModel(
-      id: json['id'] as int,
-      title: json['title'] as String,
+      id: id,
+      title: (json['title'] as String?) ?? '',
       imageUrl: rawImageUrl != null && rawImageUrl.isNotEmpty
           ? rawImageUrl
           : null,
       ingredients: _parseStringList(json['ingredients']),
       directions: _parseStringList(json['directions']),
       ner: _parseStringList(json['ner']),
-      estimatedServings: json['estimated_servings'] as int?,
+      estimatedServings: (json['estimated_servings'] as num?)?.toInt(),
       dietaryRestrictions: _parseStringList(json['dietary_restrictions']),
-      createdBy: json['created_by'] as int?,
+      createdBy: (json['created_by'] as num?)?.toInt(),
       visibility: (json['visibility'] as String?) ?? 'private',
       locale: (json['locale'] as String?) ?? 'en',
       mappedIngredients: [
         for (final item in json['mapped_ingredients'] as List<dynamic>? ?? [])
           if (item is Map)
-            MappedIngredient.fromJson(Map<String, dynamic>.from(item)),
+            ..._tryMapped(Map<String, dynamic>.from(item)),
       ],
       nutrition: nutrition,
     );
@@ -99,6 +111,14 @@ class RecipeModel {
       mappedIngredients: mappedIngredients,
       nutrition: nutrition,
     );
+  }
+
+  static List<MappedIngredient> _tryMapped(Map<String, dynamic> json) {
+    try {
+      return [MappedIngredient.fromJson(json)];
+    } catch (_) {
+      return const [];
+    }
   }
 
   static List<String> _parseStringList(dynamic value) {

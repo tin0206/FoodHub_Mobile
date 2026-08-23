@@ -62,6 +62,68 @@ class S {
   String get noTopRecipesYet =>
       _vi ? 'Chưa có công thức phổ biến' : 'No top recipes yet';
   String get seeAll => _vi ? 'Xem tất cả' : 'See all';
+  String get breakfast => _vi ? 'Bữa sáng' : 'Breakfast';
+  String get lunch => _vi ? 'Bữa trưa' : 'Lunch';
+  String get dinner => _vi ? 'Bữa tối' : 'Dinner';
+  String get todaysMealPlan => _vi ? 'Thực đơn hôm nay' : "Today's meal plan";
+  String mealPlanPreview(int n) => _vi
+      ? '$n món đã chọn'
+      : '$n dish${n == 1 ? '' : 'es'} selected';
+  String get openMealPlan => _vi ? 'Mở thực đơn' : 'Open plan';
+  String get refreshSuggestions => _vi ? 'Làm mới gợi ý' : 'Refresh suggestions';
+  String get suggestionsPending =>
+      _vi ? 'Đang tạo gợi ý cho bạn…' : 'Generating suggestions for you…';
+  String get suggestionsFailed =>
+      _vi ? 'Không tạo được gợi ý.' : 'Could not generate suggestions.';
+  String get addToPlan => _vi ? 'Thêm vào thực đơn' : 'Add to plan';
+  String get chooseMealSlot => _vi ? 'Chọn bữa' : 'Choose a meal';
+  String get addedToPlan => _vi ? 'Đã thêm vào thực đơn' : 'Added to meal plan';
+  String get addDish => _vi ? 'Thêm món' : 'Add dish';
+  String get addExtraMeal => _vi ? 'Thêm bữa phụ' : 'Add extra meal';
+  String get extraMealHint => _vi ? 'Tên bữa (vd. Bữa phụ)' : 'Meal name (e.g. Snack)';
+  String get emptyMealSlot => _vi ? 'Chưa có món nào' : 'No dishes yet';
+  String get mealPlanHint => _vi
+      ? 'Thêm món từ gợi ý hoặc tìm kiếm. Danh sách mua sắm lấy từ nguyên liệu của từng công thức.'
+      : 'Add dishes from suggestions or search. The shopping list uses each recipe’s ingredient lines.';
+  String get unableToLoadMealPlan =>
+      _vi ? 'Không thể tải thực đơn.' : 'Unable to load meal plan.';
+  String get shoppingList => _vi ? 'Đi chợ' : 'Shopping list';
+  String get emptyShoppingList =>
+      _vi ? 'Chưa có nguyên liệu cần mua.' : 'No ingredients to buy yet.';
+  String get organizingShoppingList =>
+      _vi ? 'Đang gom nguyên liệu…' : 'Organizing your shopping list…';
+  String get purchasedItems => _vi ? 'Đã mua' : 'Purchased';
+  String plannedServings(double n) {
+    final label = n % 1 == 0 ? n.toStringAsFixed(0) : n.toStringAsFixed(1);
+    return _vi ? '$label khẩu phần' : '$label servings';
+  }
+  String get unmappedIngredients =>
+      _vi ? 'Chưa ánh xạ' : 'Unmapped ingredients';
+  String get unableToLoadShoppingList =>
+      _vi ? 'Không thể tải danh sách mua sắm.' : 'Unable to load shopping list.';
+  String get mapAisles => _vi ? 'Gán aisle' : 'Map aisles';
+  String get remappingAisles => _vi ? 'Gán lại aisle' : 'Remap aisles';
+  String get mappingAisles => _vi ? 'Đang gán aisle…' : 'Mapping aisles…';
+  String get loadingAisleStatus =>
+      _vi ? 'Đang tải trạng thái aisle…' : 'Loading aisle status…';
+  String get stopMappingAisles => _vi ? 'Dừng' : 'Stop';
+  String get aislesStopped => _vi ? 'Đã dừng gán aisle.' : 'Aisle mapping stopped.';
+  String aisleMappedCount(int mapped, int total) => _vi
+      ? '$mapped / $total công thức đã có aisle'
+      : '$mapped / $total recipes mapped';
+  String aisleMissingCount(int n) => _vi
+      ? '$n công thức chưa gán aisle'
+      : '$n recipe${n == 1 ? '' : 's'} still need aisles';
+  String get remapAislesConfirm => _vi
+      ? 'Gán lại aisle cho mọi công thức? Việc này gọi LLM lại toàn bộ catalog.'
+      : 'Remap aisles for every recipe? This runs the LLM on the full catalog again.';
+  String get aislesMapped => _vi ? 'Đã gán aisle xong.' : 'Aisle mapping finished.';
+  String get unableToMapAisles =>
+      _vi ? 'Không gán được aisle.' : 'Unable to map aisles.';
+  String aisleJobProgress(int processed, int total) =>
+      _vi ? 'Đã xử lý $processed / $total' : 'Processed $processed / $total';
+  String get addFromSearch => _vi ? 'Tìm món khác' : 'Search for a dish';
+  String get pickARecipe => _vi ? 'Chọn một món' : 'Pick a recipe';
   String get fillAllFields => _vi
       ? 'Vui lòng điền đầy đủ thông tin.'
       : 'Please fill in all required fields.';

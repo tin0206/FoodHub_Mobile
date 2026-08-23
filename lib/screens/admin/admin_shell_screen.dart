@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/app_theme.dart';
+import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/screens/admin/admin_analytics_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_overview_screen.dart';
@@ -55,9 +56,11 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
       (Icons.bar_chart_rounded, Icons.bar_chart_outlined, 'Analytics'),
     ];
 
-    return Theme(
-      data: isDark ? AppTheme.dark : AppTheme.light,
-      child: Scaffold(
+    return LangScope(
+      lang: widget.user.language ?? 'en',
+      child: Theme(
+        data: isDark ? AppTheme.dark : AppTheme.light,
+        child: Scaffold(
         body: Column(
           children: [
             _AdminTopBar(
@@ -133,6 +136,7 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
