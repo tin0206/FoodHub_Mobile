@@ -1,5 +1,6 @@
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:foodhub_mobile/config/app_theme.dart';
@@ -31,6 +32,15 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'FoodHub',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.trackpad,
+          PointerDeviceKind.stylus,
+          PointerDeviceKind.invertedStylus,
+        },
+      ),
       locale: DevicePreview.locale(context),
       builder: (context, child) {
         final preview = DevicePreview.appBuilder(context, child);
