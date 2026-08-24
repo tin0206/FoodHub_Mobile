@@ -43,7 +43,9 @@ class RecipeImageHeader extends StatelessWidget {
         height: height,
         width: double.infinity,
         child: CachedNetworkImage(
+          key: ValueKey(resolvedUrl),
           imageUrl: resolvedUrl,
+          cacheKey: resolvedUrl,
           fit: BoxFit.cover,
           placeholder: (context, url) => _PlaceholderHeader(
             theme: theme,

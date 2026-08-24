@@ -340,18 +340,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return s.goodEvening;
   }
 
-  Future<void> _onSaveEditedRecipe(RecipeDetailData data) async {
+  Future<bool> _onSaveEditedRecipe(RecipeDetailData data) async {
     final index = _selectedRecipeCardIndex;
     final current = _selectedRecipe;
     if (index == null ||
         current == null ||
         index < 0 ||
         index >= _recipes.length) {
-      return;
+      return false;
     }
 
     try {
-      final updated = await _recipeService.updateRecipe(
+      var updated = await _recipeService.updateRecipe(
         current.id,
         title: data.name,
         ingredients: data.ingredientItems,
@@ -359,7 +359,22 @@ class _HomeScreenState extends State<HomeScreen> {
         dietaryRestrictions: data.labels,
         estimatedServings: data.estimatedServings,
       );
-      if (!mounted) return;
+      if (data.pendingImageBytes != null &&
+          data.pendingImageBytes!.isNotEmpty) {
+        try {
+          final imageUrl = await _recipeService.uploadRecipeImage(
+            updated.id,
+            data.pendingImageBytes!,
+            data.pendingImageFilename,
+          );
+          if (imageUrl != null && imageUrl.isNotEmpty) {
+            updated = updated.copyWith(imageUrl: imageUrl);
+          }
+        } on ApiException catch (e) {
+          if (mounted) showErrorToast(context, e.message);
+        }
+      }
+      if (!mounted) return false;
       final wasClone = updated.id != current.id;
       setState(() {
         if (wasClone) {
@@ -382,9 +397,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       }
+      return true;
     } on ApiException catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       showErrorToast(context, e.message);
+      return false;
     }
   }
 
@@ -1260,31 +1277,22 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
 
       String? imageUrl;
       if (_imageBytes != null) {
-        imageUrl = await _recipeService.uploadRecipeImage(
-          created.id,
-          _imageBytes!,
-          _imageFilename,
-        );
+        try {
+          imageUrl = await _recipeService.uploadRecipeImage(
+            created.id,
+            _imageBytes!,
+            _imageFilename,
+          );
+        } on ApiException catch (e) {
+          if (mounted) showErrorToast(context, e.message);
+        }
       }
 
       if (!mounted) return;
       Navigator.of(context).pop();
       showRecipeToast(context, recipeName: name, isNew: true);
-      final finalRecipe = imageUrl != null
-          ? RecipeModel(
-              id: created.id,
-              title: created.title,
-              imageUrl: imageUrl,
-              ingredients: created.ingredients,
-              directions: created.directions,
-              ner: created.ner,
-              estimatedServings: created.estimatedServings,
-              dietaryRestrictions: created.dietaryRestrictions,
-              createdBy: created.createdBy,
-              visibility: created.visibility,
-              mappedIngredients: created.mappedIngredients,
-              nutrition: created.nutrition,
-            )
+      final finalRecipe = imageUrl != null && imageUrl.isNotEmpty
+          ? created.copyWith(imageUrl: imageUrl)
           : created;
       widget.onSave(finalRecipe);
     } on ApiException catch (e) {
