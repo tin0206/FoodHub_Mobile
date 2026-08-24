@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 class AppTopBar extends StatelessWidget {
-  const AppTopBar({super.key, required this.onOpenProfile});
+  const AppTopBar({super.key, required this.onOpenProfile, this.onSwitchToAdmin});
 
   final VoidCallback onOpenProfile;
+  final VoidCallback? onSwitchToAdmin;
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +61,34 @@ class AppTopBar extends StatelessWidget {
                 ],
               ),
               const Spacer(),
+              if (onSwitchToAdmin != null) ...[
+                GestureDetector(
+                  onTap: onSwitchToAdmin,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.admin_panel_settings_rounded, size: 14, color: Color(0xFF6366F1)),
+                        SizedBox(width: 5),
+                        Text(
+                          'Admin',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF6366F1),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
               InkWell(
                 onTap: onOpenProfile,
                 borderRadius: BorderRadius.circular(999),

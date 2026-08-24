@@ -1,5 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/config/api_config.dart';
+import 'package:foodhub_mobile/models/recipe.dart';
+import 'package:foodhub_mobile/screens/admin/admin_recipe_detail_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
+import 'package:foodhub_mobile/services/admin_service.dart';
+import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 
 class AdminRecipeFormScreen extends StatefulWidget {
@@ -10,71 +16,47 @@ class AdminRecipeFormScreen extends StatefulWidget {
   });
 
   final bool isDarkMode;
-  final AdminRecipeFormData? recipe;
+  final RecipeModel? recipe;
 
   @override
   State<AdminRecipeFormScreen> createState() => _AdminRecipeFormScreenState();
 }
 
-class AdminRecipeFormData {
-  const AdminRecipeFormData({
-    required this.id,
-    required this.title,
-    required this.cookingMinutes,
-    required this.calories,
-    required this.ingredientLines,
-    required this.stepLines,
-    required this.labels,
-  });
-
-  final int id;
-  final String title;
-  final int cookingMinutes;
-  final int calories;
-  final List<String> ingredientLines;
-  final List<String> stepLines;
-  final List<String> labels;
-}
-
 class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
   bool _isSaving = false;
 
-  late final TextEditingController _nameCtrl;
-  late final TextEditingController _minutesCtrl;
-  late final TextEditingController _caloriesCtrl;
+  late final TextEditingController _titleCtrl;
+  late final TextEditingController _imageUrlCtrl;
+  late final TextEditingController _servingsCtrl;
   late final List<TextEditingController> _ingredientCtrl;
   late final List<TextEditingController> _stepCtrl;
   late final Set<String> _selectedLabels;
 
   bool get _isEditing => widget.recipe != null;
+  bool get _isCatalog => widget.recipe?.createdBy == null && _isEditing;
 
   @override
   void initState() {
     super.initState();
     final r = widget.recipe;
-    _nameCtrl = TextEditingController(text: r?.title ?? '');
-    _minutesCtrl = TextEditingController(
-        text: r != null ? '${r.cookingMinutes}' : '');
-    _caloriesCtrl = TextEditingController(
-        text: r != null ? '${r.calories}' : '');
-    _ingredientCtrl = r != null && r.ingredientLines.isNotEmpty
-        ? r.ingredientLines
-            .map((s) => TextEditingController(text: s))
-            .toList()
+    _titleCtrl = TextEditingController(text: r?.title ?? '');
+    _imageUrlCtrl = TextEditingController(text: r?.imageUrl ?? '');
+    _servingsCtrl = TextEditingController(
+        text: r?.estimatedServings != null ? '${r!.estimatedServings}' : '');
+    _ingredientCtrl = r != null && r.ingredients.isNotEmpty
+        ? r.ingredients.map((s) => TextEditingController(text: s)).toList()
         : [TextEditingController()];
-    _stepCtrl = r != null && r.stepLines.isNotEmpty
-        ? r.stepLines
-            .map((s) => TextEditingController(text: s))
-            .toList()
+    _stepCtrl = r != null && r.directions.isNotEmpty
+        ? r.directions.map((s) => TextEditingController(text: s)).toList()
         : [TextEditingController()];
-    _selectedLabels = r != null ? Set.from(r.labels) : {};
+    _selectedLabels = r != null ? Set.from(r.dietaryRestrictions) : {};
   }
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _minutesCtrl.dispose();
-    _caloriesCtrl.dispose();
+    _titleCtrl.dispose();
+    _imageUrlCtrl.dispose();
+    _servingsCtrl.dispose();
     for (final c in _ingredientCtrl) {
       c.dispose();
     }
@@ -87,7 +69,8 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
   Future<void> _save() async {
     if (_isSaving) return;
 
-    final name = _nameCtrl.text.trim();
+    final title = _titleCtrl.text.trim();
+    final imageUrl = _imageUrlCtrl.text.trim();
     final ingredients = _ingredientCtrl
         .map((c) => c.text.trim())
         .where((s) => s.isNotEmpty)
@@ -96,27 +79,62 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
         .map((c) => c.text.trim())
         .where((s) => s.isNotEmpty)
         .toList();
-    final minutes = int.tryParse(_minutesCtrl.text.trim());
-    final calories = int.tryParse(_caloriesCtrl.text.trim());
+    final servings = int.tryParse(_servingsCtrl.text.trim());
 
-    if (name.isEmpty ||
-        ingredients.isEmpty ||
-        steps.isEmpty ||
-        minutes == null ||
-        calories == null ||
-        minutes <= 0 ||
-        calories <= 0) {
+    if (title.isEmpty || ingredients.isEmpty || steps.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all required fields.')),
+        const SnackBar(
+            content: Text('Title, ingredients, and instructions are required.')),
       );
       return;
     }
 
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-    setState(() => _isSaving = false);
-    Navigator.of(context).pop();
+    try {
+      final admin = AdminService();
+      final RecipeModel saved;
+      if (_isEditing) {
+        saved = await admin.updateRecipe(
+          widget.recipe!.id,
+          title: title,
+          ingredients: ingredients,
+          directions: steps,
+          dietaryRestrictions: _selectedLabels.toList(),
+          estimatedServings: servings,
+          imageUrl: imageUrl.isNotEmpty ? imageUrl : null,
+        );
+      } else {
+        saved = await admin.createRecipe(
+          title: title,
+          ingredients: ingredients,
+          directions: steps,
+          dietaryRestrictions: _selectedLabels.toList(),
+          estimatedServings: servings,
+          imageUrl: imageUrl.isNotEmpty ? imageUrl : null,
+        );
+      }
+      if (!mounted) return;
+
+      // Catalog clone: backend returned a new recipe with a different id
+      if (_isEditing && saved.id != widget.recipe!.id) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => AdminRecipeDetailScreen(
+              recipeId: saved.id,
+              isDarkMode: widget.isDarkMode,
+            ),
+          ),
+        );
+      } else {
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e is ApiException ? e.message : '$e')),
+      );
+    }
   }
 
   @override
@@ -129,8 +147,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
     final textSub = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
     final surfaceVariant = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
 
-    InputDecoration inlineFieldDec({String? hint, String? suffix}) =>
-        InputDecoration(
+    InputDecoration inlineFieldDec({String? hint, String? suffix}) => InputDecoration(
           hintText: hint,
           suffixText: suffix,
           hintStyle: TextStyle(color: hintColor, fontSize: 13),
@@ -144,6 +161,8 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
         );
 
+    final imageUrl = _imageUrlCtrl.text.trim();
+
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF3F4F6),
       appBar: AppBar(
@@ -156,11 +175,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
         ),
         title: Text(
           _isEditing ? 'Edit Recipe' : 'New Recipe',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: textColor,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textColor),
         ),
         centerTitle: true,
         bottom: PreferredSize(
@@ -170,33 +185,126 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
       ),
       body: Column(
         children: [
-          // ── Scrollable body ────────────────────────────────────────────
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Recipe name
+                  // ── Catalog notice ──────────────────────────────────────
+                  if (_isCatalog)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded,
+                              size: 14, color: Color(0xFFF59E0B)),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Saving this catalog recipe will create a new copy linked to you.',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFFF59E0B)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // ── Image URL ───────────────────────────────────────────
+                  _AdminSectionCard(
+                    isDark: isDark,
+                    panelColor: panelColor,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.image_outlined,
+                                size: 15, color: kAdminAccent),
+                            const SizedBox(width: 6),
+                            Text('Image URL',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: textColor)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _imageUrlCtrl,
+                          style: TextStyle(fontSize: 13, color: textColor),
+                          onChanged: (_) => setState(() {}),
+                          decoration: inlineFieldDec(hint: 'https://…'),
+                          keyboardType: TextInputType.url,
+                        ),
+                        Builder(builder: (ctx) {
+                          final resolved = ApiConfig.resolveImageUrl(imageUrl.isNotEmpty ? imageUrl : null);
+                          if (resolved.isEmpty) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: CachedNetworkImage(
+                                imageUrl: resolved,
+                                height: 120,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                placeholder: (c, u) => Container(
+                                  height: 120,
+                                  color: isDark
+                                      ? const Color(0xFF1A1A2E)
+                                      : const Color(0xFFEEF0FF),
+                                ),
+                                errorWidget: (c, u, e) => Container(
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? const Color(0xFF1A1A2E)
+                                        : const Color(0xFFEEF0FF),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Center(
+                                    child: Icon(Icons.broken_image_outlined,
+                                        color: kAdminAccent),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // ── Title ───────────────────────────────────────────────
                   _AdminSectionCard(
                     isDark: isDark,
                     panelColor: panelColor,
                     child: TextField(
-                      controller: _nameCtrl,
+                      controller: _titleCtrl,
                       style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: textColor,
-                        letterSpacing: -0.3,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Recipe name…',
-                        hintStyle: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
-                          color: hintColor,
-                          letterSpacing: -0.3,
-                        ),
+                          color: textColor,
+                          letterSpacing: -0.3),
+                      decoration: InputDecoration(
+                        hintText: 'Recipe title…',
+                        hintStyle: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: hintColor,
+                            letterSpacing: -0.3),
                         isDense: true,
                         filled: false,
                         border: InputBorder.none,
@@ -208,49 +316,33 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Time + Calories
+                  // ── Servings ────────────────────────────────────────────
                   _AdminSectionCard(
                     isDark: isDark,
                     panelColor: panelColor,
                     child: Row(
                       children: [
-                        const Icon(Icons.schedule_rounded,
+                        const Icon(Icons.people_outline_rounded,
                             size: 16, color: kAdminAccent),
                         const SizedBox(width: 8),
                         SizedBox(
                           width: 56,
                           child: TextField(
-                            controller: _minutesCtrl,
+                            controller: _servingsCtrl,
                             keyboardType: TextInputType.number,
                             style: TextStyle(fontSize: 13, color: textColor),
                             decoration: inlineFieldDec(hint: '0'),
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Text('min',
-                            style: TextStyle(fontSize: 12, color: hintColor)),
-                        const SizedBox(width: 20),
-                        const Icon(Icons.local_fire_department_outlined,
-                            size: 16, color: kAdminAccent),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 56,
-                          child: TextField(
-                            controller: _caloriesCtrl,
-                            keyboardType: TextInputType.number,
-                            style: TextStyle(fontSize: 13, color: textColor),
-                            decoration: inlineFieldDec(hint: '0'),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text('cal',
+                        Text('servings',
                             style: TextStyle(fontSize: 12, color: hintColor)),
                       ],
                     ),
                   ),
                   const SizedBox(height: 10),
 
-                  // Ingredients
+                  // ── Ingredients ─────────────────────────────────────────
                   _AdminSectionCard(
                     isDark: isDark,
                     panelColor: panelColor,
@@ -262,13 +354,11 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                             const Icon(Icons.shopping_basket_outlined,
                                 size: 15, color: kAdminAccent),
                             const SizedBox(width: 6),
-                            Text(
-                              'Ingredients',
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: textColor),
-                            ),
+                            Text('Ingredients',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: textColor)),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -282,9 +372,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                                   width: 7,
                                   height: 7,
                                   decoration: const BoxDecoration(
-                                    color: kAdminAccent,
-                                    shape: BoxShape.circle,
-                                  ),
+                                      color: kAdminAccent, shape: BoxShape.circle),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
@@ -292,8 +380,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                                     controller: entry.value,
                                     maxLines: 1,
                                     textInputAction: TextInputAction.next,
-                                    style: TextStyle(
-                                        fontSize: 13, color: textColor),
+                                    style: TextStyle(fontSize: 13, color: textColor),
                                     decoration:
                                         inlineFieldDec(hint: 'Ingredient ${i + 1}'),
                                   ),
@@ -322,8 +409,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                             foregroundColor: kAdminAccent,
                             textStyle: const TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.w600),
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
@@ -333,7 +419,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Steps
+                  // ── Instructions ────────────────────────────────────────
                   _AdminSectionCard(
                     isDark: isDark,
                     panelColor: panelColor,
@@ -345,13 +431,11 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                             const Icon(Icons.format_list_numbered,
                                 size: 15, color: kAdminAccent),
                             const SizedBox(width: 6),
-                            Text(
-                              'Instructions',
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: textColor),
-                            ),
+                            Text('Instructions',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: textColor)),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -371,14 +455,11 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                                     borderRadius: BorderRadius.circular(999),
                                   ),
                                   alignment: Alignment.center,
-                                  child: Text(
-                                    '${i + 1}',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: kAdminAccent,
-                                    ),
-                                  ),
+                                  child: Text('${i + 1}',
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: kAdminAccent)),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -387,8 +468,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                                     maxLines: null,
                                     minLines: 1,
                                     textInputAction: TextInputAction.next,
-                                    style: TextStyle(
-                                        fontSize: 13, color: textColor),
+                                    style: TextStyle(fontSize: 13, color: textColor),
                                     decoration:
                                         inlineFieldDec(hint: 'Step ${i + 1}…'),
                                   ),
@@ -412,16 +492,15 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                           );
                         }),
                         TextButton.icon(
-                          onPressed: () => setState(
-                              () => _stepCtrl.add(TextEditingController())),
+                          onPressed: () =>
+                              setState(() => _stepCtrl.add(TextEditingController())),
                           icon: const Icon(Icons.add, size: 14),
                           label: const Text('Add step'),
                           style: TextButton.styleFrom(
                             foregroundColor: kAdminAccent,
                             textStyle: const TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.w600),
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
@@ -431,7 +510,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Labels
+                  // ── Labels ──────────────────────────────────────────────
                   _AdminSectionCard(
                     isDark: isDark,
                     panelColor: panelColor,
@@ -443,13 +522,11 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                             const Icon(Icons.sell_outlined,
                                 size: 15, color: kAdminAccent),
                             const SizedBox(width: 6),
-                            Text(
-                              'Labels',
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: textColor),
-                            ),
+                            Text('Labels',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: textColor)),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -469,9 +546,8 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                               label: Text(
                                 label,
                                 style: TextStyle(
-                                  fontSize: 10.5,
-                                  color: isSelected ? Colors.white : textSub,
-                                ),
+                                    fontSize: 10.5,
+                                    color: isSelected ? Colors.white : textSub),
                               ),
                               onSelected: (v) => setState(() => v
                                   ? _selectedLabels.add(label)
@@ -488,7 +564,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
             ),
           ),
 
-          // ── Bottom action bar ──────────────────────────────────────────
+          // ── Bottom action bar ────────────────────────────────────────────
           Container(
             color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
             padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
@@ -501,8 +577,9 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                       minimumSize: const Size.fromHeight(44),
                       foregroundColor: textColor,
                       side: BorderSide.none,
-                      backgroundColor:
-                          isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6),
+                      backgroundColor: isDark
+                          ? const Color(0xFF1E1E1E)
+                          : const Color(0xFFF3F4F6),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
@@ -526,11 +603,11 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
+                                strokeWidth: 2, color: Colors.white))
                         : Text(
                             _isEditing ? 'Save Changes' : 'Save Recipe',
-                            style: const TextStyle(fontWeight: FontWeight.w700),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w700),
                           ),
                   ),
                 ),
@@ -543,7 +620,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
   }
 }
 
-// ── Section card (mirrors _AddSectionCard from home_screen) ──────────────────
+// ── Section card ───────────────────────────────────────────────────────────────
 
 class _AdminSectionCard extends StatelessWidget {
   const _AdminSectionCard({

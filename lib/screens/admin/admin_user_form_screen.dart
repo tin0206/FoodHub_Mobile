@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
-import 'package:foodhub_mobile/screens/admin/admin_users_screen.dart';
+import 'package:foodhub_mobile/services/admin_service.dart';
+import 'package:foodhub_mobile/services/api_exception.dart';
 
 class AdminUserFormScreen extends StatefulWidget {
   const AdminUserFormScreen({
@@ -10,7 +12,7 @@ class AdminUserFormScreen extends StatefulWidget {
   });
 
   final bool isDarkMode;
-  final AdminUserData? user;
+  final UserModel? user;
 
   bool get isEditing => user != null;
 
@@ -24,7 +26,7 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
   late final TextEditingController _fullNameCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _usernameCtrl;
-  final TextEditingController _passwordCtrl = TextEditingController();
+  late final TextEditingController _passwordCtrl;
   late final TextEditingController _ageCtrl;
   late final TextEditingController _weightCtrl;
   late final TextEditingController _calorieCtrl;
@@ -35,7 +37,8 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
   late Set<String> _dietaryRestrictions;
   late String? _primaryGoal;
   bool _isSaving = false;
-  bool _obscurePassword = true;
+  bool _obscurePassword = false;
+  String? _notice;
 
   static const _goals = [
     'Lose Weight',
@@ -54,6 +57,7 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
   void initState() {
     super.initState();
     final u = widget.user;
+    _passwordCtrl = TextEditingController(text: widget.isEditing ? '' : '123456');
     _fullNameCtrl = TextEditingController(text: u?.fullName ?? '');
     _emailCtrl = TextEditingController(text: u?.email ?? '');
     _usernameCtrl = TextEditingController(text: u?.username ?? '');
@@ -87,10 +91,58 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
-    await Future<void>.delayed(const Duration(milliseconds: 800));
-    if (!mounted) return;
-    setState(() => _isSaving = false);
-    Navigator.of(context).pop();
+    try {
+      final admin = AdminService();
+      final fields = <String, dynamic>{
+        'full_name': _fullNameCtrl.text.trim(),
+        'email': _emailCtrl.text.trim(),
+        'username': _usernameCtrl.text.trim(),
+        'role': _role,
+        'is_active': _isActive,
+        if (_ageCtrl.text.trim().isNotEmpty)
+          'age': int.parse(_ageCtrl.text.trim()),
+        if (_weightCtrl.text.trim().isNotEmpty)
+          'weight': double.parse(_weightCtrl.text.trim()),
+        if (_calorieCtrl.text.trim().isNotEmpty)
+          'calorie_target': int.parse(_calorieCtrl.text.trim()),
+        if (_proteinCtrl.text.trim().isNotEmpty)
+          'protein_target': int.parse(_proteinCtrl.text.trim()),
+        if (_primaryGoal != null) 'primary_goal': _primaryGoal,
+        'dietary_restrictions': _dietaryRestrictions.toList(),
+      };
+      if (widget.isEditing) {
+        await admin.updateUser(widget.user!.id, fields);
+        if (!mounted) return;
+        Navigator.of(context).pop(true);
+      } else {
+        fields['password'] = _passwordCtrl.text;
+        await admin.createUser(fields);
+        if (!mounted) return;
+        _fullNameCtrl.clear();
+        _emailCtrl.clear();
+        _usernameCtrl.clear();
+        _passwordCtrl.text = '123456';
+        _ageCtrl.clear();
+        _weightCtrl.clear();
+        _calorieCtrl.clear();
+        _proteinCtrl.clear();
+        setState(() {
+          _isSaving = false;
+          _role = 'user';
+          _isActive = true;
+          _dietaryRestrictions = {};
+          _primaryGoal = null;
+          _notice = 'User created successfully.';
+        });
+        return;
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e is ApiException ? e.message : '$e')),
+      );
+    }
   }
 
   @override
@@ -499,6 +551,36 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
               ],
             ),
             const SizedBox(height: 20),
+
+            // ── Success notice ─────────────────────────────────────────
+            if (_notice != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle_outline_rounded,
+                        size: 15, color: Color(0xFF10B981)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _notice!,
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF10B981)),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => setState(() => _notice = null),
+                      child: const Icon(Icons.close_rounded, size: 14, color: Color(0xFF10B981)),
+                    ),
+                  ],
+                ),
+              ),
 
             // ── Submit ─────────────────────────────────────────────────
             FilledButton(

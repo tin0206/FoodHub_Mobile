@@ -7,6 +7,8 @@ import 'package:foodhub_mobile/screens/admin/admin_overview_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_recipes_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_users_screen.dart';
 import 'package:foodhub_mobile/screens/login_screen.dart';
+import 'package:foodhub_mobile/screens/main_shell_screen.dart';
+import 'package:foodhub_mobile/screens/profile_screen.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
 
 const kAdminAccent = Color(0xFF6366F1);
@@ -23,11 +25,37 @@ class AdminShellScreen extends StatefulWidget {
 class _AdminShellScreenState extends State<AdminShellScreen> {
   int _tab = 0;
   late bool _isDarkMode;
+  late Set<String> _dietaryRestrictions;
+  late String _primaryGoal;
+  late String _language;
 
   @override
   void initState() {
     super.initState();
-    _isDarkMode = widget.user.theme == 'dark';
+    final u = widget.user;
+    _isDarkMode = u.theme == 'dark';
+    _dietaryRestrictions = {...u.dietaryRestrictions};
+    _primaryGoal = u.primaryGoal ?? 'Balanced Nutrition';
+    _language = u.language ?? 'en';
+  }
+
+  // Callback provided to MainShellScreen so it can navigate back to admin
+  // without MainShellScreen needing to import AdminShellScreen.
+  static void _goToAdmin(BuildContext ctx, UserModel user) {
+    Navigator.of(ctx).pushReplacement(
+      MaterialPageRoute(builder: (_) => AdminShellScreen(user: user)),
+    );
+  }
+
+  void _switchToApp() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => MainShellScreen(
+          initialUser: widget.user,
+          onSwitchToAdmin: _goToAdmin,
+        ),
+      ),
+    );
   }
 
   Future<void> _logout() async {
@@ -44,29 +72,51 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
 
     final screens = [
       AdminOverviewScreen(user: widget.user, isDarkMode: isDark),
-      AdminUsersScreen(isDarkMode: isDark),
-      AdminRecipesScreen(isDarkMode: isDark),
       AdminAnalyticsScreen(isDarkMode: isDark),
+      AdminRecipesScreen(isDarkMode: isDark),
+      AdminUsersScreen(isDarkMode: isDark),
+      ProfileScreen(
+        user: widget.user,
+        isDarkMode: isDark,
+        language: _language,
+        onThemeChanged: (dark) => setState(() => _isDarkMode = dark),
+        onLanguageChanged: (lang) => setState(() => _language = lang),
+        onLogout: _logout,
+        selectedDietaryRestrictions: _dietaryRestrictions,
+        onDietaryRestrictionToggled: (tag, selected) {
+          setState(() {
+            if (selected) {
+              _dietaryRestrictions = {..._dietaryRestrictions, tag};
+            } else {
+              _dietaryRestrictions = _dietaryRestrictions.difference({tag});
+            }
+          });
+        },
+        primaryGoal: _primaryGoal,
+        onPrimaryGoalChanged: (goal) => setState(() => _primaryGoal = goal),
+        onUserUpdated: (_) {},
+      ),
     ];
 
     const tabs = [
       (Icons.dashboard_rounded, Icons.dashboard_outlined, 'Overview'),
-      (Icons.people_rounded, Icons.people_outline_rounded, 'Users'),
-      (Icons.menu_book_rounded, Icons.menu_book_outlined, 'Recipes'),
       (Icons.bar_chart_rounded, Icons.bar_chart_outlined, 'Analytics'),
+      (Icons.menu_book_rounded, Icons.menu_book_outlined, 'Recipes'),
+      (Icons.people_rounded, Icons.people_outline_rounded, 'Users'),
     ];
 
     return LangScope(
-      lang: widget.user.language ?? 'en',
+      lang: _language,
       child: Theme(
         data: isDark ? AppTheme.dark : AppTheme.light,
         child: Scaffold(
         body: Column(
           children: [
             _AdminTopBar(
+              user: widget.user,
               isDarkMode: isDark,
-              onToggleTheme: () => setState(() => _isDarkMode = !isDark),
-              onLogout: _logout,
+              onSwitchToApp: _switchToApp,
+              onOpenProfile: () => setState(() => _tab = 4),
             ),
             Expanded(
               child: IndexedStack(index: _tab, children: screens),
@@ -144,17 +194,22 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
 
 class _AdminTopBar extends StatelessWidget {
   const _AdminTopBar({
+    required this.user,
     required this.isDarkMode,
-    required this.onToggleTheme,
-    required this.onLogout,
+    required this.onSwitchToApp,
+    required this.onOpenProfile,
   });
 
+  final UserModel user;
   final bool isDarkMode;
-  final VoidCallback onToggleTheme;
-  final VoidCallback onLogout;
+  final VoidCallback onSwitchToApp;
+  final VoidCallback onOpenProfile;
 
   @override
   Widget build(BuildContext context) {
+    final textSub = isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final pillBg = isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
+
     return Container(
       color: isDarkMode ? const Color(0xFF0A0A0A) : Colors.white,
       child: SafeArea(
@@ -174,6 +229,7 @@ class _AdminTopBar extends StatelessWidget {
           ),
           child: Row(
             children: [
+              // ── Left: logo + title (unchanged) ──────────────────────
               Container(
                 width: 30,
                 height: 30,
@@ -194,37 +250,63 @@ class _AdminTopBar extends StatelessWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.3,
-                  color: isDarkMode
-                      ? const Color(0xFFF8FAFC)
-                      : const Color(0xFF111827),
+                  color: isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827),
                 ),
               ),
               const Spacer(),
-              IconButton(
-                onPressed: onToggleTheme,
-                icon: Icon(
-                  isDarkMode
-                      ? Icons.light_mode_rounded
-                      : Icons.dark_mode_rounded,
-                  size: 20,
-                  color: isDarkMode
-                      ? const Color(0xFF94A3B8)
-                      : const Color(0xFF6B7280),
+
+              // ── Right: switch to App pill ────────────────────────────
+              GestureDetector(
+                onTap: onSwitchToApp,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: pillBg,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.apps_rounded, size: 14, color: textSub),
+                      const SizedBox(width: 5),
+                      Text(
+                        'App',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: textSub,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               ),
-              IconButton(
-                onPressed: onLogout,
-                icon: Icon(
-                  Icons.logout_rounded,
-                  size: 20,
-                  color: isDarkMode
-                      ? const Color(0xFFF87171)
-                      : const Color(0xFFEF4444),
+              const SizedBox(width: 10),
+
+              // ── Right: profile avatar (same style as app) ───────────
+              InkWell(
+                onTap: onOpenProfile,
+                borderRadius: BorderRadius.circular(999),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF059669), Color(0xFF047857)],
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF059669).withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.person_rounded, size: 20, color: Colors.white),
                 ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               ),
             ],
           ),
@@ -233,3 +315,4 @@ class _AdminTopBar extends StatelessWidget {
     );
   }
 }
+

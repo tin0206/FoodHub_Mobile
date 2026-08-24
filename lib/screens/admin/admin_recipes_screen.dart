@@ -1,8 +1,12 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/config/api_config.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/aisle_mapping.dart';
+import 'package:foodhub_mobile/models/recipe.dart';
+import 'package:foodhub_mobile/screens/admin/admin_recipe_detail_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_recipe_form_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
 import 'package:foodhub_mobile/services/admin_service.dart';
@@ -18,9 +22,21 @@ class AdminRecipesScreen extends StatefulWidget {
 }
 
 class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
-  String _query = '';
-  String? _labelFilter;
+  static const _kPageSize = 20;
+
   final _admin = AdminService();
+  final _searchCtrl = TextEditingController();
+
+  // Recipe list state
+  List<RecipeModel> _recipes = [];
+  bool _loadingRecipes = false;
+  bool _hasNext = false;
+  int _page = 0;
+  String _query = '';
+  String? _visibilityFilter; // null = all, 'public', 'private'
+  Timer? _debounce;
+
+  // Aisle mapping state
   AisleMappingStatus? _aisles;
   String? _aisleError;
   bool _aisleLoading = true;
@@ -28,22 +44,68 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
   bool _aisleStopping = false;
   Timer? _aislePoll;
 
-  static const _allLabels = [
-    'Vietnamese', 'Vegan', 'High Protein', 'Keto',
-    'Breakfast', 'Quick Meal', 'Pescetarian', 'Healthy',
-  ];
-
   @override
   void initState() {
     super.initState();
     _loadAisles();
+    _loadRecipes();
   }
 
   @override
   void dispose() {
     _aislePoll?.cancel();
+    _debounce?.cancel();
+    _searchCtrl.dispose();
     super.dispose();
   }
+
+  // ── Recipes API ───────────────────────────────────────────────────────────
+
+  Future<void> _loadRecipes({bool replace = true}) async {
+    if (_loadingRecipes) return;
+    setState(() => _loadingRecipes = true);
+    final page = replace ? 0 : _page;
+    try {
+      final results = await _admin.listRecipes(
+        skip: page * _kPageSize,
+        limit: _kPageSize + 1,
+        visibility: _visibilityFilter,
+        q: _query.isNotEmpty ? _query : null,
+      );
+      if (!mounted) return;
+      final hasNext = results.length > _kPageSize;
+      final items = hasNext ? results.sublist(0, _kPageSize) : results;
+      setState(() {
+        _loadingRecipes = false;
+        _page = page;
+        _hasNext = hasNext;
+        _recipes = replace ? items : [..._recipes, ...items];
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingRecipes = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e is ApiException ? e.message : '$e')),
+      );
+    }
+  }
+
+  void _onSearchChanged(String v) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 320), () {
+      if (_query == v.trim()) return;
+      setState(() => _query = v.trim());
+      _loadRecipes();
+    });
+  }
+
+  void _setVisibility(String? v) {
+    if (_visibilityFilter == v) return;
+    setState(() => _visibilityFilter = v);
+    _loadRecipes();
+  }
+
+  // ── Aisle mapping ─────────────────────────────────────────────────────────
 
   void _syncAislePoll(AisleMappingStatus status) {
     final running = status.isRunning;
@@ -206,70 +268,12 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
     }
   }
 
-  List<_RecipeData> get _filtered {
-    var list = _kRecipes.toList();
-    if (_labelFilter != null) {
-      list = list.where((r) => r.labels.contains(_labelFilter)).toList();
-    }
-    if (_query.isNotEmpty) {
-      final q = _query.toLowerCase();
-      list = list.where((r) => r.title.toLowerCase().contains(q)).toList();
-    }
-    return list;
-  }
-
-  void _confirmDelete(_RecipeData r) {
-    final isDark = widget.isDarkMode;
-    showDialog<void>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF141414) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Delete Recipe?',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827),
-          ),
-        ),
-        content: Text(
-          '"${r.title}" will be permanently removed.',
-          style: TextStyle(
-            fontSize: 13,
-            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
-              ),
-            ),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFF43F5E),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDarkMode;
     final textPrimary = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
     final textSub = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
     final cardBg = isDark ? const Color(0xFF141414) : Colors.white;
-    final list = _filtered;
     final s = S.of(context);
 
     return Stack(
@@ -281,6 +285,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Header ─────────────────────────────────────────────
                   Row(
                     children: [
                       Text(
@@ -299,7 +304,7 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
-                          '${_kRecipes.length}',
+                          '${_recipes.length}${_hasNext ? '+' : ''}',
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -307,9 +312,19 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
                           ),
                         ),
                       ),
+                      const Spacer(),
+                      if (_loadingRecipes)
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: kAdminAccent),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 10),
+
+                  // ── Aisle map card ─────────────────────────────────────
                   _AisleMapCard(
                     isDark: isDark,
                     cardBg: cardBg,
@@ -326,6 +341,8 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
                     onRetry: _loadAisles,
                   ),
                   const SizedBox(height: 10),
+
+                  // ── Search ─────────────────────────────────────────────
                   DecoratedBox(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
@@ -338,7 +355,8 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
                       ],
                     ),
                     child: TextField(
-                      onChanged: (v) => setState(() => _query = v.trim()),
+                      controller: _searchCtrl,
+                      onChanged: _onSearchChanged,
                       style: TextStyle(fontSize: 14, color: textPrimary),
                       decoration: InputDecoration(
                         hintText: 'Search recipes…',
@@ -364,25 +382,31 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
+
+                  // ── Visibility filter ──────────────────────────────────
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
                         _FilterChip(
                           label: 'All',
-                          selected: _labelFilter == null,
+                          selected: _visibilityFilter == null,
                           isDark: isDark,
-                          onTap: () => setState(() => _labelFilter = null),
+                          onTap: () => _setVisibility(null),
                         ),
-                        ..._allLabels.map(
-                          (l) => _FilterChip(
-                            label: l,
-                            selected: _labelFilter == l,
-                            isDark: isDark,
-                            onTap: () => setState(
-                              () => _labelFilter = l == _labelFilter ? null : l,
-                            ),
-                          ),
+                        _FilterChip(
+                          label: 'Public',
+                          selected: _visibilityFilter == 'public',
+                          isDark: isDark,
+                          onTap: () => _setVisibility('public'),
+                          icon: Icons.visibility_rounded,
+                        ),
+                        _FilterChip(
+                          label: 'Private',
+                          selected: _visibilityFilter == 'private',
+                          isDark: isDark,
+                          onTap: () => _setVisibility('private'),
+                          icon: Icons.visibility_off_rounded,
                         ),
                       ],
                     ),
@@ -391,127 +415,129 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
                 ],
               ),
             ),
+
+            // ── Recipe list ────────────────────────────────────────────
             Expanded(
-              child: list.isEmpty
-                  ? Center(
-                      child: Text('No recipes found',
-                          style: TextStyle(color: textSub)),
+              child: _loadingRecipes && _recipes.isEmpty
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.5, color: kAdminAccent),
                     )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 80),
-                      itemCount: list.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
-                      itemBuilder: (_, i) {
-                        final r = list[i];
-                        return Container(
-                          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-                          decoration: BoxDecoration(
-                            color: cardBg,
-                            borderRadius: BorderRadius.circular(13),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black
-                                    .withValues(alpha: isDark ? 0.3 : 0.06),
-                                blurRadius: isDark ? 10 : 8,
-                                offset: const Offset(0, 3),
+                  : RefreshIndicator(
+                      onRefresh: () => _loadRecipes(),
+                      color: kAdminAccent,
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 80),
+                        children: [
+                          if (_recipes.isEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 48),
+                              decoration: BoxDecoration(
+                                color: cardBg,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                                    blurRadius: isDark ? 10 : 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      r.title,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: textPrimary,
-                                      ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.menu_book_outlined, size: 32, color: textSub.withValues(alpha: 0.4)),
+                                  const SizedBox(height: 10),
+                                  Text('No recipes found',
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _query.isNotEmpty ? 'Try a different search' : 'Try a different visibility filter',
+                                    style: TextStyle(fontSize: 12, color: textSub),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Opacity(
+                              opacity: _loadingRecipes ? 0.6 : 1.0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: cardBg,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                                      blurRadius: isDark ? 10 : 8,
+                                      offset: const Offset(0, 3),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Icon(Icons.favorite_rounded,
-                                            size: 11,
-                                            color: const Color(0xFFF43F5E)
-                                                .withValues(alpha: 0.7)),
-                                        const SizedBox(width: 3),
-                                        Text('${r.favorites}',
-                                            style: TextStyle(
-                                                fontSize: 11, color: textSub)),
-                                        const SizedBox(width: 10),
-                                        Icon(Icons.calendar_today_rounded,
-                                            size: 11, color: textSub),
-                                        const SizedBox(width: 3),
-                                        Text(r.createdAt,
-                                            style: TextStyle(
-                                                fontSize: 11, color: textSub)),
-                                      ],
-                                    ),
-                                    if (r.labels.isNotEmpty) ...[
-                                      const SizedBox(height: 6),
-                                      Wrap(
-                                        spacing: 5,
-                                        children: r.labels.take(3).map((l) {
-                                          return Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 7, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: kAdminAccent
-                                                  .withValues(alpha: 0.1),
-                                              borderRadius:
-                                                  BorderRadius.circular(999),
-                                            ),
-                                            child: Text(
-                                              l,
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w600,
-                                                color: kAdminAccent,
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ],
                                   ],
                                 ),
-                              ),
-                              IconButton(
-                                onPressed: () => _confirmDelete(r),
-                                icon: Icon(
-                                  Icons.delete_outline_rounded,
-                                  size: 19,
-                                  color: const Color(0xFFF43F5E)
-                                      .withValues(alpha: 0.7),
+                                child: Column(
+                                  children: _recipes.asMap().entries.map((e) {
+                                    final i = e.key;
+                                    final r = e.value;
+                                    final isLast = i == _recipes.length - 1;
+                                    return _RecipeRow(
+                                      recipe: r,
+                                      isDark: isDark,
+                                      textPrimary: textPrimary,
+                                      textSub: textSub,
+                                      showTopDivider: i > 0,
+                                      isLast: isLast,
+                                      onTap: () async {
+                                        await Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => AdminRecipeDetailScreen(
+                                              recipeId: r.id,
+                                              isDarkMode: isDark,
+                                            ),
+                                          ),
+                                        );
+                                        _loadRecipes();
+                                      },
+                                    );
+                                  }).toList(),
                                 ),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                    minWidth: 36, minHeight: 36),
                               ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                            ),
+                          if (_recipes.isNotEmpty)
+                            _PaginationRow(
+                              isDark: isDark,
+                              loading: _loadingRecipes,
+                              hasNext: _hasNext,
+                              page: _page,
+                              onPrev: _page > 0
+                                  ? () {
+                                      setState(() => _page--);
+                                      _loadRecipes(replace: true);
+                                    }
+                                  : null,
+                              onNext: () {
+                                setState(() => _page++);
+                                _loadRecipes(replace: true);
+                              },
+                            ),
+                        ],
+                      ),
+                    ), // RefreshIndicator
             ),
           ],
         ),
 
-        // ── Add Recipe FAB ────────────────────────────────────────────
+        // ── Add Recipe FAB ────────────────────────────────────────────────
         Positioned(
           right: 16,
           bottom: 16,
           child: GestureDetector(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    AdminRecipeFormScreen(isDarkMode: widget.isDarkMode),
-              ),
-            ),
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AdminRecipeFormScreen(isDarkMode: widget.isDarkMode),
+                ),
+              );
+              _loadRecipes();
+            },
             child: Container(
               width: 52,
               height: 52,
@@ -534,6 +560,207 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
     );
   }
 }
+
+// ── Recipe row (inside grouped card) ─────────────────────────────────────────
+
+class _RecipeRow extends StatelessWidget {
+  const _RecipeRow({
+    required this.recipe,
+    required this.isDark,
+    required this.textPrimary,
+    required this.textSub,
+    required this.showTopDivider,
+    required this.isLast,
+    required this.onTap,
+  });
+
+  final RecipeModel recipe;
+  final bool isDark;
+  final Color textPrimary;
+  final Color textSub;
+  final bool showTopDivider;
+  final bool isLast;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = recipe;
+    final isPublic = !r.isPrivate;
+    final visColor = isPublic ? const Color(0xFF10B981) : textSub;
+    final visIcon = isPublic ? Icons.visibility_rounded : Icons.visibility_off_rounded;
+    final locale = r.locale;
+
+    return Column(
+      children: [
+        if (showTopDivider)
+          Divider(
+            height: 1,
+            color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6),
+          ),
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.vertical(
+            top: showTopDivider ? Radius.zero : const Radius.circular(16),
+            bottom: isLast ? const Radius.circular(16) : Radius.zero,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+            child: Row(
+              children: [
+                // Image or placeholder
+                (() {
+                  final resolved = ApiConfig.resolveImageUrl(r.imageUrl);
+                  if (resolved.isEmpty) return _bookPlaceholder(isDark);
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: CachedNetworkImage(
+                      imageUrl: resolved,
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                      placeholder: (ctx, url) => _bookPlaceholder(isDark),
+                      errorWidget: (ctx, url, err) => _bookPlaceholder(isDark),
+                    ),
+                  );
+                })(),
+                const SizedBox(width: 12),
+                // Title + meta
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        r.title,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          // Visibility pill
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: visColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(visIcon, size: 9, color: visColor),
+                                const SizedBox(width: 3),
+                                Text(
+                                  isPublic ? 'Public' : 'Private',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: visColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '#${r.id} · $locale',
+                            style: TextStyle(fontSize: 11, color: textSub),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, size: 18, color: textSub),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _bookPlaceholder(bool isDark) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: kAdminAccent.withValues(alpha: isDark ? 0.15 : 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Icon(Icons.menu_book_rounded, size: 22, color: kAdminAccent),
+    );
+  }
+}
+
+// ── Pagination row ────────────────────────────────────────────────────────────
+
+class _PaginationRow extends StatelessWidget {
+  const _PaginationRow({
+    required this.isDark,
+    required this.loading,
+    required this.hasNext,
+    required this.page,
+    required this.onPrev,
+    required this.onNext,
+  });
+
+  final bool isDark;
+  final bool loading;
+  final bool hasNext;
+  final int page;
+  final VoidCallback? onPrev;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final textSub = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (page > 0)
+            OutlinedButton.icon(
+              onPressed: loading ? null : onPrev,
+              icon: const Icon(Icons.arrow_back_ios_rounded, size: 13),
+              label: const Text('Prev'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kAdminAccent,
+                side: BorderSide(color: kAdminAccent.withValues(alpha: 0.4)),
+                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+          if (page > 0) const SizedBox(width: 8),
+          Text('Page ${page + 1}', style: TextStyle(fontSize: 12, color: textSub)),
+          if (hasNext) const SizedBox(width: 8),
+          if (hasNext)
+            OutlinedButton.icon(
+              onPressed: loading ? null : onNext,
+              icon: const Icon(Icons.arrow_forward_ios_rounded, size: 13),
+              label: const Text('Next'),
+              iconAlignment: IconAlignment.end,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kAdminAccent,
+                side: BorderSide(color: kAdminAccent.withValues(alpha: 0.4)),
+                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Aisle map card ────────────────────────────────────────────────────────────
 
 class _AisleMapCard extends StatelessWidget {
   const _AisleMapCard({
@@ -608,11 +835,7 @@ class _AisleMapCard extends StatelessWidget {
                   color: kAdminAccent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
-                  Icons.storefront_rounded,
-                  size: 17,
-                  color: kAdminAccent,
-                ),
+                child: const Icon(Icons.storefront_rounded, size: 17, color: kAdminAccent),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -682,9 +905,7 @@ class _AisleMapCard extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: kAdminAccent,
                     disabledBackgroundColor: kAdminAccent.withValues(alpha: 0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   child: Text(buttonLabel),
                 ),
@@ -696,9 +917,7 @@ class _AisleMapCard extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFFF43F5E),
                     side: const BorderSide(color: Color(0xFFF43F5E)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   child: Text(strings.stopMappingAisles),
                 ),
@@ -719,12 +938,14 @@ class _FilterChip extends StatelessWidget {
     required this.selected,
     required this.isDark,
     required this.onTap,
+    this.icon,
   });
 
   final String label;
   final bool selected;
   final bool isDark;
   final VoidCallback onTap;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -742,56 +963,39 @@ class _FilterChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             boxShadow: [
               BoxShadow(
-                color:
-                    Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
                 blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
             ],
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: selected
-                  ? Colors.white
-                  : (isDark
-                      ? const Color(0xFF94A3B8)
-                      : const Color(0xFF6B7280)),
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 12,
+                  color: selected
+                      ? Colors.white
+                      : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280)),
+                ),
+                const SizedBox(width: 5),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: selected
+                      ? Colors.white
+                      : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280)),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
-
-// ── Data model ────────────────────────────────────────────────────────────────
-
-class _RecipeData {
-  const _RecipeData({
-    required this.id,
-    required this.title,
-    required this.labels,
-    required this.favorites,
-    required this.createdAt,
-  });
-
-  final int id;
-  final String title;
-  final List<String> labels;
-  final int favorites;
-  final String createdAt;
-}
-
-const _kRecipes = [
-  _RecipeData(id: 1, title: 'Phở Bò Hà Nội', labels: ['Vietnamese', 'High Protein'], favorites: 142, createdAt: 'Feb 1, 2024'),
-  _RecipeData(id: 2, title: 'Bún Bò Huế', labels: ['Vietnamese'], favorites: 98, createdAt: 'Feb 15, 2024'),
-  _RecipeData(id: 3, title: 'Green Smoothie Bowl', labels: ['Vegan', 'Breakfast', 'Healthy'], favorites: 201, createdAt: 'Mar 1, 2024'),
-  _RecipeData(id: 4, title: 'Grilled Salmon', labels: ['High Protein', 'Pescetarian'], favorites: 87, createdAt: 'Mar 20, 2024'),
-  _RecipeData(id: 5, title: 'Keto Egg Salad', labels: ['Keto', 'Quick Meal'], favorites: 64, createdAt: 'Apr 5, 2024'),
-  _RecipeData(id: 6, title: 'Bánh Mì Sandwich', labels: ['Vietnamese', 'Quick Meal'], favorites: 176, createdAt: 'Apr 18, 2024'),
-  _RecipeData(id: 7, title: 'Avocado Toast', labels: ['Vegan', 'Breakfast'], favorites: 133, createdAt: 'May 2, 2024'),
-  _RecipeData(id: 8, title: 'Chicken Stir Fry', labels: ['High Protein', 'Quick Meal'], favorites: 89, createdAt: 'May 15, 2024'),
-];

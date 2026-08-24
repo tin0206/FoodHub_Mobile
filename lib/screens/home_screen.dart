@@ -574,6 +574,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             letterSpacing: -0.3,
                           ),
                         ),
+                        if (!_isLoading && _loadError == null) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            s.recipeCount(_recipes.length),
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: Colors.white.withValues(alpha: 0.72),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -705,6 +716,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
+            const SizedBox(height: 20),
+
             // ── Section: Today's meal plan ────────────────────────────────
             _SectionHeader(title: s.todaysMealPlan),
             InkWell(
@@ -746,7 +759,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
 
             _SectionHeader(
               title: s.recommendedRecipes,
@@ -774,6 +787,8 @@ class _HomeScreenState extends State<HomeScreen> {
               isDarkMode: isDarkMode,
               panelColor: panelColor,
             ),
+
+            const SizedBox(height: 8),
 
             // ── Section: Top Recipes ───────────────────────────────────────
             _SectionHeader(title: s.topRecipes),
@@ -886,22 +901,25 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Flexible(
-          child: Text(
-            title,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: colors.onSurface,
-              letterSpacing: -0.3,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Flexible(
+            child: Text(
+              title,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: colors.onSurface,
+                letterSpacing: -0.3,
+              ),
             ),
           ),
-        ),
-        if (trailing != null) ...[const SizedBox(width: 8), trailing!],
-      ],
+          if (trailing != null) ...[const SizedBox(width: 8), trailing!],
+        ],
+      ),
     );
   }
 }

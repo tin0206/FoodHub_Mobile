@@ -13,9 +13,18 @@ import 'package:foodhub_mobile/widgets/app_bottom_bar.dart';
 import 'package:foodhub_mobile/widgets/app_top_bar.dart';
 
 class MainShellScreen extends StatefulWidget {
-  const MainShellScreen({super.key, required this.initialUser});
+  const MainShellScreen({
+    super.key,
+    required this.initialUser,
+    this.initialTab,
+    this.onSwitchToAdmin,
+  });
 
   final UserModel initialUser;
+  final AppTab? initialTab;
+  // Called with current context + user when user taps "Admin" button in the top bar.
+  // Defined by AdminShellScreen to avoid a circular import.
+  final void Function(BuildContext context, UserModel user)? onSwitchToAdmin;
 
   @override
   State<MainShellScreen> createState() => _MainShellScreenState();
@@ -40,6 +49,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     _isDarkMode = widget.initialUser.theme == 'dark';
     _dietaryRestrictions = {..._user.dietaryRestrictions};
     _primaryGoal = _user.primaryGoal ?? 'Balanced Nutrition';
+    if (widget.initialTab != null) _currentTab = widget.initialTab!;
   }
 
   void _onUserUpdated(UserModel user) {
@@ -141,7 +151,12 @@ class _MainShellScreenState extends State<MainShellScreen> {
         child: Scaffold(
           body: Column(
             children: [
-              AppTopBar(onOpenProfile: _openProfile),
+              AppTopBar(
+                onOpenProfile: _openProfile,
+                onSwitchToAdmin: widget.onSwitchToAdmin != null
+                    ? () => widget.onSwitchToAdmin!(context, _user)
+                    : null,
+              ),
               Expanded(
                 child: IndexedStack(index: _currentTab.index, children: screens),
               ),

@@ -1,7 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/models/admin.dart';
+import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_user_detail_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_user_form_screen.dart';
+import 'package:foodhub_mobile/services/admin_service.dart';
+import 'package:foodhub_mobile/services/api_exception.dart';
+
+const _kPageSize = 20;
 
 class AdminUsersScreen extends StatefulWidget {
   const AdminUsersScreen({super.key, required this.isDarkMode});
@@ -13,309 +21,389 @@ class AdminUsersScreen extends StatefulWidget {
 }
 
 class _AdminUsersScreenState extends State<AdminUsersScreen> {
-  String _query = '';
-  String _filter = 'All';
+  final _admin = AdminService();
+  List<UserModel>? _users;
+  bool _loading = true;
+  String? _error;
 
-  List<AdminUserData> get _filtered {
-    var list = kAdminUsers.where((u) {
-      if (_filter == 'Admin') return u.role == 'admin';
-      if (_filter == 'Active') return u.isActive;
-      if (_filter == 'Inactive') return !u.isActive;
-      return true;
-    }).toList();
-    if (_query.isNotEmpty) {
-      final q = _query.toLowerCase();
-      list = list
-          .where((u) =>
-              u.fullName.toLowerCase().contains(q) ||
+  String _query = '';
+  String _debouncedQuery = '';
+  Timer? _debounce;
+  String _filter = 'All'; // All | Admin | Active | Inactive
+  int _page = 0;
+  bool _hasNext = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onQueryChanged(String v) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 320), () {
+      setState(() {
+        _debouncedQuery = v.trim();
+        _page = 0;
+      });
+      _load();
+    });
+  }
+
+  void _setFilter(String f) {
+    setState(() {
+      _filter = f;
+      _page = 0;
+    });
+    _load();
+  }
+
+  String? get _roleParam => _filter == 'Admin' ? 'admin' : null;
+  bool? get _activeParam {
+    if (_filter == 'Active') return true;
+    if (_filter == 'Inactive') return false;
+    return null;
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      if (_debouncedQuery.isNotEmpty) {
+        var raw = await _admin.listUsers(
+          skip: 0,
+          limit: 200,
+          q: _debouncedQuery,
+          role: _roleParam,
+          active: _activeParam,
+        );
+        final q = _debouncedQuery.toLowerCase();
+        raw = raw.where((u) {
+          return (u.fullName?.toLowerCase().contains(q) ?? false) ||
               u.email.toLowerCase().contains(q) ||
-              u.username.toLowerCase().contains(q))
-          .toList();
+              u.username.toLowerCase().contains(q);
+        }).toList();
+        final start = _page * _kPageSize;
+        final hasNext = raw.length > start + _kPageSize;
+        final slice = raw.skip(start).take(_kPageSize).toList();
+        if (!mounted) return;
+        setState(() {
+          _users = slice;
+          _hasNext = hasNext;
+          _loading = false;
+        });
+        return;
+      }
+
+      final raw = await _admin.listUsers(
+        skip: _page * _kPageSize,
+        limit: _kPageSize + 1,
+        role: _roleParam,
+        active: _activeParam,
+      );
+      if (!mounted) return;
+      setState(() {
+        _hasNext = raw.length > _kPageSize;
+        _users = raw.take(_kPageSize).toList();
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e is ApiException ? e.message : '$e';
+      });
     }
-    return list;
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDarkMode;
-    final textPrimary =
-        isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
-    final textSub =
-        isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final textPrimary = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
+    final textSub = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
     final cardBg = isDark ? const Color(0xFF141414) : Colors.white;
-    final list = _filtered;
+    final list = _users ?? [];
+    final rangeStart = _page * _kPageSize + 1;
+    final rangeEnd = _page * _kPageSize + list.length;
 
     return Stack(
       children: [
         Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        // ── Header ──────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Users',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: textPrimary,
-                        ),
+                  Text(
+                    'Users',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textPrimary),
+                  ),
+                  const SizedBox(width: 8),
+                  if (_users != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: kAdminAccent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(999),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: kAdminAccent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          '${kAdminUsers.length}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: kAdminAccent,
+                      child: Text(
+                        '$rangeStart–$rangeEnd${_hasNext ? '+' : ''}',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kAdminAccent),
+                      ),
+                    ),
+                  const Spacer(),
+                  // Refresh button
+                  GestureDetector(
+                    onTap: _loading ? null : _load,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: kAdminAccent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          _loading
+                              ? const SizedBox(
+                                  width: 12,
+                                  height: 12,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: kAdminAccent),
+                                )
+                              : const Icon(Icons.refresh_rounded, size: 13, color: kAdminAccent),
+                          const SizedBox(width: 5),
+                          const Text(
+                            'Refresh',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kAdminAccent),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Search
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  onChanged: (v) {
+                    setState(() => _query = v);
+                    _onQueryChanged(v);
+                  },
+                  style: TextStyle(fontSize: 14, color: textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'Search by name, email, username…',
+                    hintStyle: TextStyle(color: textSub, fontSize: 13),
+                    prefixIcon: Icon(Icons.search, color: textSub, size: 20),
+                    suffixIcon: _query.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.close_rounded, size: 18, color: textSub),
+                            onPressed: () {
+                              setState(() => _query = '');
+                              _onQueryChanged('');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: cardBg,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: kAdminAccent),
+                    ),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Filter chips
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: ['All', 'Admin', 'Active', 'Inactive'].map((f) {
+                    final sel = _filter == f;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 7),
+                      child: GestureDetector(
+                        onTap: () => _setFilter(f),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: sel
+                                ? kAdminAccent
+                                : (isDark ? const Color(0xFF1E1E1E) : Colors.white),
+                            borderRadius: BorderRadius.circular(999),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            f,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: sel ? Colors.white : textSub,
+                            ),
                           ),
                         ),
                       ),
-                    ],
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              if (_error != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF43F5E).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(height: 10),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black
-                              .withValues(alpha: isDark ? 0.3 : 0.06),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      onChanged: (v) => setState(() => _query = v.trim()),
-                      style: TextStyle(fontSize: 14, color: textPrimary),
-                      decoration: InputDecoration(
-                        hintText: 'Search by name, email, username…',
-                        hintStyle:
-                            TextStyle(color: textSub, fontSize: 13),
-                        prefixIcon:
-                            Icon(Icons.search, color: textSub, size: 20),
-                        filled: true,
-                        fillColor: cardBg,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide:
-                              const BorderSide(color: kAdminAccent),
-                        ),
-                        isDense: true,
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children:
-                          ['All', 'Admin', 'Active', 'Inactive'].map((f) {
-                        final sel = _filter == f;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 7),
-                          child: GestureDetector(
-                            onTap: () => setState(() => _filter = f),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 160),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 6),
+                  child: Text(_error!, style: const TextStyle(fontSize: 12, color: Color(0xFFF43F5E))),
+                ),
+            ],
+          ),
+        ),
+
+        // ── List ────────────────────────────────────────────────────
+        Expanded(
+          child: _loading && _users == null
+              ? const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: kAdminAccent),
+                )
+              : RefreshIndicator(
+                  onRefresh: () => _load(),
+                  color: kAdminAccent,
+                  child: list.isEmpty
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            SizedBox(
+                              height: 300,
+                              child: Center(
+                                child: Text(
+                                  _debouncedQuery.isNotEmpty
+                                      ? 'No users match "$_debouncedQuery"'
+                                      : 'No users found',
+                                  style: TextStyle(fontSize: 13, color: textSub),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 80),
+                          children: [
+                            Container(
                               decoration: BoxDecoration(
-                                color: sel
-                                    ? kAdminAccent
-                                    : (isDark
-                                        ? const Color(0xFF1E1E1E)
-                                        : Colors.white),
-                                borderRadius: BorderRadius.circular(999),
+                                color: cardBg,
+                                borderRadius: BorderRadius.circular(14),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(
-                                        alpha: isDark ? 0.25 : 0.06),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
+                                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                                    blurRadius: isDark ? 10 : 8,
+                                    offset: const Offset(0, 3),
                                   ),
                                 ],
                               ),
-                              child: Text(
-                                f,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: sel ? Colors.white : textSub,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              ),
-            ),
-            Expanded(
-              child: list.isEmpty
-                  ? Center(
-                      child: Text('No users found',
-                          style: TextStyle(color: textSub)))
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 14, 80),
-                      itemCount: list.length,
-                      separatorBuilder: (_, _) =>
-                          const SizedBox(height: 8),
-                      itemBuilder: (_, i) {
-                        final u = list[i];
-                        return GestureDetector(
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => AdminUserDetailScreen(
-                                user: u,
-                                isDarkMode: isDark,
-                              ),
-                            ),
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: cardBg,
-                              borderRadius: BorderRadius.circular(13),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(
-                                      alpha: isDark ? 0.3 : 0.06),
-                                  blurRadius: isDark ? 10 : 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                AdminAvatarCircle(
-                                    name: u.fullName,
-                                    size: 42,
-                                    fontSize: 15),
-                                const SizedBox(width: 11),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              u.fullName,
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w700,
-                                                color: textPrimary,
-                                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Column(
+                                  children: list.asMap().entries.map((e) {
+                                    return _UserRow(
+                                      user: e.value,
+                                      isDark: isDark,
+                                      showTopDivider: e.key > 0,
+                                      isFirst: e.key == 0,
+                                      isLast: e.key == list.length - 1,
+                                      onTap: () async {
+                                        await Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => AdminUserDetailScreen(
+                                              userId: e.value.id,
+                                              isDarkMode: isDark,
                                             ),
                                           ),
-                                          AdminRoleBadge(role: u.role),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(u.email,
-                                          style: TextStyle(
-                                              fontSize: 11.5,
-                                              color: textSub)),
-                                      const SizedBox(height: 2),
-                                      Text('@${u.username}',
-                                          style: TextStyle(
-                                              fontSize: 11,
-                                              color: textSub.withValues(
-                                                  alpha: 0.7))),
-                                    ],
-                                  ),
+                                        );
+                                        _load();
+                                      },
+                                    );
+                                  }).toList(),
                                 ),
-                                const SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      '${u.recipeCount} recipes',
-                                      style: TextStyle(
-                                          fontSize: 11, color: textSub),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          width: 7,
-                                          height: 7,
-                                          decoration: BoxDecoration(
-                                            color: u.isActive
-                                                ? const Color(0xFF10B981)
-                                                : const Color(0xFFF43F5E),
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          u.isActive
-                                              ? 'Active'
-                                              : 'Inactive',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: u.isActive
-                                                ? const Color(0xFF10B981)
-                                                : const Color(0xFFF43F5E),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(width: 4),
-                                Icon(Icons.chevron_right_rounded,
-                                    size: 18, color: textSub),
-                              ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
+                            _PaginationFooter(
+                              isDark: isDark,
+                              page: _page,
+                              hasNext: _hasNext,
+                              loading: _loading,
+                              onPrev: _page > 0 ? () {
+                                setState(() => _page--);
+                                _load();
+                              } : null,
+                              onNext: () {
+                                setState(() => _page++);
+                                _load();
+                              },
+                            ),
+                          ],
+                        ),
+                ),
+        ),
           ],
         ),
 
-        // ── Add User FAB ─────────────────────────────────────────────
+        // ── Add User FAB ────────────────────────────────────────────────
         Positioned(
           right: 16,
           bottom: 16,
           child: GestureDetector(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    AdminUserFormScreen(isDarkMode: isDark),
-              ),
-            ),
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AdminUserFormScreen(isDarkMode: isDark),
+                ),
+              );
+              _load();
+            },
             child: Container(
               width: 52,
               height: 52,
@@ -330,8 +418,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.person_add_rounded,
-                  color: Colors.white, size: 22),
+              child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 22),
             ),
           ),
         ),
@@ -340,247 +427,202 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 }
 
-// ── Shared widgets ────────────────────────────────────────────────────────────
+// ── User row (inside grouped card) ────────────────────────────────────────────
 
-class AdminAvatarCircle extends StatelessWidget {
-  const AdminAvatarCircle({
-    super.key,
-    required this.name,
-    required this.size,
-    required this.fontSize,
+class _UserRow extends StatelessWidget {
+  const _UserRow({
+    required this.user,
+    required this.isDark,
+    required this.showTopDivider,
+    required this.isFirst,
+    required this.isLast,
+    required this.onTap,
   });
 
-  final String name;
-  final double size;
-  final double fontSize;
+  final UserModel user;
+  final bool isDark;
+  final bool showTopDivider;
+  final bool isFirst;
+  final bool isLast;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final initials =
-        name.trim().split(' ').take(2).map((w) => w[0]).join();
-    final hue =
-        (name.codeUnits.fold(0, (a, b) => a + b) % 360).toDouble();
-    final color = HSLColor.fromAHSL(1, hue, 0.55, 0.45).toColor();
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        initials.toUpperCase(),
-        style: TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.w700,
-            color: color),
-      ),
+    final textPrimary = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
+    final textSub = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final dividerColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
+    final name = user.fullName ?? user.username;
+    final avatarColor = Color(adminAvatarColorInt(name, isDark: isDark));
+
+    return Column(
+      children: [
+        if (showTopDivider) Divider(height: 1, color: dividerColor),
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.vertical(
+            top: isFirst ? const Radius.circular(14) : Radius.zero,
+            bottom: isLast ? const Radius.circular(14) : Radius.zero,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+            child: Row(
+              children: [
+                // Avatar
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: avatarColor.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      adminAvatarInitials(name),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: avatarColor,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              name,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          if (user.role == 'admin')
+                            _RoleBadge(label: 'Admin', color: kAdminAccent)
+                          else
+                            const _RoleBadge(label: 'User', color: Color(0xFF10B981)),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        user.email,
+                        style: TextStyle(fontSize: 11.5, color: textSub),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: user.isActive ? const Color(0xFF10B981) : const Color(0xFFF43F5E),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(Icons.chevron_right_rounded, size: 18, color: textSub),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
-class AdminRoleBadge extends StatelessWidget {
-  const AdminRoleBadge({super.key, required this.role});
+class _RoleBadge extends StatelessWidget {
+  const _RoleBadge({required this.label, required this.color});
 
-  final String role;
+  final String label;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = role == 'admin';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: isAdmin
-            ? kAdminAccent.withValues(alpha: 0.13)
-            : const Color(0xFF10B981).withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        isAdmin ? 'Admin' : 'User',
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: isAdmin ? kAdminAccent : const Color(0xFF10B981),
-        ),
+        label,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color),
       ),
     );
   }
 }
 
-// ── Data model ────────────────────────────────────────────────────────────────
+// ── Pagination footer ─────────────────────────────────────────────────────────
 
-class AdminUserData {
-  const AdminUserData({
-    required this.id,
-    required this.fullName,
-    required this.email,
-    required this.username,
-    required this.role,
-    required this.isActive,
-    required this.recipeCount,
-    required this.savedCount,
-    required this.createdAt,
-    this.age,
-    this.weight,
-    this.calorieTarget,
-    this.proteinTarget,
-    this.dietaryRestrictions = const [],
-    this.primaryGoal,
+class _PaginationFooter extends StatelessWidget {
+  const _PaginationFooter({
+    required this.isDark,
+    required this.page,
+    required this.hasNext,
+    required this.loading,
+    required this.onPrev,
+    required this.onNext,
   });
 
-  final int id;
-  final String fullName;
-  final String email;
-  final String username;
-  final String role;
-  final bool isActive;
-  final int recipeCount;
-  final int savedCount;
-  final String createdAt;
-  final int? age;
-  final double? weight;
-  final int? calorieTarget;
-  final int? proteinTarget;
-  final List<String> dietaryRestrictions;
-  final String? primaryGoal;
-}
+  final bool isDark;
+  final int page;
+  final bool hasNext;
+  final bool loading;
+  final VoidCallback? onPrev;
+  final VoidCallback onNext;
 
-const kAdminUsers = [
-  AdminUserData(
-    id: 1,
-    fullName: 'Trung Tin',
-    email: 'tin@foodhub.app',
-    username: 'trungtin',
-    role: 'admin',
-    isActive: true,
-    recipeCount: 12,
-    savedCount: 34,
-    createdAt: 'Jan 15, 2024',
-    age: 20,
-    weight: 65.0,
-    calorieTarget: 2200,
-    proteinTarget: 150,
-    dietaryRestrictions: ['High Protein'],
-    primaryGoal: 'Build Muscle',
-  ),
-  AdminUserData(
-    id: 2,
-    fullName: 'Minh Duc',
-    email: 'duc@gmail.com',
-    username: 'minhduc',
-    role: 'user',
-    isActive: true,
-    recipeCount: 5,
-    savedCount: 18,
-    createdAt: 'Feb 20, 2024',
-    age: 25,
-    weight: 70.0,
-    calorieTarget: 2000,
-    proteinTarget: 120,
-    dietaryRestrictions: ['Vegan'],
-    primaryGoal: 'Lose Weight',
-  ),
-  AdminUserData(
-    id: 3,
-    fullName: 'Thu Hang',
-    email: 'hang@gmail.com',
-    username: 'thuhang',
-    role: 'user',
-    isActive: true,
-    recipeCount: 8,
-    savedCount: 42,
-    createdAt: 'Mar 10, 2024',
-    age: 28,
-    weight: 55.0,
-    calorieTarget: 1800,
-    proteinTarget: 90,
-    dietaryRestrictions: ['Vegan', 'Gluten Free'],
-    primaryGoal: 'Balanced Nutrition',
-  ),
-  AdminUserData(
-    id: 4,
-    fullName: 'Van Long',
-    email: 'long@gmail.com',
-    username: 'vanlong',
-    role: 'user',
-    isActive: false,
-    recipeCount: 3,
-    savedCount: 7,
-    createdAt: 'Apr 5, 2024',
-    age: 32,
-    weight: 80.0,
-    calorieTarget: null,
-    proteinTarget: null,
-    dietaryRestrictions: [],
-    primaryGoal: null,
-  ),
-  AdminUserData(
-    id: 5,
-    fullName: 'Phuong Thao',
-    email: 'thao@gmail.com',
-    username: 'phuongthao',
-    role: 'user',
-    isActive: true,
-    recipeCount: 15,
-    savedCount: 61,
-    createdAt: 'Apr 22, 2024',
-    age: 23,
-    weight: 52.0,
-    calorieTarget: 1600,
-    proteinTarget: 80,
-    dietaryRestrictions: ['Vegan', 'Healthy'],
-    primaryGoal: 'Improve Health',
-  ),
-  AdminUserData(
-    id: 6,
-    fullName: 'Bao Ngoc',
-    email: 'ngoc@gmail.com',
-    username: 'baongoc',
-    role: 'user',
-    isActive: true,
-    recipeCount: 2,
-    savedCount: 9,
-    createdAt: 'May 1, 2024',
-    age: 21,
-    weight: 58.0,
-    calorieTarget: 1900,
-    proteinTarget: 100,
-    dietaryRestrictions: ['Keto'],
-    primaryGoal: 'Lose Weight',
-  ),
-  AdminUserData(
-    id: 7,
-    fullName: 'Thanh Nam',
-    email: 'nam@gmail.com',
-    username: 'thanhnam',
-    role: 'user',
-    isActive: false,
-    recipeCount: 0,
-    savedCount: 0,
-    createdAt: 'May 10, 2024',
-    age: null,
-    weight: null,
-    calorieTarget: null,
-    proteinTarget: null,
-    dietaryRestrictions: [],
-    primaryGoal: null,
-  ),
-  AdminUserData(
-    id: 8,
-    fullName: 'Kieu Anh',
-    email: 'anh@gmail.com',
-    username: 'kieuanh',
-    role: 'user',
-    isActive: true,
-    recipeCount: 7,
-    savedCount: 29,
-    createdAt: 'Jun 12, 2024',
-    age: 26,
-    weight: 61.0,
-    calorieTarget: 2100,
-    proteinTarget: 130,
-    dietaryRestrictions: ['High Protein', 'Breakfast'],
-    primaryGoal: 'Build Muscle',
-  ),
-];
+  @override
+  Widget build(BuildContext context) {
+    final textSub = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (page > 0)
+            OutlinedButton.icon(
+              onPressed: loading ? null : onPrev,
+              icon: const Icon(Icons.arrow_back_ios_rounded, size: 13),
+              label: const Text('Prev'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kAdminAccent,
+                side: BorderSide(color: kAdminAccent.withValues(alpha: 0.4)),
+                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+          if (page > 0) const SizedBox(width: 8),
+          Text('Page ${page + 1}', style: TextStyle(fontSize: 12, color: textSub)),
+          if (hasNext) const SizedBox(width: 8),
+          if (hasNext)
+            OutlinedButton.icon(
+              onPressed: loading ? null : onNext,
+              icon: const Icon(Icons.arrow_forward_ios_rounded, size: 13),
+              label: const Text('Next'),
+              iconAlignment: IconAlignment.end,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kAdminAccent,
+                side: BorderSide(color: kAdminAccent.withValues(alpha: 0.4)),
+                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
