@@ -7,7 +7,7 @@ import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 
 const _kDietaryTags = [
   'Dairy Free',
-  'Egg Free',
+  'Non-Alcoholic',
   'Gluten Free',
   'Nut Free',
   'Vegan',
@@ -62,6 +62,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _weightController;
   late TextEditingController _calorieTargetController;
   late TextEditingController _proteinTargetController;
+  late TextEditingController _carbTargetController;
+  late TextEditingController _fatTargetController;
 
   late String _snapFullName;
   late String _snapEmail;
@@ -69,6 +71,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late String _snapWeight;
   late String _snapCalorie;
   late String _snapProtein;
+  late String _snapCarb;
+  late String _snapFat;
   late String _snapLanguage;
   late String _snapTheme;
   late bool _snapNotifyRecs;
@@ -86,6 +90,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _weightError;
   String? _calorieError;
   String? _proteinError;
+  String? _carbError;
+  String? _fatError;
 
   final _scrollController = ScrollController();
   bool _actionButtonsVisible = false;
@@ -104,6 +110,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _weightController = TextEditingController(text: _snapWeight)..addListener(_onFieldChanged);
     _calorieTargetController = TextEditingController(text: _snapCalorie)..addListener(_onFieldChanged);
     _proteinTargetController = TextEditingController(text: _snapProtein)..addListener(_onFieldChanged);
+    _carbTargetController = TextEditingController(text: _snapCarb)..addListener(_onFieldChanged);
+    _fatTargetController = TextEditingController(text: _snapFat)..addListener(_onFieldChanged);
   }
 
   @override
@@ -119,6 +127,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _weightController.text = _snapWeight;
       _calorieTargetController.text = _snapCalorie;
       _proteinTargetController.text = _snapProtein;
+      _carbTargetController.text = _snapCarb;
+      _fatTargetController.text = _snapFat;
     }
   }
 
@@ -129,6 +139,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _snapWeight = user.weight?.toString() ?? '';
     _snapCalorie = user.calorieTarget?.toString() ?? '';
     _snapProtein = user.proteinTarget?.toString() ?? '';
+    _snapCarb = user.carbTarget?.toString() ?? '';
+    _snapFat = user.fatTarget?.toString() ?? '';
     _snapLanguage = user.language ?? 'en';
     _snapTheme = user.theme;
     _notifyRecommendations = _snapNotifyRecs = user.notifyRecommendations;
@@ -142,6 +154,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_weightController.text.trim() != _snapWeight) return true;
     if (_calorieTargetController.text.trim() != _snapCalorie) return true;
     if (_proteinTargetController.text.trim() != _snapProtein) return true;
+    if (_carbTargetController.text.trim() != _snapCarb) return true;
+    if (_fatTargetController.text.trim() != _snapFat) return true;
     if (_pendingLanguage != _snapLanguage) return true;
     if (_pendingDarkMode != (_snapTheme == 'dark')) return true;
     if (_notifyRecommendations != _snapNotifyRecs) return true;
@@ -161,12 +175,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _weightController.removeListener(_onFieldChanged);
     _calorieTargetController.removeListener(_onFieldChanged);
     _proteinTargetController.removeListener(_onFieldChanged);
+    _carbTargetController.removeListener(_onFieldChanged);
+    _fatTargetController.removeListener(_onFieldChanged);
     _fullNameController.dispose();
     _emailController.dispose();
     _ageController.dispose();
     _weightController.dispose();
     _calorieTargetController.dispose();
     _proteinTargetController.dispose();
+    _carbTargetController.dispose();
+    _fatTargetController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -175,7 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_isSaving) return;
     final s = S.of(context);
 
-    String? ageErr, weightErr, calorieErr, proteinErr;
+    String? ageErr, weightErr, calorieErr, proteinErr, carbErr, fatErr;
 
     final ageVal = _ageController.text.trim();
     if (ageVal.isNotEmpty) {
@@ -201,14 +219,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (v == null || v <= 0) proteinErr = s.mustBePositiveNumber;
     }
 
+    final carbVal = _carbTargetController.text.trim();
+    if (carbVal.isNotEmpty) {
+      final v = int.tryParse(carbVal);
+      if (v == null || v <= 0) carbErr = s.mustBePositiveNumber;
+    }
+
+    final fatVal = _fatTargetController.text.trim();
+    if (fatVal.isNotEmpty) {
+      final v = int.tryParse(fatVal);
+      if (v == null || v <= 0) fatErr = s.mustBePositiveNumber;
+    }
+
     setState(() {
       _ageError = ageErr;
       _weightError = weightErr;
       _calorieError = calorieErr;
       _proteinError = proteinErr;
+      _carbError = carbErr;
+      _fatError = fatErr;
     });
 
-    if (ageErr != null || weightErr != null || calorieErr != null || proteinErr != null) {
+    if (ageErr != null || weightErr != null || calorieErr != null ||
+        proteinErr != null || carbErr != null || fatErr != null) {
       return;
     }
 
@@ -234,6 +267,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (weightVal.isNotEmpty) 'weight': double.parse(weightVal),
         if (calorieVal.isNotEmpty) 'calorie_target': int.parse(calorieVal),
         if (proteinVal.isNotEmpty) 'protein_target': int.parse(proteinVal),
+        if (carbVal.isNotEmpty) 'carb_target': int.parse(carbVal),
+        if (fatVal.isNotEmpty) 'fat_target': int.parse(fatVal),
         'dietary_restrictions': widget.selectedDietaryRestrictions.toList(),
         'primary_goal': widget.primaryGoal,
         'language': _pendingLanguage,
@@ -254,6 +289,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _weightController.text = _snapWeight;
         _calorieTargetController.text = _snapCalorie;
         _proteinTargetController.text = _snapProtein;
+        _carbTargetController.text = _snapCarb;
+        _fatTargetController.text = _snapFat;
       });
       widget.onUserUpdated(updated);
       showProfileToast(context);
@@ -312,11 +349,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _weightController.text = _snapWeight;
       _calorieTargetController.text = _snapCalorie;
       _proteinTargetController.text = _snapProtein;
+      _carbTargetController.text = _snapCarb;
+      _fatTargetController.text = _snapFat;
       _notifyRecommendations = _snapNotifyRecs;
       _notifyNewFeatures = _snapNotifyFeatures;
       _notifyWeeklySummary = _snapNotifyWeekly;
       _ageError = null;
       _weightError = null;
+      _carbError = null;
+      _fatError = null;
       _calorieError = null;
       _proteinError = null;
     });
@@ -683,6 +724,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         controller: _proteinTargetController,
                         keyboardType: TextInputType.number,
                         errorText: _proteinError,
+                        secondaryText: _secondaryText,
+                        fillColor: _fieldFill,
+                        borderColor: _fieldBorder,
+                        isDarkMode: widget.isDarkMode,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _LabeledField(
+                        label: s.targetCarb,
+                        controller: _carbTargetController,
+                        keyboardType: TextInputType.number,
+                        errorText: _carbError,
+                        secondaryText: _secondaryText,
+                        fillColor: _fieldFill,
+                        borderColor: _fieldBorder,
+                        isDarkMode: widget.isDarkMode,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _LabeledField(
+                        label: s.targetFat,
+                        controller: _fatTargetController,
+                        keyboardType: TextInputType.number,
+                        errorText: _fatError,
                         secondaryText: _secondaryText,
                         fillColor: _fieldFill,
                         borderColor: _fieldBorder,

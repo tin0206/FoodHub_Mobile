@@ -12,6 +12,8 @@ class UserModel {
     this.theme = 'light',
     this.calorieTarget,
     this.proteinTarget,
+    this.carbTarget,
+    this.fatTarget,
     this.dietaryRestrictions = const [],
     this.primaryGoal,
     this.notifyRecommendations = true,
@@ -31,6 +33,8 @@ class UserModel {
   final String theme;
   final int? calorieTarget;
   final int? proteinTarget;
+  final int? carbTarget;
+  final int? fatTarget;
   final List<String> dietaryRestrictions;
   final String? primaryGoal;
   final bool notifyRecommendations;
@@ -51,6 +55,8 @@ class UserModel {
       theme: json['theme'] as String? ?? 'light',
       calorieTarget: json['calorie_target'] as int?,
       proteinTarget: json['protein_target'] as int?,
+      carbTarget: json['carb_target'] as int?,
+      fatTarget: json['fat_target'] as int?,
       dietaryRestrictions:
           (json['dietary_restrictions'] as List<dynamic>?)
               ?.map((e) => e.toString())
@@ -69,6 +75,8 @@ class UserModel {
     double? weight,
     int? calorieTarget,
     int? proteinTarget,
+    int? carbTarget,
+    int? fatTarget,
     List<String>? dietaryRestrictions,
     String? primaryGoal,
     bool? notifyRecommendations,
@@ -83,6 +91,8 @@ class UserModel {
     if (weight != null) data['weight'] = weight;
     if (calorieTarget != null) data['calorie_target'] = calorieTarget;
     if (proteinTarget != null) data['protein_target'] = proteinTarget;
+    if (carbTarget != null) data['carb_target'] = carbTarget;
+    if (fatTarget != null) data['fat_target'] = fatTarget;
     if (dietaryRestrictions != null) {
       data['dietary_restrictions'] = dietaryRestrictions;
     }
@@ -111,6 +121,8 @@ class UserModel {
     double? weight,
     int? calorieTarget,
     int? proteinTarget,
+    int? carbTarget,
+    int? fatTarget,
     List<String>? dietaryRestrictions,
     String? primaryGoal,
     bool? notifyRecommendations,
@@ -129,6 +141,8 @@ class UserModel {
       weight: weight ?? this.weight,
       calorieTarget: calorieTarget ?? this.calorieTarget,
       proteinTarget: proteinTarget ?? this.proteinTarget,
+      carbTarget: carbTarget ?? this.carbTarget,
+      fatTarget: fatTarget ?? this.fatTarget,
       dietaryRestrictions: dietaryRestrictions ?? this.dietaryRestrictions,
       primaryGoal: primaryGoal ?? this.primaryGoal,
       language: language ?? this.language,

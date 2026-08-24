@@ -351,6 +351,10 @@ class S {
       _vi ? 'Mục tiêu calo hàng ngày' : 'Daily Calorie Target';
   String get targetProtein =>
       _vi ? 'Protein mục tiêu (g/ngày)' : 'Target Protein (g/day)';
+  String get targetCarb =>
+      _vi ? 'Carb mục tiêu (g/ngày)' : 'Target Carb (g/day)';
+  String get targetFat =>
+      _vi ? 'Chất béo mục tiêu (g/ngày)' : 'Target Fat (g/day)';
   String get dietaryRestrictionsLabel =>
       _vi ? 'Chế độ ăn đặc biệt' : 'Dietary Restrictions';
   String get securityLabel => _vi ? 'Bảo mật' : 'Security';
@@ -404,7 +408,7 @@ class S {
       'Alcoholic': 'Có cồn',
       'Beverage': 'Đồ uống',
       'Dairy Free': 'Không sữa',
-      'Egg Free': 'Không trứng',
+      'Non-Alcoholic': 'Không cồn',
       'Gluten Free': 'Không gluten',
       'Nut Free': 'Không hạt',
       'Pescetarian': 'Hải sản',
