@@ -25,6 +25,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   String? _error;
   final Set<String> _checked = {};
   final Set<String> _expanded = {};
+  final Set<String> _collapsedAisles = {};
   Timer? _poll;
 
   String get _date => widget.date ?? localIsoDate();
@@ -45,11 +46,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getStringList('$_checkedPrefix$_date') ?? const [];
     if (!mounted) return;
-    setState(() {
-      _checked
-        ..clear()
-        ..addAll(stored);
-    });
+    setState(() => _checked..clear()..addAll(stored));
   }
 
   Future<void> _saveChecked() async {
@@ -78,6 +75,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         _expanded.remove(key);
       }
     });
+    _saveChecked();
+  }
+
+  void _clearChecked() {
+    setState(() => _checked.clear());
     _saveChecked();
   }
 
@@ -136,232 +138,562 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     });
   }
 
+  int get _totalItems =>
+      _list?.groups.fold(0, (sum, g) => sum! + g.items.length) ?? 0;
+
+  int get _checkedCount =>
+      _list?.groups.fold<int>(
+        0,
+        (sum, g) => sum + g.items.where((it) => _checked.contains(it.key)).length,
+      ) ?? 0;
+
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    final colors = Theme.of(context).colorScheme;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final screenBg = isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFE5E7EB);
+    final cardBg = isDarkMode ? const Color(0xFF141414) : Colors.white;
+    final cardBorder = isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE5E7EB);
+    final secondaryText = isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final topPadding = MediaQuery.of(context).padding.top;
     final list = _list;
     final pending = list?.isPending == true;
+    final total = _totalItems;
+    final checked = _checkedCount;
+    final progress = total > 0 ? checked / total : 0.0;
 
-    final uncheckedGroups = <ShoppingListGroupModel>[];
-    final purchased = <ShoppingListItemModel>[];
-    for (final group in list?.groups ?? const <ShoppingListGroupModel>[]) {
-      final openItems = [
-        for (final item in group.items)
-          if (!_checked.contains(item.key)) item,
-      ];
-      for (final item in group.items) {
-        if (_checked.contains(item.key)) purchased.add(item);
-      }
-      if (openItems.isNotEmpty) {
-        uncheckedGroups.add(
-          ShoppingListGroupModel(
-            aisleKey: group.aisleKey,
-            aisle: group.aisle,
-            items: openItems,
-          ),
-        );
-      }
-    }
-    purchased.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-
-    final isEmpty = (list == null || list.groups.every((g) => g.items.isEmpty)) &&
-        !pending;
+    final isEmpty = (list == null || list.groups.every((g) => g.items.isEmpty)) && !pending;
 
     return Scaffold(
-      appBar: AppBar(title: Text(s.shoppingList)),
-      body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF059669)),
-            )
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+      backgroundColor: screenBg,
+      body: Column(
+        children: [
+          // ── Gradient header ────────────────────────────────────────────
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF059669), Color(0xFF047857)],
+              ),
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, topPadding + 12, 16, 12),
+                  child: Row(
                     children: [
-                      Text(_error!),
-                      OutlinedButton(onPressed: _load, child: Text(s.retry)),
-                    ],
-                  ),
-                )
-              : pending && (list?.groups.isEmpty ?? true)
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const CircularProgressIndicator(
-                            color: Color(0xFF059669),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          const SizedBox(height: 16),
-                          Text(s.organizingShoppingList),
-                        ],
+                          child: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
                       ),
-                    )
-                  : isEmpty
-                      ? Center(child: Text(s.emptyShoppingList))
-                      : ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (pending)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Row(
-                                  children: [
-                                    const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Color(0xFF059669),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(s.organizingShoppingList),
-                                  ],
-                                ),
+                            Text(
+                              s.shoppingList,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: -0.3,
                               ),
-                            for (final group in uncheckedGroups) ...[
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8, bottom: 4),
-                                child: Text(
-                                  group.aisle.isNotEmpty
-                                      ? group.aisle
-                                      : group.aisleKey,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    color: colors.primary,
-                                  ),
-                                ),
-                              ),
-                              for (final item in group.items)
-                                _ShoppingRow(
-                                  item: item,
-                                  checked: false,
-                                  expanded: _expanded.contains(item.key),
-                                  onToggleChecked: () => _toggleChecked(item.key),
-                                  onToggleExpanded: () {
-                                    setState(() {
-                                      if (_expanded.contains(item.key)) {
-                                        _expanded.remove(item.key);
-                                      } else {
-                                        _expanded.add(item.key);
-                                      }
-                                    });
-                                  },
-                                  servingsLabel: s.plannedServings,
-                                ),
-                            ],
-                            if (purchased.isNotEmpty) ...[
-                              const SizedBox(height: 16),
+                            ),
+                            if (!_loading && total > 0)
                               Text(
-                                s.purchasedItems,
+                                '$checked / $total ${s.purchasedItems.toLowerCase()}',
                                 style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: colors.outline,
+                                  fontSize: 12,
+                                  color: Colors.white.withValues(alpha: 0.8),
                                 ),
                               ),
-                              for (final item in purchased)
-                                _ShoppingRow(
-                                  item: item,
-                                  checked: true,
-                                  expanded: _expanded.contains(item.key),
-                                  onToggleChecked: () => _toggleChecked(item.key),
-                                  onToggleExpanded: () {
-                                    setState(() {
-                                      if (_expanded.contains(item.key)) {
-                                        _expanded.remove(item.key);
-                                      } else {
-                                        _expanded.add(item.key);
-                                      }
-                                    });
-                                  },
-                                  servingsLabel: s.plannedServings,
-                                ),
-                            ],
                           ],
                         ),
+                      ),
+                      if (_checked.isNotEmpty)
+                        GestureDetector(
+                          onTap: _clearChecked,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.remove_done_rounded, color: Colors.white, size: 15),
+                                const SizedBox(width: 5),
+                                Text(
+                                  s.purchasedItems,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                // Progress bar
+                if (!_loading && total > 0)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 5,
+                            backgroundColor: Colors.white.withValues(alpha: 0.25),
+                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // ── Body ──────────────────────────────────────────────────────
+          Expanded(
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF059669)),
+                  )
+                : _error != null
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline, size: 48, color: secondaryText),
+                            const SizedBox(height: 12),
+                            Text(
+                              _error!,
+                              style: TextStyle(color: secondaryText),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            OutlinedButton.icon(
+                              onPressed: _load,
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: Text(s.retry),
+                            ),
+                          ],
+                        ),
+                      )
+                    : pending && (list?.groups.isEmpty ?? true)
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const CircularProgressIndicator(color: Color(0xFF059669)),
+                                const SizedBox(height: 16),
+                                Text(
+                                  s.organizingShoppingList,
+                                  style: TextStyle(color: secondaryText),
+                                ),
+                              ],
+                            ),
+                          )
+                        : isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.shopping_cart_outlined, size: 56, color: secondaryText),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      s.emptyShoppingList,
+                                      style: TextStyle(color: secondaryText),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView(
+                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                                children: [
+                                  if (pending)
+                                    Container(
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF059669).withValues(alpha: isDarkMode ? 0.15 : 0.08),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const SizedBox(
+                                            width: 14,
+                                            height: 14,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Color(0xFF059669),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            s.organizingShoppingList,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              color: Color(0xFF059669),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  for (final group in list?.groups ?? <ShoppingListGroupModel>[])
+                                    _AisleSection(
+                                      group: group,
+                                      checked: _checked,
+                                      expanded: _expanded,
+                                      collapsed: _collapsedAisles.contains(group.aisleKey),
+                                      isDarkMode: isDarkMode,
+                                      cardBg: cardBg,
+                                      cardBorder: cardBorder,
+                                      secondaryText: secondaryText,
+                                      onToggleCollapse: () {
+                                        setState(() {
+                                          if (_collapsedAisles.contains(group.aisleKey)) {
+                                            _collapsedAisles.remove(group.aisleKey);
+                                          } else {
+                                            _collapsedAisles.add(group.aisleKey);
+                                          }
+                                        });
+                                      },
+                                      onToggleChecked: _toggleChecked,
+                                      onToggleExpanded: (key) {
+                                        setState(() {
+                                          if (_expanded.contains(key)) {
+                                            _expanded.remove(key);
+                                          } else {
+                                            _expanded.add(key);
+                                          }
+                                        });
+                                      },
+                                      servingsLabel: s.plannedServings,
+                                    ),
+                                ],
+                              ),
+          ),
+        ],
+      ),
     );
   }
 }
 
+// ── Aisle section ─────────────────────────────────────────────────────────────
+
+class _AisleSection extends StatelessWidget {
+  const _AisleSection({
+    required this.group,
+    required this.checked,
+    required this.expanded,
+    required this.collapsed,
+    required this.isDarkMode,
+    required this.cardBg,
+    required this.cardBorder,
+    required this.secondaryText,
+    required this.onToggleCollapse,
+    required this.onToggleChecked,
+    required this.onToggleExpanded,
+    required this.servingsLabel,
+  });
+
+  final ShoppingListGroupModel group;
+  final Set<String> checked;
+  final Set<String> expanded;
+  final bool collapsed;
+  final bool isDarkMode;
+  final Color cardBg;
+  final Color cardBorder;
+  final Color secondaryText;
+  final VoidCallback onToggleCollapse;
+  final void Function(String key) onToggleChecked;
+  final void Function(String key) onToggleExpanded;
+  final String Function(double) servingsLabel;
+
+  int get _doneCount => group.items.where((it) => checked.contains(it.key)).length;
+
+  @override
+  Widget build(BuildContext context) {
+    final aisleLabel = group.aisle.isNotEmpty ? group.aisle : group.aisleKey;
+    final total = group.items.length;
+    final done = _doneCount;
+    final allDone = done == total && total > 0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // ── Aisle header ─────────────────────────────────────────────
+          InkWell(
+            onTap: onToggleCollapse,
+            borderRadius: collapsed
+                ? BorderRadius.circular(16)
+                : const BorderRadius.vertical(top: Radius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: allDone
+                          ? const Color(0xFF059669).withValues(alpha: isDarkMode ? 0.25 : 0.12)
+                          : (isDarkMode
+                              ? const Color(0xFF2A2A2A)
+                              : const Color(0xFFF3F4F6)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      allDone ? Icons.check_rounded : Icons.storefront_outlined,
+                      size: 16,
+                      color: allDone ? const Color(0xFF059669) : secondaryText,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      aisleLabel,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: allDone
+                            ? secondaryText
+                            : Theme.of(context).colorScheme.onSurface,
+                        decoration: allDone ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: done > 0
+                          ? const Color(0xFF059669).withValues(alpha: isDarkMode ? 0.2 : 0.1)
+                          : (isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF3F4F6)),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '$done/$total',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: done > 0 ? const Color(0xFF059669) : secondaryText,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    collapsed ? Icons.expand_more_rounded : Icons.expand_less_rounded,
+                    size: 20,
+                    color: secondaryText,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Items ─────────────────────────────────────────────────────
+          if (!collapsed) ...[
+            Divider(height: 1, color: cardBorder),
+            for (int i = 0; i < group.items.length; i++) ...[
+              _ShoppingRow(
+                item: group.items[i],
+                isChecked: checked.contains(group.items[i].key),
+                isExpanded: expanded.contains(group.items[i].key),
+                isDarkMode: isDarkMode,
+                secondaryText: secondaryText,
+                cardBorder: cardBorder,
+                onToggleChecked: () => onToggleChecked(group.items[i].key),
+                onToggleExpanded: () => onToggleExpanded(group.items[i].key),
+                servingsLabel: servingsLabel,
+              ),
+              if (i < group.items.length - 1)
+                Divider(height: 1, indent: 52, color: cardBorder),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Shopping row ──────────────────────────────────────────────────────────────
+
 class _ShoppingRow extends StatelessWidget {
   const _ShoppingRow({
     required this.item,
-    required this.checked,
-    required this.expanded,
+    required this.isChecked,
+    required this.isExpanded,
+    required this.isDarkMode,
+    required this.secondaryText,
+    required this.cardBorder,
     required this.onToggleChecked,
     required this.onToggleExpanded,
     required this.servingsLabel,
   });
 
   final ShoppingListItemModel item;
-  final bool checked;
-  final bool expanded;
+  final bool isChecked;
+  final bool isExpanded;
+  final bool isDarkMode;
+  final Color secondaryText;
+  final Color cardBorder;
   final VoidCallback onToggleChecked;
   final VoidCallback onToggleExpanded;
   final String Function(double) servingsLabel;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final dim = checked ? 0.45 : 1.0;
-    return Opacity(
-      opacity: dim,
+    return AnimatedOpacity(
+      opacity: isChecked ? 0.45 : 1.0,
+      duration: const Duration(milliseconds: 200),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Checkbox(
-                value: checked,
-                activeColor: const Color(0xFF059669),
-                onChanged: (_) => onToggleChecked(),
+              // Checkbox
+              SizedBox(
+                width: 52,
+                height: 52,
+                child: Center(
+                  child: GestureDetector(
+                    onTap: onToggleChecked,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: isChecked
+                            ? const Color(0xFF059669)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isChecked
+                              ? const Color(0xFF059669)
+                              : (isDarkMode
+                                  ? const Color(0xFF4A4A4A)
+                                  : const Color(0xFFD1D5DB)),
+                          width: 2,
+                        ),
+                      ),
+                      child: isChecked
+                          ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                          : null,
+                    ),
+                  ),
+                ),
               ),
+              // Label
               Expanded(
-                child: InkWell(
-                  onTap: onToggleExpanded,
+                child: GestureDetector(
+                  onTap: item.sources.isEmpty ? null : onToggleExpanded,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Text(
                       item.displayLabel,
                       style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        decoration:
-                            checked ? TextDecoration.lineThrough : null,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        decoration: isChecked ? TextDecoration.lineThrough : null,
+                        decorationColor: secondaryText,
                       ),
                     ),
                   ),
                 ),
               ),
-              IconButton(
-                onPressed: onToggleExpanded,
-                icon: Icon(
-                  expanded ? Icons.expand_less : Icons.expand_more,
-                  color: colors.outline,
+              // Expand button
+              if (item.sources.isNotEmpty)
+                GestureDetector(
+                  onTap: onToggleExpanded,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      size: 20,
+                      color: secondaryText,
+                    ),
+                  ),
                 ),
-              ),
             ],
           ),
-          if (expanded)
+          // Sources expand
+          if (isExpanded && item.sources.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(left: 52, right: 8, bottom: 12),
+              padding: const EdgeInsets.fromLTRB(52, 0, 16, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (final source in item.sources)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        [
-                          if (source.recipeTitle.isNotEmpty) source.recipeTitle,
-                          servingsLabel(source.servings),
-                          if (source.line.isNotEmpty) source.line,
-                        ].join(' · '),
-                        style: TextStyle(
-                          color: colors.onSurfaceVariant,
-                          height: 1.3,
-                        ),
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 5, right: 8),
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: secondaryText,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              [
+                                if (source.recipeTitle.isNotEmpty) source.recipeTitle,
+                                servingsLabel(source.servings),
+                                if (source.line.isNotEmpty) source.line,
+                              ].join(' · '),
+                              style: TextStyle(
+                                color: secondaryText,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                 ],
