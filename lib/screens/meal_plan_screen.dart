@@ -6,6 +6,8 @@ import 'package:foodhub_mobile/screens/search_screen.dart';
 import 'package:foodhub_mobile/screens/shopping_list_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/meal_service.dart';
+import 'package:foodhub_mobile/widgets/app_top_bar.dart';
+import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 import 'package:foodhub_mobile/widgets/recipe_image.dart';
 
 class MealPlanScreen extends StatefulWidget {
@@ -25,8 +27,18 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   MealPlanModel? _plan;
   bool _loading = true;
   String? _error;
+  MealPlanItemModel? _selectedItem;
 
   String get _date => localIsoDate();
+
+  void _openRecipeDetail(MealPlanItemModel item) {
+    if (item.recipe == null) return;
+    setState(() => _selectedItem = item);
+  }
+
+  void _closeRecipeDetail() {
+    setState(() => _selectedItem = null);
+  }
 
   @override
   void initState() {
@@ -170,6 +182,31 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     final secondaryText = isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
     final topPadding = MediaQuery.of(context).padding.top;
 
+    if (_selectedItem != null) {
+      final recipe = _selectedItem!.recipe!;
+      final theme = recipeCardTheme(recipe.id, recipe.labels);
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _closeRecipeDetail();
+        },
+        child: Scaffold(
+          body: Column(
+            children: [
+              AppTopBar(onOpenProfile: () {}),
+              Expanded(
+                child: RecipeDetailView(
+                  recipe: recipe.toDetailData(),
+                  cardColor: theme.start,
+                  onBack: _closeRecipeDetail,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: screenBg,
       body: Column(
@@ -297,6 +334,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                               cardBorder: cardBorder,
                               secondaryText: secondaryText,
                               onAdd: () => _pickFromSuggestions(slot),
+                              onViewDetail: _openRecipeDetail,
                               onRemoveItem: (item) async {
                                 final plan = _plan!;
                                 final slots = [
@@ -383,6 +421,7 @@ class _PlanSlotCard extends StatelessWidget {
     required this.onAdd,
     required this.onRemoveItem,
     required this.onServings,
+    required this.onViewDetail,
     this.onDeleteSlot,
   });
 
@@ -394,6 +433,7 @@ class _PlanSlotCard extends StatelessWidget {
   final VoidCallback onAdd;
   final ValueChanged<MealPlanItemModel> onRemoveItem;
   final void Function(MealPlanItemModel item, double servings) onServings;
+  final ValueChanged<MealPlanItemModel> onViewDetail;
   final VoidCallback? onDeleteSlot;
 
   @override
@@ -501,6 +541,9 @@ class _PlanSlotCard extends StatelessWidget {
                           ? () => onServings(item, item.servings - 1)
                           : null,
                       onIncrease: () => onServings(item, item.servings + 1),
+                      onViewDetail: item.recipe != null
+                          ? () => onViewDetail(item)
+                          : null,
                       servingsSuffix: s.servingsSuffix,
                     ),
                 ],
@@ -522,6 +565,7 @@ class _MealItem extends StatelessWidget {
     required this.onIncrease,
     required this.servingsSuffix,
     this.onDecrease,
+    this.onViewDetail,
   });
 
   final MealPlanItemModel item;
@@ -531,6 +575,7 @@ class _MealItem extends StatelessWidget {
   final VoidCallback onRemove;
   final VoidCallback? onDecrease;
   final VoidCallback onIncrease;
+  final VoidCallback? onViewDetail;
   final String servingsSuffix;
 
   @override
@@ -541,17 +586,20 @@ class _MealItem extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
           child: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: SizedBox(
-                  width: 52,
-                  height: 52,
-                  child: RecipeImageHeader(
-                    imageUrl: item.recipe?.imageUrl,
-                    recipeId: item.recipeId,
-                    labels: item.recipe?.labels ?? const [],
+              GestureDetector(
+                onTap: onViewDetail,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SizedBox(
+                    width: 52,
                     height: 52,
-                    borderRadius: BorderRadius.circular(10),
+                    child: RecipeImageHeader(
+                      imageUrl: item.recipe?.imageUrl,
+                      recipeId: item.recipeId,
+                      labels: item.recipe?.labels ?? const [],
+                      height: 52,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
               ),
@@ -560,15 +608,18 @@ class _MealItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item.recipe?.title ?? '#${item.recipeId}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurface,
+                    GestureDetector(
+                      onTap: onViewDetail,
+                      child: Text(
+                        item.recipe?.title ?? '#${item.recipeId}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Row(

@@ -333,6 +333,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                             : ListView(
                                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                                 children: [
+                                  // ── All-done banner ─────────────────────
+                                  if (total > 0 && checked == total)
+                                    _AllDoneBanner(label: s.allDoneBanner),
                                   if (pending)
                                     Container(
                                       margin: const EdgeInsets.only(bottom: 12),
@@ -396,6 +399,54 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                                     ),
                                 ],
                               ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── All-done banner ───────────────────────────────────────────────────────────
+
+class _AllDoneBanner extends StatelessWidget {
+  const _AllDoneBanner({
+    required this.label,
+  });
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFD1FAE5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF6EE7B7)),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: Color(0xFF059669),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.check_rounded, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF065F46),
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                letterSpacing: -0.2,
+              ),
+            ),
           ),
         ],
       ),

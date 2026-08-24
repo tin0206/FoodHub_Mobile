@@ -93,6 +93,8 @@ class S {
   String get organizingShoppingList =>
       _vi ? 'Đang gom nguyên liệu…' : 'Organizing your shopping list…';
   String get purchasedItems => _vi ? 'Đã mua' : 'Purchased';
+  String get allDoneBanner => _vi ? 'Xong rồi — Chúc nấu ăn ngon!' : 'All done — happy cooking!';
+  String get clearPurchased => _vi ? 'Xoá đã mua' : 'Clear purchased';
   String plannedServings(double n) {
     final label = n % 1 == 0 ? n.toStringAsFixed(0) : n.toStringAsFixed(1);
     return _vi ? '$label khẩu phần' : '$label servings';

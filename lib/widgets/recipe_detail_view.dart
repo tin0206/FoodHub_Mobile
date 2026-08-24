@@ -1352,7 +1352,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
               ),
             )
           else
-            Flexible(
+            Expanded(
               child: Stack(
                 children: [
                   Positioned.fill(
