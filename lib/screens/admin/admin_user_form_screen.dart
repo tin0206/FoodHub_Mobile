@@ -31,6 +31,8 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
   late final TextEditingController _weightCtrl;
   late final TextEditingController _calorieCtrl;
   late final TextEditingController _proteinCtrl;
+  late final TextEditingController _carbCtrl;
+  late final TextEditingController _fatCtrl;
 
   late String _role;
   late bool _isActive;
@@ -69,6 +71,10 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
         text: u?.calorieTarget != null ? '${u!.calorieTarget}' : '');
     _proteinCtrl = TextEditingController(
         text: u?.proteinTarget != null ? '${u!.proteinTarget}' : '');
+    _carbCtrl = TextEditingController(
+        text: u?.carbTarget != null ? '${u!.carbTarget}' : '');
+    _fatCtrl = TextEditingController(
+        text: u?.fatTarget != null ? '${u!.fatTarget}' : '');
     _role = u?.role ?? 'user';
     _isActive = u?.isActive ?? true;
     _dietaryRestrictions = {...?u?.dietaryRestrictions};
@@ -85,6 +91,8 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
     _weightCtrl.dispose();
     _calorieCtrl.dispose();
     _proteinCtrl.dispose();
+    _carbCtrl.dispose();
+    _fatCtrl.dispose();
     super.dispose();
   }
 
@@ -107,6 +115,10 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
           'calorie_target': int.parse(_calorieCtrl.text.trim()),
         if (_proteinCtrl.text.trim().isNotEmpty)
           'protein_target': int.parse(_proteinCtrl.text.trim()),
+        if (_carbCtrl.text.trim().isNotEmpty)
+          'carb_target': int.parse(_carbCtrl.text.trim()),
+        if (_fatCtrl.text.trim().isNotEmpty)
+          'fat_target': int.parse(_fatCtrl.text.trim()),
         if (_primaryGoal != null) 'primary_goal': _primaryGoal,
         'dietary_restrictions': _dietaryRestrictions.toList(),
       };
@@ -126,6 +138,8 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
         _weightCtrl.clear();
         _calorieCtrl.clear();
         _proteinCtrl.clear();
+        _carbCtrl.clear();
+        _fatCtrl.clear();
         setState(() {
           _isSaving = false;
           _role = 'user';
@@ -449,6 +463,42 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
                         keyboardType: TextInputType.number,
                         decoration: fieldDec('Protein Target (g)',
                             icon: Icons.fitness_center_rounded),
+                        validator: (v) {
+                          if (v != null && v.isNotEmpty) {
+                            if (int.tryParse(v) == null) return 'Invalid';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _carbCtrl,
+                        style: TextStyle(fontSize: 14, color: textPrimary),
+                        keyboardType: TextInputType.number,
+                        decoration: fieldDec('Carb Target (g)',
+                            icon: Icons.grain_rounded),
+                        validator: (v) {
+                          if (v != null && v.isNotEmpty) {
+                            if (int.tryParse(v) == null) return 'Invalid';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _fatCtrl,
+                        style: TextStyle(fontSize: 14, color: textPrimary),
+                        keyboardType: TextInputType.number,
+                        decoration: fieldDec('Fat Target (g)',
+                            icon: Icons.water_drop_outlined),
                         validator: (v) {
                           if (v != null && v.isNotEmpty) {
                             if (int.tryParse(v) == null) return 'Invalid';

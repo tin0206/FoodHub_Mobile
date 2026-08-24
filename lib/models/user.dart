@@ -16,9 +16,6 @@ class UserModel {
     this.fatTarget,
     this.dietaryRestrictions = const [],
     this.primaryGoal,
-    this.notifyRecommendations = true,
-    this.notifyNewFeatures = true,
-    this.notifyWeeklySummary = true,
   });
 
   final int id;
@@ -37,9 +34,6 @@ class UserModel {
   final int? fatTarget;
   final List<String> dietaryRestrictions;
   final String? primaryGoal;
-  final bool notifyRecommendations;
-  final bool notifyNewFeatures;
-  final bool notifyWeeklySummary;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
@@ -63,9 +57,6 @@ class UserModel {
               .toList() ??
           const [],
       primaryGoal: json['primary_goal'] as String?,
-      notifyRecommendations: json['notify_recommendations'] as bool? ?? true,
-      notifyNewFeatures: json['notify_new_features'] as bool? ?? true,
-      notifyWeeklySummary: json['notify_weekly_summary'] as bool? ?? true,
     );
   }
 
@@ -79,9 +70,6 @@ class UserModel {
     int? fatTarget,
     List<String>? dietaryRestrictions,
     String? primaryGoal,
-    bool? notifyRecommendations,
-    bool? notifyNewFeatures,
-    bool? notifyWeeklySummary,
     String? language,
     String? theme,
   }) {
@@ -97,15 +85,6 @@ class UserModel {
       data['dietary_restrictions'] = dietaryRestrictions;
     }
     if (primaryGoal != null) data['primary_goal'] = primaryGoal;
-    if (notifyRecommendations != null) {
-      data['notify_recommendations'] = notifyRecommendations;
-    }
-    if (notifyNewFeatures != null) {
-      data['notify_new_features'] = notifyNewFeatures;
-    }
-    if (notifyWeeklySummary != null) {
-      data['notify_weekly_summary'] = notifyWeeklySummary;
-    }
     if (language != null) {
       data['language'] = language;
     }
@@ -125,9 +104,6 @@ class UserModel {
     int? fatTarget,
     List<String>? dietaryRestrictions,
     String? primaryGoal,
-    bool? notifyRecommendations,
-    bool? notifyNewFeatures,
-    bool? notifyWeeklySummary,
     String? language,
     String? theme,
   }) {
@@ -147,10 +123,6 @@ class UserModel {
       primaryGoal: primaryGoal ?? this.primaryGoal,
       language: language ?? this.language,
       theme: theme ?? this.theme,
-      notifyRecommendations:
-          notifyRecommendations ?? this.notifyRecommendations,
-      notifyNewFeatures: notifyNewFeatures ?? this.notifyNewFeatures,
-      notifyWeeklySummary: notifyWeeklySummary ?? this.notifyWeeklySummary,
     );
   }
 }

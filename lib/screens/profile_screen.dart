@@ -75,17 +75,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late String _snapFat;
   late String _snapLanguage;
   late String _snapTheme;
-  late bool _snapNotifyRecs;
-  late bool _snapNotifyFeatures;
-  late bool _snapNotifyWeekly;
 
   late bool _pendingDarkMode;
   late String _pendingLanguage;
 
   bool _isSaving = false;
-  bool _notifyRecommendations = true;
-  bool _notifyNewFeatures = true;
-  bool _notifyWeeklySummary = true;
   String? _ageError;
   String? _weightError;
   String? _calorieError;
@@ -143,9 +137,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _snapFat = user.fatTarget?.toString() ?? '';
     _snapLanguage = user.language ?? 'en';
     _snapTheme = user.theme;
-    _notifyRecommendations = _snapNotifyRecs = user.notifyRecommendations;
-    _notifyNewFeatures = _snapNotifyFeatures = user.notifyNewFeatures;
-    _notifyWeeklySummary = _snapNotifyWeekly = user.notifyWeeklySummary;
   }
 
   bool get _hasChanges {
@@ -158,9 +149,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_fatTargetController.text.trim() != _snapFat) return true;
     if (_pendingLanguage != _snapLanguage) return true;
     if (_pendingDarkMode != (_snapTheme == 'dark')) return true;
-    if (_notifyRecommendations != _snapNotifyRecs) return true;
-    if (_notifyNewFeatures != _snapNotifyFeatures) return true;
-    if (_notifyWeeklySummary != _snapNotifyWeekly) return true;
     final userDiet = widget.user.dietaryRestrictions.toSet();
     if (widget.selectedDietaryRestrictions.length != userDiet.length ||
         !widget.selectedDietaryRestrictions.containsAll(userDiet)) return true;
@@ -273,9 +261,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'primary_goal': widget.primaryGoal,
         'language': _pendingLanguage,
         'theme': _pendingDarkMode ? 'dark' : 'light',
-        'notify_recommendations': _notifyRecommendations,
-        'notify_new_features': _notifyNewFeatures,
-        'notify_weekly_summary': _notifyWeeklySummary,
       });
 
       if (!mounted) return;
@@ -351,9 +336,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _proteinTargetController.text = _snapProtein;
       _carbTargetController.text = _snapCarb;
       _fatTargetController.text = _snapFat;
-      _notifyRecommendations = _snapNotifyRecs;
-      _notifyNewFeatures = _snapNotifyFeatures;
-      _notifyWeeklySummary = _snapNotifyWeekly;
       _ageError = null;
       _weightError = null;
       _carbError = null;
