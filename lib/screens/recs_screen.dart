@@ -108,6 +108,7 @@ class _RecsScreenState extends State<RecsScreen> {
                 : "Hello! I'm your culinary companion. Tell me what you'd like to cook.",
             isUser: false,
             recipes: response.recipes,
+            options: response.options,
           ),
         );
         if (response.reply.isNotEmpty) {
@@ -422,6 +423,7 @@ class _RecsScreenState extends State<RecsScreen> {
             text: response.reply,
             isUser: false,
             recipes: response.recipes,
+            options: response.options,
           ),
         );
         _isSending = false;
@@ -445,6 +447,29 @@ class _RecsScreenState extends State<RecsScreen> {
       });
       _scrollToBottom();
     }
+  }
+
+  Future<void> _sendOptionSelection(ChatOptionModel option) async {
+    if (_isSending || _isBootstrapping) return;
+    if (_sessionId == null || _sessionId!.isEmpty) return;
+
+    // Clear options from the last AI message so buttons disappear after tap.
+    setState(() {
+      if (_messages.isNotEmpty && !_messages.last.isUser) {
+        final last = _messages.last;
+        _messages[_messages.length - 1] = _ChatMessage(
+          text: last.text,
+          isUser: false,
+          recipes: last.recipes,
+        );
+      }
+      _messages.add(_ChatMessage(text: option.label, isUser: true));
+      _lastSentMessage = option.label;
+      _lastSentIngredients = const [];
+      _isSending = true;
+    });
+    _scrollToBottom();
+    await _sendToAi(option.label, []);
   }
 
   Future<void> _openCaptureOverlay() async {
@@ -568,11 +593,12 @@ class _RecsScreenState extends State<RecsScreen> {
                     );
                   }
                   final message = _messages[messageIndex];
-                  final isLatestAiReply =
+                  final isLatestAiMessage =
                       !busy &&
                       !message.isUser &&
-                      messageIndex == _messages.length - 1 &&
-                      _lastSentMessage != null;
+                      messageIndex == _messages.length - 1;
+                  final isLatestAiReply =
+                      isLatestAiMessage && _lastSentMessage != null;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: _ChatBubble(
@@ -580,6 +606,7 @@ class _RecsScreenState extends State<RecsScreen> {
                       isDarkMode: isDarkMode,
                       onRerun: isLatestAiReply ? _rerunLast : null,
                       onOpenRecipe: _openRecipeFromChat,
+                      onSelectOption: isLatestAiMessage ? _sendOptionSelection : null,
                     ),
                   );
                 },
@@ -857,11 +884,13 @@ class _ChatMessage {
     required this.text,
     required this.isUser,
     this.recipes = const [],
+    this.options = const [],
   });
 
   final String text;
   final bool isUser;
   final List<RagRecipeModel> recipes;
+  final List<ChatOptionModel> options;
 }
 
 class _ChatBubble extends StatelessWidget {
@@ -870,12 +899,14 @@ class _ChatBubble extends StatelessWidget {
     required this.isDarkMode,
     this.onOpenRecipe,
     this.onRerun,
+    this.onSelectOption,
   });
 
   final _ChatMessage message;
   final bool isDarkMode;
   final void Function(RecipeLinkRef link)? onOpenRecipe;
   final VoidCallback? onRerun;
+  final void Function(ChatOptionModel option)? onSelectOption;
 
   @override
   Widget build(BuildContext context) {
@@ -995,7 +1026,99 @@ class _ChatBubble extends StatelessWidget {
             ),
           ],
         ),
-        if (onRerun != null)
+        if (message.options.isNotEmpty && onSelectOption != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 38, top: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: message.options.map((opt) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 7),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Material(
+                      color: isDarkMode
+                          ? const Color(0xFF1A1A1A)
+                          : Colors.white,
+                      child: InkWell(
+                        onTap: () => onSelectOption!(opt),
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: const Color(0xFF059669).withValues(alpha: 0.45),
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF059669),
+                                  shape: BoxShape.circle,
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '${opt.index}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      opt.label,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDarkMode
+                                            ? const Color(0xFFE2E8F0)
+                                            : const Color(0xFF111827),
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                    if (opt.rationale.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        opt.rationale,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDarkMode
+                                              ? const Color(0xFF64748B)
+                                              : const Color(0xFF9CA3AF),
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: Color(0xFF059669),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        if (onRerun != null && message.options.isEmpty)
           Padding(
             padding: const EdgeInsets.only(left: 38, top: 4),
             child: TextButton.icon(

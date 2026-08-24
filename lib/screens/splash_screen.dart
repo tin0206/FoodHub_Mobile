@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/models/user.dart';
+import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
 import 'package:foodhub_mobile/screens/login_screen.dart';
 import 'package:foodhub_mobile/screens/main_shell_screen.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
@@ -44,9 +45,11 @@ class _SplashScreenState extends State<SplashScreen>
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),
-        pageBuilder: (_, _, _) => user == null
-            ? const LoginScreen()
-            : MainShellScreen(initialUser: user!),
+        pageBuilder: (_, _, _) {
+          if (user == null) return const LoginScreen();
+          if (user!.role == 'admin') return AdminShellScreen(user: user!);
+          return MainShellScreen(initialUser: user!);
+        },
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
       ),

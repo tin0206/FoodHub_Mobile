@@ -76,6 +76,34 @@ class AiService {
     return ChatResponseModel.fromJson(payload);
   }
 
+  Future<ChatResponseModel> selectOption({
+    required String sessionId,
+    required int selectedOptionIndex,
+    List<ChatMessageModel> conversationHistory = const [],
+    List<String> dietaryRestrictions = const [],
+    String? primaryGoal,
+  }) async {
+    final accepted = await _api.post(
+      '/ai/chat',
+      body: {
+        'session_id': sessionId,
+        'selected_option_index': selectedOptionIndex,
+        'message': null,
+        'conversation_history':
+            conversationHistory.map((m) => m.toJson()).toList(),
+        'dietary_restrictions': dietaryRestrictions,
+        if (primaryGoal != null && primaryGoal.isNotEmpty)
+          'primary_goal': primaryGoal,
+      },
+    );
+    final job = AiJobAcceptedModel.fromJson(accepted as Map<String, dynamic>);
+    final detail = await _waitForResult(job.taskId, timeout: _chatTimeout);
+    final payload = Map<String, dynamic>.from(detail.outputPayload ?? {});
+    payload.putIfAbsent('task_id', () => detail.taskId);
+    payload.putIfAbsent('session_id', () => job.sessionId ?? sessionId);
+    return ChatResponseModel.fromJson(payload);
+  }
+
   Future<DishRecognitionModel> recognizeDish({
     required List<int> bytes,
     required String filename,

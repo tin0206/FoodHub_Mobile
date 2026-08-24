@@ -75,6 +75,25 @@ class RagRecipeModel {
   }
 }
 
+class ChatOptionModel {
+  const ChatOptionModel({
+    required this.index,
+    required this.label,
+    this.rationale = '',
+  });
+
+  final int index;
+  final String label;
+  final String rationale;
+
+  factory ChatOptionModel.fromJson(Map<String, dynamic> json) =>
+      ChatOptionModel(
+        index: (json['index'] as num?)?.toInt() ?? 0,
+        label: json['label'] as String? ?? '',
+        rationale: json['rationale'] as String? ?? '',
+      );
+}
+
 class ChatResponseModel {
   const ChatResponseModel({
     required this.taskId,
@@ -82,6 +101,7 @@ class ChatResponseModel {
     this.phase = 'gather',
     this.sessionId,
     this.recipes = const [],
+    this.options = const [],
     this.knownInfo = const {},
   });
 
@@ -90,6 +110,7 @@ class ChatResponseModel {
   final String phase;
   final String? sessionId;
   final List<RagRecipeModel> recipes;
+  final List<ChatOptionModel> options;
   final Map<String, dynamic> knownInfo;
 
   factory ChatResponseModel.fromJson(Map<String, dynamic> json) {
@@ -101,6 +122,11 @@ class ChatResponseModel {
       recipes: (json['recipes'] as List<dynamic>?)
               ?.whereType<Map>()
               .map((e) => RagRecipeModel.fromJson(Map<String, dynamic>.from(e)))
+              .toList() ??
+          const [],
+      options: (json['options'] as List<dynamic>?)
+              ?.whereType<Map>()
+              .map((e) => ChatOptionModel.fromJson(Map<String, dynamic>.from(e)))
               .toList() ??
           const [],
       knownInfo: json['known_info'] is Map<String, dynamic>
