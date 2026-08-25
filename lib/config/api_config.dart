@@ -1,7 +1,13 @@
 class ApiConfig {
   ApiConfig._();
 
-  static const String baseUrl = String.fromEnvironment('API_BASE_URL');
+  static String _baseUrl = const String.fromEnvironment('API_BASE_URL');
+
+  static String get baseUrl => _baseUrl;
+
+  // Tests override this to point at the staging API.
+  // ignore: avoid_setters_without_getters
+  static set baseUrl(String url) => _baseUrl = url;
 
   static String get apiOrigin {
     return baseUrl.replaceFirst(RegExp(r'/api/v1/?$'), '');

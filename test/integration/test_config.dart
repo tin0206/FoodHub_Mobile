@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:foodhub_mobile/config/api_config.dart';
 import 'package:foodhub_mobile/services/token_storage.dart';
 
 /// Staging credentials for live-backend integration tests.
@@ -78,15 +79,23 @@ class TestCredentials {
     return result;
   }
 
-  static String? _readRootApiBaseUrl() =>
-      _readKeyValueFile('.env')['API_BASE_URL'];
+  /// Fallback: read API_BASE_URL from config.json (dev config).
+  static String? _readRootApiBaseUrl() {
+    final file = File('config.json');
+    if (!file.existsSync()) return null;
+    try {
+      final map = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+      return map['API_BASE_URL'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
-/// Points [ApiConfig.baseUrl] (and therefore every real service under test)
-/// at the staging API for the duration of this test isolate. Synchronous —
-/// no asset bundle involved, so nothing needs to be declared in pubspec.yaml.
+/// Points [ApiConfig.baseUrl] at the staging API for the duration of this
+/// test isolate. No asset bundle or plugin involved.
 void initApiConfigForTests(String baseUrl) {
-  dotenv.loadFromString(envString: 'API_BASE_URL=$baseUrl');
+  ApiConfig.baseUrl = baseUrl;
 }
 
 /// An in-memory stand-in for [TokenStorage] (which normally persists to
