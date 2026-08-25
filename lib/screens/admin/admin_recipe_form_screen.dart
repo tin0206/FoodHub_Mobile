@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/api_config.dart';
@@ -6,7 +8,8 @@ import 'package:foodhub_mobile/screens/admin/admin_recipe_detail_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
 import 'package:foodhub_mobile/services/admin_service.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
-import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:foodhub_mobile/widgets/recipe_detail_view.dart' show kAvailableLabels;
 
 class AdminRecipeFormScreen extends StatefulWidget {
   const AdminRecipeFormScreen({
@@ -26,21 +29,26 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
   bool _isSaving = false;
 
   late final TextEditingController _titleCtrl;
-  late final TextEditingController _imageUrlCtrl;
   late final TextEditingController _servingsCtrl;
   late final List<TextEditingController> _ingredientCtrl;
   late final List<TextEditingController> _stepCtrl;
   late final Set<String> _selectedLabels;
 
+  String? _existingImageUrl;
+  Uint8List? _pendingImageBytes;
+  String _pendingImageFilename = 'recipe.jpg';
+
   bool get _isEditing => widget.recipe != null;
   bool get _isCatalog => widget.recipe?.createdBy == null && _isEditing;
+  bool get _hasImage =>
+      _pendingImageBytes != null ||
+      (_existingImageUrl != null && _existingImageUrl!.isNotEmpty);
 
   @override
   void initState() {
     super.initState();
     final r = widget.recipe;
     _titleCtrl = TextEditingController(text: r?.title ?? '');
-    _imageUrlCtrl = TextEditingController(text: r?.imageUrl ?? '');
     _servingsCtrl = TextEditingController(
         text: r?.estimatedServings != null ? '${r!.estimatedServings}' : '');
     _ingredientCtrl = r != null && r.ingredients.isNotEmpty
@@ -50,12 +58,12 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
         ? r.directions.map((s) => TextEditingController(text: s)).toList()
         : [TextEditingController()];
     _selectedLabels = r != null ? Set.from(r.dietaryRestrictions) : {};
+    _existingImageUrl = r?.imageUrl;
   }
 
   @override
   void dispose() {
     _titleCtrl.dispose();
-    _imageUrlCtrl.dispose();
     _servingsCtrl.dispose();
     for (final c in _ingredientCtrl) {
       c.dispose();
@@ -66,11 +74,23 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (file == null || !mounted) return;
+    final bytes = await file.readAsBytes();
+    setState(() {
+      _pendingImageBytes = bytes;
+      _pendingImageFilename = file.name.isNotEmpty ? file.name : 'recipe.jpg';
+    });
+  }
+
   Future<void> _save() async {
     if (_isSaving) return;
 
     final title = _titleCtrl.text.trim();
-    final imageUrl = _imageUrlCtrl.text.trim();
     final ingredients = _ingredientCtrl
         .map((c) => c.text.trim())
         .where((s) => s.isNotEmpty)
@@ -101,7 +121,6 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
           directions: steps,
           dietaryRestrictions: _selectedLabels.toList(),
           estimatedServings: servings,
-          imageUrl: imageUrl.isNotEmpty ? imageUrl : null,
         );
       } else {
         saved = await admin.createRecipe(
@@ -110,9 +129,25 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
           directions: steps,
           dietaryRestrictions: _selectedLabels.toList(),
           estimatedServings: servings,
-          imageUrl: imageUrl.isNotEmpty ? imageUrl : null,
         );
       }
+
+      if (_pendingImageBytes != null && _pendingImageBytes!.isNotEmpty) {
+        try {
+          await admin.uploadRecipeImage(
+            saved.id,
+            _pendingImageBytes!,
+            _pendingImageFilename,
+          );
+        } on ApiException catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Image upload failed: ${e.message}')),
+            );
+          }
+        }
+      }
+
       if (!mounted) return;
 
       // Catalog clone: backend returned a new recipe with a different id
@@ -160,8 +195,6 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
         );
-
-    final imageUrl = _imageUrlCtrl.text.trim();
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF3F4F6),
@@ -220,7 +253,7 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                       ),
                     ),
 
-                  // ── Image URL ───────────────────────────────────────────
+                  // ── Image ───────────────────────────────────────────────
                   _AdminSectionCard(
                     isDark: isDark,
                     panelColor: panelColor,
@@ -232,56 +265,95 @@ class _AdminRecipeFormScreenState extends State<AdminRecipeFormScreen> {
                             const Icon(Icons.image_outlined,
                                 size: 15, color: kAdminAccent),
                             const SizedBox(width: 6),
-                            Text('Image URL',
+                            Text('Image',
                                 style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
                                     color: textColor)),
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: _pickImage,
+                              child: Text(
+                                _hasImage ? 'Change Photo' : 'Add Photo',
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: kAdminAccent),
+                              ),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _imageUrlCtrl,
-                          style: TextStyle(fontSize: 13, color: textColor),
-                          onChanged: (_) => setState(() {}),
-                          decoration: inlineFieldDec(hint: 'https://…'),
-                          keyboardType: TextInputType.url,
-                        ),
-                        Builder(builder: (ctx) {
-                          final resolved = ApiConfig.resolveImageUrl(imageUrl.isNotEmpty ? imageUrl : null);
-                          if (resolved.isEmpty) return const SizedBox.shrink();
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: CachedNetworkImage(
-                                imageUrl: resolved,
-                                height: 120,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                placeholder: (c, u) => Container(
-                                  height: 120,
-                                  color: isDark
-                                      ? const Color(0xFF1A1A2E)
-                                      : const Color(0xFFEEF0FF),
-                                ),
-                                errorWidget: (c, u, e) => Container(
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? const Color(0xFF1A1A2E)
-                                        : const Color(0xFFEEF0FF),
-                                    borderRadius: BorderRadius.circular(8),
+                        if (_hasImage) ...[
+                          const SizedBox(height: 10),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: _pendingImageBytes != null
+                                ? Image.memory(
+                                    _pendingImageBytes!,
+                                    height: 140,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  )
+                                : CachedNetworkImage(
+                                    imageUrl: ApiConfig.resolveImageUrl(_existingImageUrl),
+                                    height: 140,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    placeholder: (c, u) => Container(
+                                      height: 140,
+                                      color: isDark
+                                          ? const Color(0xFF1A1A2E)
+                                          : const Color(0xFFEEF0FF),
+                                    ),
+                                    errorWidget: (c, u, e) => Container(
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? const Color(0xFF1A1A2E)
+                                            : const Color(0xFFEEF0FF),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Center(
+                                        child: Icon(Icons.broken_image_outlined,
+                                            color: kAdminAccent),
+                                      ),
+                                    ),
                                   ),
-                                  child: const Center(
-                                    child: Icon(Icons.broken_image_outlined,
-                                        color: kAdminAccent),
-                                  ),
+                          ),
+                        ] else ...[
+                          const SizedBox(height: 10),
+                          GestureDetector(
+                            onTap: _pickImage,
+                            child: Container(
+                              height: 90,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? const Color(0xFF1E1E1E)
+                                    : const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: kAdminAccent.withValues(alpha: 0.3),
+                                    width: 1.5,
+                                    style: BorderStyle.solid),
+                              ),
+                              child: const Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.add_photo_alternate_outlined,
+                                        size: 28, color: kAdminAccent),
+                                    SizedBox(height: 6),
+                                    Text('Tap to add image',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: kAdminAccent)),
+                                  ],
                                 ),
                               ),
                             ),
-                          );
-                        }),
+                          ),
+                        ],
                       ],
                     ),
                   ),

@@ -117,6 +117,26 @@ class AdminService {
     await _api.delete('/recipes/$id');
   }
 
+  Future<String?> uploadRecipeImage(int id, List<int> bytes, String filename) async {
+    final data = await _api.postMultipart(
+      '/recipes/$id/image',
+      fieldName: 'file',
+      bytes: bytes,
+      filename: filename,
+      contentType: _imageContentType(filename),
+    );
+    if (data is Map<String, dynamic>) return data['image_url'] as String?;
+    return null;
+  }
+
+  static String _imageContentType(String filename) {
+    final ext = filename.toLowerCase().split('.').last;
+    if (ext == 'png') return 'image/png';
+    if (ext == 'gif') return 'image/gif';
+    if (ext == 'webp') return 'image/webp';
+    return 'image/jpeg';
+  }
+
   Future<RecipeModel> setRecipeVisibility(int id, String visibility) async {
     final data = await _api.patch(
       '/admin/recipes/$id/visibility',
