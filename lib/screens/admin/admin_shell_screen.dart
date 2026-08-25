@@ -35,7 +35,7 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
     final u = widget.user;
     _isDarkMode = u.theme == 'dark';
     _dietaryRestrictions = {...u.dietaryRestrictions};
-    _primaryGoal = u.primaryGoal ?? 'Balanced Nutrition';
+    _primaryGoal = u.primaryGoal ?? '';
     _language = u.language ?? 'en';
   }
 

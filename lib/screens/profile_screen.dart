@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/user.dart';
+import 'package:foodhub_mobile/screens/reset_password_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
+import 'package:foodhub_mobile/widgets/password_requirements.dart';
 
 const _kDietaryTags = [
   'Dairy Free',
@@ -293,6 +295,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showChangePasswordSheet() {
+    if (widget.user.isGoogleOnly) {
+      _showSetFirstPasswordSheet();
+      return;
+    }
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -305,6 +311,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         secondaryText: _secondaryText,
         fieldFill: _fieldFill,
         fieldBorder: _fieldBorder,
+      ),
+    );
+  }
+
+  void _showSetFirstPasswordSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _SetFirstPasswordSheet(
+        email: widget.user.email,
+        isDarkMode: widget.isDarkMode,
+        cardBackground: _cardBackground,
+        primaryText: _primaryText,
+        secondaryText: _secondaryText,
       ),
     );
   }
@@ -1290,6 +1311,7 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
   bool _obscureNew = true;
   bool _obscureConfirm = true;
   bool _isSaving = false;
+  bool _newTouched = false;
 
   String? _currentError;
   String? _newError;
@@ -1395,8 +1417,15 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
             borderColor: widget.fieldBorder,
             isDarkMode: widget.isDarkMode,
             onToggle: () => setState(() => _obscureNew = !_obscureNew),
-            onChanged: (_) => setState(() => _newError = null),
+            onChanged: (_) => setState(() {
+              _newError = null;
+              _newTouched = true;
+            }),
           ),
+          if (_newTouched) ...[
+            const SizedBox(height: 8),
+            PasswordRequirements(password: _newCtrl.text),
+          ],
           const SizedBox(height: 12),
           _PwField(
             controller: _confirmCtrl,
@@ -1442,6 +1471,120 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Set First Password Sheet (Google-only users) ──────────────────────────────
+
+class _SetFirstPasswordSheet extends StatefulWidget {
+  const _SetFirstPasswordSheet({
+    required this.email,
+    required this.isDarkMode,
+    required this.cardBackground,
+    required this.primaryText,
+    required this.secondaryText,
+  });
+
+  final String email;
+  final bool isDarkMode;
+  final Color cardBackground;
+  final Color primaryText;
+  final Color secondaryText;
+
+  @override
+  State<_SetFirstPasswordSheet> createState() => _SetFirstPasswordSheetState();
+}
+
+class _SetFirstPasswordSheetState extends State<_SetFirstPasswordSheet> {
+  bool _isLoading = false;
+
+  Future<void> _requestReset() async {
+    setState(() => _isLoading = true);
+    try {
+      final result = await AuthService().forgotPassword(email: widget.email);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ResetPasswordScreen(
+          email: widget.email,
+          prefillToken: result.resetToken ?? '',
+          popOnSuccess: true,
+        ),
+      ));
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      showErrorToast(context, e.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      showErrorToast(context, 'Something went wrong. Please try again.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.cardBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(20, 8, 20, 24 + bottomInset),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: widget.secondaryText.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Icon(Icons.lock_person_outlined, size: 36, color: const Color(0xFF059669)),
+          const SizedBox(height: 12),
+          Text(
+            'Set a password',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: widget.primaryText,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "You signed in with Google and haven't set a password yet.\nWe'll send a reset code to ${widget.email}.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: widget.secondaryText,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _isLoading ? null : _requestReset,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(46),
+                backgroundColor: const Color(0xFF059669),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(
+                _isLoading ? 'Sending...' : 'Send reset code',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
           ),
         ],
       ),

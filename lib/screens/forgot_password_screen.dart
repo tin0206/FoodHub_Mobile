@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/screens/reset_password_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
@@ -30,11 +31,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      await _authService.forgotPassword(
-        email: _emailController.text.trim(),
-      );
+      final email = _emailController.text.trim();
+      final result = await _authService.forgotPassword(email: email);
       if (!mounted) return;
-      setState(() => _emailSent = true);
+      if (result.resetToken != null) {
+        // Dev mode: token returned directly — navigate to reset form.
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => ResetPasswordScreen(
+            email: email,
+            prefillToken: result.resetToken!,
+          ),
+        ));
+      } else {
+        setState(() => _emailSent = true);
+      }
     } on ApiException catch (e) {
       if (!mounted) return;
       showErrorToast(context, e.message);

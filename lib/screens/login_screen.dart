@@ -6,6 +6,7 @@ import 'package:foodhub_mobile/screens/main_shell_screen.dart';
 import 'package:foodhub_mobile/screens/signup_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
+import 'package:foodhub_mobile/services/google_auth_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -66,7 +67,32 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
-    showErrorToast(context, 'Google sign-in is not available yet.');
+    setState(() => _isGoogleLoading = true);
+    try {
+      final result = await GoogleAuthService.signIn();
+      if (result == null) return; // user hủy
+      if (!mounted) return;
+      final user = await _authService.signInWithGoogle(
+        token: result.token,
+        tokenType: result.type,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => user.role == 'admin'
+              ? AdminShellScreen(user: user)
+              : MainShellScreen(initialUser: user),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      showErrorToast(context, e.message);
+    } catch (_) {
+      if (!mounted) return;
+      showErrorToast(context, 'Google sign-in failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
   }
 
   void _forgotPassword() {

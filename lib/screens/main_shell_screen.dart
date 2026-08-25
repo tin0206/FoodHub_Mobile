@@ -48,7 +48,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     _language = widget.initialUser.language ?? 'en';
     _isDarkMode = widget.initialUser.theme == 'dark';
     _dietaryRestrictions = {..._user.dietaryRestrictions};
-    _primaryGoal = _user.primaryGoal ?? 'Balanced Nutrition';
+    _primaryGoal = _user.primaryGoal ?? '';
     if (widget.initialTab != null) _currentTab = widget.initialTab!;
   }
 

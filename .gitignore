@@ -23,8 +23,14 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
-# Environment variables (contains secrets — commit .env.example instead)
+# Env files (legacy dotenv — replaced by --dart-define-from-file)
 .env
+.env.prod
+# Production build config (contains prod OAuth client ID)
+config.prod.json
+
+# Android string resources chứa OAuth Client ID
+android/app/src/main/res/values/strings.xml
 
 # Staging test credentials for integration tests (contains real passwords —
 # commit test/integration/.env.test.example instead)

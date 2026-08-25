@@ -2,7 +2,6 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:foodhub_mobile/config/app_theme.dart';
 import 'package:foodhub_mobile/screens/splash_screen.dart';
 
@@ -15,7 +14,6 @@ const bool _kDevicePreview = bool.fromEnvironment(
 );
 
 Future<void> main() async {
-  await dotenv.load();
   runApp(
     DevicePreview(
       enabled: !kReleaseMode && _kDevicePreview,

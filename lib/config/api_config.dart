@@ -1,9 +1,7 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
 class ApiConfig {
   ApiConfig._();
 
-  static String get baseUrl => dotenv.get('API_BASE_URL');
+  static const String baseUrl = String.fromEnvironment('API_BASE_URL');
 
   static String get apiOrigin {
     return baseUrl.replaceFirst(RegExp(r'/api/v1/?$'), '');

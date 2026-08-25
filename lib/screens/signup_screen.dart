@@ -4,7 +4,9 @@ import 'package:foodhub_mobile/screens/login_screen.dart';
 import 'package:foodhub_mobile/screens/main_shell_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
+import 'package:foodhub_mobile/services/google_auth_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
+import 'package:foodhub_mobile/widgets/password_requirements.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -22,6 +24,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isSubmitting = false;
   bool _isGoogleLoading = false;
   bool _obscurePassword = true;
+  bool _passwordTouched = false;
 
   final _authService = AuthService();
 
@@ -62,7 +65,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _signUpWithGoogle() async {
-    showErrorToast(context, 'Google sign-up is not available yet.');
+    setState(() => _isGoogleLoading = true);
+    try {
+      final result = await GoogleAuthService.signIn();
+      if (result == null) return; // user hủy
+      if (!mounted) return;
+      final user = await _authService.signInWithGoogle(
+        token: result.token,
+        tokenType: result.type,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => user.role == 'admin'
+              ? AdminShellScreen(user: user)
+              : MainShellScreen(initialUser: user),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      showErrorToast(context, e.message);
+    } catch (_) {
+      if (!mounted) return;
+      showErrorToast(context, 'Google sign-up failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
   }
 
   @override
@@ -244,6 +272,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     ),
                                   ),
                                 ),
+                            onChanged: (_) =>
+                                setState(() => _passwordTouched = true),
                             validator: (v) {
                               if (v == null || v.isEmpty) {
                                 return 'Please enter your password.';
@@ -254,6 +284,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               return null;
                             },
                           ),
+                          if (_passwordTouched) ...[
+                            const SizedBox(height: 8),
+                            PasswordRequirements(
+                              password: _passwordController.text,
+                            ),
+                          ],
                         ],
                       ),
                     ),

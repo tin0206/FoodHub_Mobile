@@ -58,14 +58,58 @@ class AuthService {
     return token.user;
   }
 
-  Future<String> forgotPassword({required String email}) async {
+  /// [tokenType] is either 'id_token' (mobile) or 'access_token' (web).
+  Future<UserModel> signInWithGoogle({
+    required String token,
+    required String tokenType,
+  }) async {
+    final endpoint = tokenType == 'access_token'
+        ? '/auth/google/access_token'
+        : '/auth/google/token';
+    // ignore: avoid_print
+    print('[AuthService] POST $endpoint  tokenType=$tokenType  tokenLen=${token.length}');
+    try {
+      final data = await _api.post(endpoint, auth: false, body: {tokenType: token});
+      // ignore: avoid_print
+      print('[AuthService] response=$data');
+      final authToken = AuthToken.fromJson(data as Map<String, dynamic>);
+      await _tokenStorage.saveToken(authToken.accessToken);
+      _session.setUser(authToken.user);
+      return authToken.user;
+    } catch (e) {
+      // ignore: avoid_print
+      print('[AuthService] ERROR: $e');
+      rethrow;
+    }
+  }
+
+  /// Returns (message, resetToken). resetToken is non-null in dev (returned
+  /// directly by the API until email service is wired up).
+  Future<({String message, String? resetToken})> forgotPassword({
+    required String email,
+  }) async {
     final data = await _api.post(
       '/auth/forgot-password',
       auth: false,
       body: {'email': email.trim()},
     );
-    return (data as Map<String, dynamic>)['message'] as String? ??
-        'If the email exists, a reset link has been sent.';
+    final map = data as Map<String, dynamic>;
+    return (
+      message: map['message'] as String? ?? 'If the email exists, a reset link has been sent.',
+      resetToken: map['reset_token'] as String?,
+    );
+  }
+
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  }) async {
+    await _api.post(
+      '/auth/reset-password',
+      auth: false,
+      body: {'email': email.trim(), 'token': token, 'new_password': newPassword},
+    );
   }
 
   Future<void> changePassword({

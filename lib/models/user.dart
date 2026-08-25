@@ -16,6 +16,8 @@ class UserModel {
     this.fatTarget,
     this.dietaryRestrictions = const [],
     this.primaryGoal,
+    this.hasPassword = true,
+    this.googleId,
   });
 
   final int id;
@@ -24,6 +26,11 @@ class UserModel {
   final String? fullName;
   final String role;
   final bool isActive;
+  final bool hasPassword;
+  final String? googleId;
+
+  /// True khi user chỉ có Google, chưa set password.
+  bool get isGoogleOnly => googleId != null && !hasPassword;
   final int? age;
   final double? weight;
   final String? language;
@@ -57,6 +64,8 @@ class UserModel {
               .toList() ??
           const [],
       primaryGoal: json['primary_goal'] as String?,
+      hasPassword: json['has_password'] as bool? ?? true,
+      googleId: json['google_id'] as String?,
     );
   }
 
