@@ -1059,22 +1059,83 @@ class _PersonalRecipeCard extends StatelessWidget {
                       height: 1.3,
                     ),
                   ),
-                  if (recipe.estimatedServings case final sv?) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      '$sv ${S.of(context).servingsSuffix}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                  const SizedBox(height: 4),
+                  _PersonalRecipeStats(recipe: recipe),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PersonalRecipeStats extends StatelessWidget {
+  const _PersonalRecipeStats({required this.recipe});
+
+  final RecipeModel recipe;
+
+  @override
+  Widget build(BuildContext context) {
+    final subColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    const ts = TextStyle(fontSize: 10, fontWeight: FontWeight.w500);
+
+    final timeText = Text('${recipe.cookingMinutes} min',
+        style: ts.copyWith(color: subColor));
+
+    Widget divider() => Container(
+          width: 1, height: 8,
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          color: subColor.withValues(alpha: 0.35),
+        );
+
+    if (recipe.calories != null && recipe.calories! > 0) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.schedule_rounded, size: 10, color: subColor),
+          const SizedBox(width: 2),
+          Flexible(child: timeText),
+          divider(),
+          Icon(Icons.local_fire_department_outlined,
+              size: 10, color: const Color(0xFFEF4444).withValues(alpha: 0.8)),
+          const SizedBox(width: 2),
+          Flexible(
+            child: Text('${recipe.calories} cal',
+                overflow: TextOverflow.ellipsis,
+                style: ts.copyWith(color: subColor)),
+          ),
+        ],
+      );
+    }
+
+    if (recipe.estimatedServings != null) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.schedule_rounded, size: 10, color: subColor),
+          const SizedBox(width: 2),
+          Flexible(child: timeText),
+          divider(),
+          Icon(Icons.people_outline_rounded, size: 10, color: subColor),
+          const SizedBox(width: 2),
+          Flexible(
+            child: Text('Serves ${recipe.estimatedServings}',
+                overflow: TextOverflow.ellipsis,
+                style: ts.copyWith(color: subColor)),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.schedule_rounded, size: 10, color: subColor),
+        const SizedBox(width: 2),
+        Flexible(child: timeText),
+      ],
     );
   }
 }

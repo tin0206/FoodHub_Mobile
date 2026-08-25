@@ -196,6 +196,9 @@ class _StatsRow extends StatelessWidget {
       color: divColor,
     );
 
+    final showCal = recipe.calories != null && recipe.calories! > 0;
+    final showServings = !showCal && recipe.estimatedServings != null;
+
     return Row(
       children: [
         Icon(Icons.schedule_rounded, size: 12, color: iconColor),
@@ -208,7 +211,7 @@ class _StatsRow extends StatelessWidget {
             color: textColor,
           ),
         ),
-        if (recipe.calories != null) ...[
+        if (showCal) ...[
           dot(),
           Icon(
             Icons.local_fire_department_outlined,
@@ -218,6 +221,18 @@ class _StatsRow extends StatelessWidget {
           const SizedBox(width: 3),
           Text(
             '${recipe.calories} cal',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: textColor,
+            ),
+          ),
+        ] else if (showServings) ...[
+          dot(),
+          Icon(Icons.people_outline_rounded, size: 12, color: iconColor),
+          const SizedBox(width: 3),
+          Text(
+            'Serves ${recipe.estimatedServings}',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
