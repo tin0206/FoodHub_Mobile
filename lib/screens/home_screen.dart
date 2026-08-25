@@ -310,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onSaveRecipe(RecipeModel recipe) {
     setState(() {
-      _recipes.add(recipe);
+      _recipes.insert(0, recipe);
       _isAddingRecipe = false;
     });
   }
@@ -350,6 +350,40 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    // Optimistic image update — show new image behind loading instead of old one.
+    if (data.imageUrl != null && data.imageUrl != current.imageUrl) {
+      setState(() {
+        _selectedRecipe = RecipeModel(
+          id: current.id,
+          title: current.title,
+          imageUrl: data.imageUrl,
+          ingredients: current.ingredients,
+          directions: current.directions,
+          ner: current.ner,
+          estimatedServings: current.estimatedServings,
+          dietaryRestrictions: current.dietaryRestrictions,
+          createdBy: current.createdBy,
+          visibility: current.visibility,
+          locale: current.locale,
+          mappedIngredients: current.mappedIngredients,
+          nutrition: current.nutrition,
+        );
+      });
+    }
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(28),
+            child: CircularProgressIndicator(color: Color(0xFF059669)),
+          ),
+        ),
+      ),
+    );
+
     try {
       final updated = await _recipeService.updateRecipe(
         current.id,
@@ -360,10 +394,10 @@ class _HomeScreenState extends State<HomeScreen> {
         estimatedServings: data.estimatedServings,
       );
       if (!mounted) return;
+      Navigator.of(context).pop(); // dismiss loading
       final wasClone = updated.id != current.id;
       setState(() {
         if (wasClone) {
-          // Catalog edit creates a private copy — replace selection with clone.
           if (index < _recipes.length && _recipes[index].id == current.id) {
             _recipes[index] = updated;
           } else {
@@ -384,6 +418,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } on ApiException catch (e) {
       if (!mounted) return;
+      Navigator.of(context).pop(); // dismiss loading
       showErrorToast(context, e.message);
     }
   }
