@@ -163,17 +163,23 @@ class RecipeService {
     List<int> bytes,
     String filename,
   ) async {
-    try {
-      final data = await _api.postMultipart(
-        '/recipes/$id/image',
-        fieldName: 'file',
-        bytes: bytes,
-        filename: filename,
-      );
-      if (data is Map<String, dynamic>) {
-        return data['image_url'] as String?;
-      }
-    } catch (_) {}
+    final data = await _api.postMultipart(
+      '/recipes/$id/image',
+      fieldName: 'file',
+      bytes: bytes,
+      filename: filename,
+      contentType: _imageContentType(filename),
+    );
+    if (data is Map<String, dynamic>) {
+      return data['image_url'] as String?;
+    }
     return null;
+  }
+
+  static String _imageContentType(String filename) {
+    final lower = filename.toLowerCase();
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    return 'image/jpeg';
   }
 }

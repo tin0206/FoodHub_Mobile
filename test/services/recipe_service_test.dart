@@ -319,6 +319,7 @@ void main() {
           fieldName: 'file',
           bytes: any(named: 'bytes'),
           filename: any(named: 'filename'),
+          contentType: any(named: 'contentType'),
         ),
       ).thenAnswer((_) async => {'image_url': 'https://x/img.jpg'});
 
@@ -326,18 +327,21 @@ void main() {
       expect(url, 'https://x/img.jpg');
     });
 
-    test('swallows errors and returns null instead of throwing', () async {
+    test('propagates upload errors instead of swallowing them', () async {
       when(
         () => api.postMultipart(
           '/recipes/1/image',
           fieldName: 'file',
           bytes: any(named: 'bytes'),
           filename: any(named: 'filename'),
+          contentType: any(named: 'contentType'),
         ),
       ).thenThrow(Exception('upload failed'));
 
-      final url = await recipeService.uploadRecipeImage(1, [1, 2, 3], 'a.jpg');
-      expect(url, isNull);
+      await expectLater(
+        recipeService.uploadRecipeImage(1, [1, 2, 3], 'a.jpg'),
+        throwsA(isA<Exception>()),
+      );
     });
   });
 }

@@ -96,6 +96,38 @@ class RecipeModel {
     );
   }
 
+  RecipeModel copyWith({
+    int? id,
+    String? title,
+    String? imageUrl,
+    List<String>? ingredients,
+    List<String>? directions,
+    List<String>? ner,
+    int? estimatedServings,
+    List<String>? dietaryRestrictions,
+    int? createdBy,
+    String? visibility,
+    String? locale,
+    List<MappedIngredient>? mappedIngredients,
+    RecipeNutrition? nutrition,
+  }) {
+    return RecipeModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      imageUrl: imageUrl ?? this.imageUrl,
+      ingredients: ingredients ?? this.ingredients,
+      directions: directions ?? this.directions,
+      ner: ner ?? this.ner,
+      estimatedServings: estimatedServings ?? this.estimatedServings,
+      dietaryRestrictions: dietaryRestrictions ?? this.dietaryRestrictions,
+      createdBy: createdBy ?? this.createdBy,
+      visibility: visibility ?? this.visibility,
+      locale: locale ?? this.locale,
+      mappedIngredients: mappedIngredients ?? this.mappedIngredients,
+      nutrition: nutrition ?? this.nutrition,
+    );
+  }
+
   RecipeDetailData toDetailData() {
     return RecipeDetailData(
       id: id,

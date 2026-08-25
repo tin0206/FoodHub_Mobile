@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/api_config.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/ingredient.dart';
-import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_image.dart';
 import 'package:image_picker/image_picker.dart';
@@ -42,6 +41,8 @@ class RecipeDetailData {
     this.isPrivate = false,
     this.mappedIngredients = const [],
     this.nutrition,
+    this.pendingImageBytes,
+    this.pendingImageFilename = 'recipe.jpg',
   });
 
   final int id;
@@ -56,6 +57,8 @@ class RecipeDetailData {
   final bool isPrivate;
   final List<MappedIngredient> mappedIngredients;
   final RecipeNutrition? nutrition;
+  final Uint8List? pendingImageBytes;
+  final String pendingImageFilename;
 
   List<String> get ingredientItems => ingredients
       .split('\n')
@@ -123,7 +126,7 @@ class RecipeDetailView extends StatefulWidget {
 
   /// If true, shows Edit / Save Changes buttons (home screen).
   final bool enableEdit;
-  final ValueChanged<RecipeDetailData>? onSaveEdited;
+  final Future<bool> Function(RecipeDetailData)? onSaveEdited;
   final VoidCallback? onDelete;
 
   /// Null means no save button is shown (home screen with enableEdit).
@@ -147,7 +150,6 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
 
   Uint8List? _editImageBytes;
   String _editImageFilename = 'recipe.jpg';
-  final _recipeService = RecipeService();
 
   late List<TextEditingController> _ingredientControllers;
   late List<TextEditingController> _stepControllers;
@@ -321,24 +323,10 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       ),
     );
 
-    String? uploadedImageUrl;
-    if (_editImageBytes != null) {
-      uploadedImageUrl = await _recipeService.uploadRecipeImage(
-        widget.recipe.id,
-        _editImageBytes!,
-        _editImageFilename,
-      );
-    } else {
-      await Future<void>.delayed(const Duration(milliseconds: 400));
-    }
-
-    if (!mounted) return;
-    Navigator.of(context).pop();
-
     final updated = RecipeDetailData(
       id: widget.recipe.id,
       name: title,
-      imageUrl: uploadedImageUrl ?? widget.recipe.imageUrl,
+      imageUrl: widget.recipe.imageUrl,
       cookingMinutes: cookingMinutes != null && cookingMinutes > 0
           ? cookingMinutes
           : widget.recipe.cookingMinutes,
@@ -350,9 +338,18 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
       isPrivate: widget.recipe.isPrivate,
       mappedIngredients: widget.recipe.mappedIngredients,
       nutrition: widget.recipe.nutrition,
+      pendingImageBytes: _editImageBytes,
+      pendingImageFilename: _editImageFilename,
     );
 
-    widget.onSaveEdited?.call(updated);
+    var saved = true;
+    try {
+      saved = await widget.onSaveEdited?.call(updated) ?? true;
+    } finally {
+      if (mounted) Navigator.of(context).pop();
+    }
+    if (!mounted || !saved) return;
+
     setState(() {
       _isEditMode = false;
       _editImageBytes = null;

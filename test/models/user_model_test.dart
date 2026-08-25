@@ -17,11 +17,10 @@ void main() {
         'theme': 'dark',
         'calorie_target': 2000,
         'protein_target': 120,
+        'carb_target': 250,
+        'fat_target': 70,
         'dietary_restrictions': ['vegan', 'gluten-free'],
         'primary_goal': 'weight_loss',
-        'notify_recommendations': false,
-        'notify_new_features': false,
-        'notify_weekly_summary': false,
       });
 
       expect(user.id, 1);
@@ -32,10 +31,11 @@ void main() {
       expect(user.weight, 55.5);
       expect(user.language, 'vi');
       expect(user.theme, 'dark');
+      expect(user.calorieTarget, 2000);
+      expect(user.proteinTarget, 120);
+      expect(user.carbTarget, 250);
+      expect(user.fatTarget, 70);
       expect(user.dietaryRestrictions, ['vegan', 'gluten-free']);
-      expect(user.notifyRecommendations, isFalse);
-      expect(user.notifyNewFeatures, isFalse);
-      expect(user.notifyWeeklySummary, isFalse);
     });
 
     test('applies defaults when optional fields are missing', () {
@@ -49,9 +49,10 @@ void main() {
       expect(user.isActive, isTrue);
       expect(user.theme, 'light');
       expect(user.dietaryRestrictions, isEmpty);
-      expect(user.notifyRecommendations, isTrue);
-      expect(user.notifyNewFeatures, isTrue);
-      expect(user.notifyWeeklySummary, isTrue);
+      expect(user.calorieTarget, isNull);
+      expect(user.proteinTarget, isNull);
+      expect(user.carbTarget, isNull);
+      expect(user.fatTarget, isNull);
     });
   });
 
@@ -59,9 +60,19 @@ void main() {
     test('only includes fields that were explicitly passed', () {
       const user = UserModel(id: 1, email: 'a@b.com', username: 'a');
 
-      final json = user.toProfileUpdateJson(fullName: 'New Name', age: 25);
+      final json = user.toProfileUpdateJson(
+        fullName: 'New Name',
+        age: 25,
+        carbTarget: 220,
+        fatTarget: 65,
+      );
 
-      expect(json, {'full_name': 'New Name', 'age': 25});
+      expect(json, {
+        'full_name': 'New Name',
+        'age': 25,
+        'carb_target': 220,
+        'fat_target': 65,
+      });
     });
 
     test('returns an empty map when nothing is passed', () {
@@ -95,12 +106,15 @@ void main() {
         email: 'a@b.com',
         username: 'a',
         calorieTarget: 1800,
+        carbTarget: 200,
       );
 
-      final updated = user.copyWith(proteinTarget: 100);
+      final updated = user.copyWith(proteinTarget: 100, fatTarget: 60);
 
       expect(updated.calorieTarget, 1800);
       expect(updated.proteinTarget, 100);
+      expect(updated.carbTarget, 200);
+      expect(updated.fatTarget, 60);
     });
   });
 
