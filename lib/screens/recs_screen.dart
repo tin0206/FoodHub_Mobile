@@ -1016,12 +1016,23 @@ class _ChatBubble extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: MarkdownReplyBody(
-                  markdown: message.text,
-                  isDarkMode: isDarkMode,
-                  recipes: message.recipes,
-                  onOpenRecipe: onOpenRecipe,
-                ),
+                child: message.options.isNotEmpty
+                    ? Text(
+                        'I have some ways to do it:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.4,
+                          color: isDarkMode
+                              ? const Color(0xFFE2E8F0)
+                              : const Color(0xFF111827),
+                        ),
+                      )
+                    : MarkdownReplyBody(
+                        markdown: message.text,
+                        isDarkMode: isDarkMode,
+                        recipes: message.recipes,
+                        onOpenRecipe: onOpenRecipe,
+                      ),
               ),
             ),
           ],
