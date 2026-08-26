@@ -440,6 +440,7 @@ class _SearchScreenState extends State<SearchScreen> {
               recipe: recipe,
               onTap: () => _openRecipeDetails(recipe),
               onAction: () => _openRecipeDetails(recipe),
+              actionIcon: widget.pickMode ? Icons.add_rounded : Icons.arrow_forward_rounded,
               margin: const EdgeInsets.only(bottom: 10),
             ),
           ),
@@ -449,7 +450,36 @@ class _SearchScreenState extends State<SearchScreen> {
 
     if (widget.pickMode) {
       return Scaffold(
-        appBar: AppBar(title: Text(s.pickARecipe)),
+        backgroundColor: isDarkMode ? const Color(0xFF0A0A0A) : const Color(0xFFF3F4F6),
+        appBar: AppBar(
+          backgroundColor: isDarkMode ? const Color(0xFF141414) : Colors.white,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 18,
+              color: isDarkMode ? Colors.white : const Color(0xFF111827),
+            ),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: Text(
+            s.pickARecipe,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: isDarkMode ? Colors.white : const Color(0xFF111827),
+              letterSpacing: -0.3,
+            ),
+          ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Divider(
+              height: 1,
+              color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE5E7EB),
+            ),
+          ),
+        ),
         body: body,
       );
     }

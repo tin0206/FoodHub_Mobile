@@ -98,9 +98,6 @@ class _BottomTabItem extends StatelessWidget {
     final inactiveColor = isDarkMode
         ? const Color(0xFF64748B)
         : const Color(0xFF94A3B8);
-    final pillColor = isDarkMode
-        ? const Color(0xFF064E3B).withValues(alpha: 0.7)
-        : const Color(0xFFD1FAE5);
 
     return Expanded(
       child: InkWell(
@@ -112,22 +109,10 @@ class _BottomTabItem extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? pillColor : Colors.transparent,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Icon(
-                  isSelected ? selectedIcon : icon,
-                  size: 26,
-                  color: isSelected ? activeColor : inactiveColor,
-                ),
+              Icon(
+                isSelected ? selectedIcon : icon,
+                size: 26,
+                color: isSelected ? activeColor : inactiveColor,
               ),
               const SizedBox(height: 2),
               Text(

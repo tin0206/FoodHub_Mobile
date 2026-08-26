@@ -10,6 +10,7 @@ class RecipeCard extends StatelessWidget {
     required this.recipe,
     this.onTap,
     this.onAction,
+    this.actionIcon = Icons.arrow_forward_rounded,
     this.footer,
     this.margin,
   });
@@ -17,6 +18,7 @@ class RecipeCard extends StatelessWidget {
   final RecipeModel recipe;
   final VoidCallback? onTap;
   final VoidCallback? onAction;
+  final IconData actionIcon;
   final Widget? footer;
   final EdgeInsetsGeometry? margin;
 
@@ -87,16 +89,9 @@ class RecipeCard extends StatelessWidget {
                               end: Alignment.bottomRight,
                             ),
                             shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: t.start.withValues(alpha: 0.4),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
                           ),
-                          child: const Icon(
-                            Icons.arrow_forward_rounded,
+                          child: Icon(
+                            actionIcon,
                             color: Colors.white,
                             size: 17,
                           ),

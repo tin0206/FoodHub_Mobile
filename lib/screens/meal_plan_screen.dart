@@ -11,12 +11,7 @@ import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 import 'package:foodhub_mobile/widgets/recipe_image.dart';
 
 class MealPlanScreen extends StatefulWidget {
-  const MealPlanScreen({
-    super.key,
-    this.initialSuggestions,
-  });
-
-  final MealSuggestionModel? initialSuggestions;
+  const MealPlanScreen({super.key});
 
   @override
   State<MealPlanScreen> createState() => _MealPlanScreenState();
@@ -99,46 +94,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       MaterialPageRoute(builder: (_) => const SearchScreen(pickMode: true)),
     );
     if (recipe != null) await _addRecipe(slot, recipe);
-  }
-
-  Future<void> _pickFromSuggestions(MealSlotModel slot) async {
-    final suggestions = widget.initialSuggestions;
-    final recipes = [
-      ...?suggestions?.breakfast,
-      ...?suggestions?.lunch,
-      ...?suggestions?.dinner,
-    ];
-    if (recipes.isEmpty) {
-      await _pickFromSearch(slot);
-      return;
-    }
-    final selected = await showModalBottomSheet<RecipeModel>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) {
-        final s = S.of(ctx);
-        return ListView(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.search),
-              title: Text(s.addFromSearch),
-              onTap: () => Navigator.pop(ctx),
-            ),
-            for (final recipe in recipes)
-              ListTile(
-                title: Text(recipe.title),
-                onTap: () => Navigator.pop(ctx, recipe),
-              ),
-          ],
-        );
-      },
-    );
-    if (!mounted) return;
-    if (selected == null) {
-      await _pickFromSearch(slot);
-      return;
-    }
-    await _addRecipe(slot, selected);
   }
 
   Future<void> _addExtraSlot() async {
@@ -333,7 +288,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                               cardBg: cardBg,
                               cardBorder: cardBorder,
                               secondaryText: secondaryText,
-                              onAdd: () => _pickFromSuggestions(slot),
+                              onAdd: () => _pickFromSearch(slot),
                               onViewDetail: _openRecipeDetail,
                               onRemoveItem: (item) async {
                                 final plan = _plan!;

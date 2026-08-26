@@ -104,7 +104,7 @@ class _RecipeSuggestionCardState extends State<RecipeSuggestionCard> {
         children: [
           if (widget.onOpenDetails != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
               child: RecipeDetailCtaButton(
                 title: recipe.title,
                 isDarkMode: isDark,
@@ -115,7 +115,7 @@ class _RecipeSuggestionCardState extends State<RecipeSuggestionCard> {
             onTap: () => setState(() => _expanded = !_expanded),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+              padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
               child: Row(
                 children: [
                   Expanded(
@@ -126,7 +126,7 @@ class _RecipeSuggestionCardState extends State<RecipeSuggestionCard> {
                           Text(
                             recipe.title,
                             style: TextStyle(
-                              fontSize: 13.5,
+                              fontSize: 15,
                               fontWeight: FontWeight.w700,
                               color: primary,
                             ),
@@ -137,12 +137,12 @@ class _RecipeSuggestionCardState extends State<RecipeSuggestionCard> {
                           Text(
                             'Serves ${recipe.estimatedServings}'
                             '${_expanded ? '' : ' · tap for preview'}',
-                            style: TextStyle(fontSize: 11, color: secondary),
+                            style: TextStyle(fontSize: 12, color: secondary),
                           ),
                         ] else if (widget.onOpenDetails == null)
                           Text(
                             'Tap for preview',
-                            style: TextStyle(fontSize: 11, color: secondary),
+                            style: TextStyle(fontSize: 12, color: secondary),
                           ),
                       ],
                     ),
@@ -160,15 +160,15 @@ class _RecipeSuggestionCardState extends State<RecipeSuggestionCard> {
           ),
           if (recipe.ingredients.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
               child: Wrap(
-                spacing: 5,
-                runSpacing: 5,
+                spacing: 6,
+                runSpacing: 6,
                 children: recipe.ingredients.take(8).map((item) {
                   return Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 3,
+                      horizontal: 9,
+                      vertical: 5,
                     ),
                     decoration: BoxDecoration(
                       color: isDark
@@ -181,7 +181,7 @@ class _RecipeSuggestionCardState extends State<RecipeSuggestionCard> {
                     ),
                     child: Text(
                       item,
-                      style: TextStyle(fontSize: 10.5, color: primary),
+                      style: TextStyle(fontSize: 12, color: primary),
                     ),
                   );
                 }).toList(),

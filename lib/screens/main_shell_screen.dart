@@ -32,6 +32,7 @@ class MainShellScreen extends StatefulWidget {
 
 class _MainShellScreenState extends State<MainShellScreen> {
   AppTab _currentTab = AppTab.home;
+  final List<AppTab> _tabHistory = [AppTab.home];
   bool _isDarkMode = false;
   String _language = 'en';
   final Map<AppTab, bool> _tabInDetail = {};
@@ -86,6 +87,13 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   void _onTabSelected(AppTab tab) {
     setState(() {
+      if (tab == AppTab.home) {
+        _tabHistory
+          ..clear()
+          ..add(AppTab.home);
+      } else if (tab != _currentTab) {
+        _tabHistory.add(tab);
+      }
       _currentTab = tab;
     });
   }
@@ -148,26 +156,39 @@ class _MainShellScreenState extends State<MainShellScreen> {
       lang: _language,
       child: Theme(
         data: _isDarkMode ? AppTheme.dark : AppTheme.light,
-        child: Scaffold(
-          body: Column(
-            children: [
-              AppTopBar(
-                onOpenProfile: _openProfile,
-                onSwitchToAdmin: widget.onSwitchToAdmin != null
-                    ? () => widget.onSwitchToAdmin!(context, _user)
-                    : null,
-              ),
-              Expanded(
-                child: IndexedStack(index: _currentTab.index, children: screens),
-              ),
-            ],
+        child: PopScope(
+          canPop: _tabHistory.length <= 1,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop) return;
+            if (_tabHistory.length > 1 &&
+                !(_tabInDetail[_currentTab] ?? false)) {
+              setState(() {
+                _tabHistory.removeLast();
+                _currentTab = _tabHistory.last;
+              });
+            }
+          },
+          child: Scaffold(
+            body: Column(
+              children: [
+                AppTopBar(
+                  onOpenProfile: _openProfile,
+                  onSwitchToAdmin: widget.onSwitchToAdmin != null
+                      ? () => widget.onSwitchToAdmin!(context, _user)
+                      : null,
+                ),
+                Expanded(
+                  child: IndexedStack(index: _currentTab.index, children: screens),
+                ),
+              ],
+            ),
+            bottomNavigationBar: _showBottomBar
+                ? AppBottomBar(
+                    currentTab: _currentTab,
+                    onTabSelected: _onTabSelected,
+                  )
+                : null,
           ),
-          bottomNavigationBar: _showBottomBar
-              ? AppBottomBar(
-                  currentTab: _currentTab,
-                  onTabSelected: _onTabSelected,
-                )
-              : null,
         ),
       ),
     );

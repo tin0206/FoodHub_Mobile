@@ -90,8 +90,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _fatError;
 
   final _scrollController = ScrollController();
-  bool _actionButtonsVisible = false;
-
   void _onFieldChanged() { if (mounted) setState(() {}); }
 
   @override
@@ -395,15 +393,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Container(
           color: _screenBackground,
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              final atBottom = notification.metrics.extentAfter < 50;
-              if (atBottom != _actionButtonsVisible) {
-                setState(() => _actionButtonsVisible = atBottom);
-              }
-              return false;
-            },
-            child: ListView(
+          child: ListView(
             controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 14),
         children: [
@@ -664,7 +654,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: _kPrimaryGoals.map((goal) {
                     final isSelected = widget.primaryGoal == goal;
                     return GestureDetector(
-                      onTap: () => widget.onPrimaryGoalChanged(goal),
+                      onTap: () => widget.onPrimaryGoalChanged(isSelected ? '' : goal),
                       child: Container(
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
@@ -692,7 +682,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                            fontWeight: FontWeight.w600,
                             color: isSelected
                                 ? (widget.isDarkMode
                                     ? const Color(0xFF4ADE80)
@@ -785,9 +775,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   : const Color(0xFFD1FAE5))
                               : (widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white),
                           borderRadius: BorderRadius.circular(999),
-                          border: isSelected
-                              ? Border.all(color: const Color(0xFF10B981), width: 1.5)
-                              : null,
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF10B981) : Colors.transparent,
+                            width: 1.5,
+                          ),
                           boxShadow: isSelected
                               ? null
                               : [
@@ -802,7 +793,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           s.dietaryTagDisplay(tag),
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                            fontWeight: FontWeight.w600,
                             color: isSelected
                                 ? (widget.isDarkMode
                                     ? const Color(0xFF4ADE80)
@@ -814,6 +805,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   }).toList(),
                 ),
+                const SizedBox(height: 12),
               ],
             ),
           ),
@@ -926,69 +918,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
           ),
         ),
-      ),
-        if (_hasChanges && !_actionButtonsVisible)
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 16,
-            child: SafeArea(
-              top: false,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _isSaving ? null : _cancelChanges,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _primaryText,
-                        backgroundColor: _cardBackground,
-                        side: BorderSide.none,
-                        minimumSize: const Size.fromHeight(48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        elevation: 2,
-                        shadowColor: Colors.black26,
-                      ),
-                      child: Text(
-                        s.cancel,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: _isSaving ? null : _saveChanges,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF059669),
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size.fromHeight(48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        elevation: 4,
-                        shadowColor: const Color(0xFF059669),
-                      ),
-                      child: _isSaving
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(
-                              s.saveChanges,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                            ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
       ],
     );
   }

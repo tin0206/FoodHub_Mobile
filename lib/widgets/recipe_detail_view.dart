@@ -464,16 +464,19 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            _macroChip('${fmt(nutrition.kcalPerServing)} ${s.calSuffix}', accentColor, colors),
-            const SizedBox(width: 8),
-            _macroChip('${fmt(nutrition.proteinPerServing)}g ${s.proteinShort}', accentColor, colors),
-            const SizedBox(width: 8),
-            _macroChip('${fmt(nutrition.carbsPerServing)}g ${s.carbsShort}', accentColor, colors),
-            const SizedBox(width: 8),
-            _macroChip('${fmt(nutrition.fatPerServing)}g ${s.fatShort}', accentColor, colors),
-          ],
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _macroChip('${fmt(nutrition.kcalPerServing)} ${s.calSuffix}', accentColor, colors),
+              const SizedBox(width: 8),
+              _macroChip('${fmt(nutrition.proteinPerServing)}g ${s.proteinShort}', accentColor, colors),
+              const SizedBox(width: 8),
+              _macroChip('${fmt(nutrition.carbsPerServing)}g ${s.carbsShort}', accentColor, colors),
+              const SizedBox(width: 8),
+              _macroChip('${fmt(nutrition.fatPerServing)}g ${s.fatShort}', accentColor, colors),
+            ],
+          ),
         ),
         if (nutrition.extraPerServing.isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -526,15 +529,16 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
           color: accentColor.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: colors.onSurface,
+        child: Center(
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: colors.onSurface,
+            ),
           ),
         ),
       ),

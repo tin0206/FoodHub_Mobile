@@ -5,6 +5,7 @@ import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/ai.dart';
 import 'package:foodhub_mobile/services/ai_service.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
+import 'package:foodhub_mobile/services/favorite_service.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/ai_capture_overlay.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
@@ -50,6 +51,10 @@ class _RecsScreenState extends State<RecsScreen> {
   bool _welcomeStarted = false;
 
   final List<_ChatMessage> _messages = [];
+
+  final FavoriteService _favoriteService = FavoriteService();
+  final Map<int, int> _recipeToFavoriteId = {};
+  bool _favoritesLoaded = false;
 
   @override
   void initState() {
@@ -307,6 +312,7 @@ class _RecsScreenState extends State<RecsScreen> {
     if (cached != null) {
       widget.onDetailModeChanged?.call(true);
       setState(() => _selectedRecipeDetail = cached);
+      unawaited(_loadFavorites());
       return;
     }
 
@@ -327,11 +333,42 @@ class _RecsScreenState extends State<RecsScreen> {
 
     widget.onDetailModeChanged?.call(true);
     setState(() => _selectedRecipeDetail = detail);
+    unawaited(_loadFavorites());
   }
 
   void _closeRecipeDetails() {
     widget.onDetailModeChanged?.call(false);
     setState(() => _selectedRecipeDetail = null);
+  }
+
+  Future<void> _loadFavorites() async {
+    if (_favoritesLoaded) return;
+    try {
+      final favs = await _favoriteService.listFavorites();
+      if (!mounted) return;
+      setState(() {
+        _favoritesLoaded = true;
+        _recipeToFavoriteId.clear();
+        for (final f in favs) {
+          _recipeToFavoriteId[f.recipeId] = f.id;
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _toggleSave(int recipeId) async {
+    try {
+      if (_recipeToFavoriteId.containsKey(recipeId)) {
+        final favId = _recipeToFavoriteId[recipeId]!;
+        await _favoriteService.deleteFavorite(favId);
+        if (!mounted) return;
+        setState(() => _recipeToFavoriteId.remove(recipeId));
+      } else {
+        final fav = await _favoriteService.addFavorite(recipeId: recipeId);
+        if (!mounted) return;
+        setState(() => _recipeToFavoriteId[recipeId] = fav.id);
+      }
+    } catch (_) {}
   }
 
   Future<void> _onPromptSubmitted() async {
@@ -539,10 +576,23 @@ class _RecsScreenState extends State<RecsScreen> {
         ingredientsText != null && ingredientsText.isNotEmpty;
 
     if (_selectedRecipeDetail != null) {
-      return RecipeDetailView(
-        recipe: _selectedRecipeDetail!,
-        cardColor: const Color(0xFF059669),
-        onBack: _closeRecipeDetails,
+      final detail = _selectedRecipeDetail!;
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _closeRecipeDetails();
+        },
+        child: RecipeDetailView(
+          recipe: detail,
+          cardColor: const Color(0xFF059669),
+          onBack: _closeRecipeDetails,
+          isSaved: _favoritesLoaded
+              ? _recipeToFavoriteId.containsKey(detail.id)
+              : null,
+          onToggleSave: _favoritesLoaded
+              ? () => unawaited(_toggleSave(detail.id))
+              : null,
+        ),
       );
     }
 
@@ -554,20 +604,20 @@ class _RecsScreenState extends State<RecsScreen> {
         top: false,
         child: Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 4, 0),
+              child: _ChatHeader(
+                isDarkMode: isDarkMode,
+                onReset: busy ? null : _resetChat,
+              ),
+            ),
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.all(12),
-                itemCount: _messages.length + 1 + (busy ? 1 : 0),
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                itemCount: _messages.length + (busy ? 1 : 0),
                 itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return _ChatHeader(
-                      isDarkMode: isDarkMode,
-                      onReset: busy ? null : _resetChat,
-                    );
-                  }
-                  final messageIndex = index - 1;
-                  if (busy && messageIndex == _messages.length) {
+                  if (busy && index == _messages.length) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Column(
@@ -592,11 +642,11 @@ class _RecsScreenState extends State<RecsScreen> {
                       ),
                     );
                   }
-                  final message = _messages[messageIndex];
+                  final message = _messages[index];
                   final isLatestAiMessage =
                       !busy &&
                       !message.isUser &&
-                      messageIndex == _messages.length - 1;
+                      index == _messages.length - 1;
                   final isLatestAiReply =
                       isLatestAiMessage && _lastSentMessage != null;
                   return Padding(
@@ -1018,7 +1068,7 @@ class _ChatBubble extends StatelessWidget {
                 ),
                 child: message.options.isNotEmpty
                     ? Text(
-                        'I have some ways to do it:',
+                        'I\'ve got ${message.options.length} ${message.options.length == 1 ? 'way' : 'ideas'} for you — pick what works best:',
                         style: TextStyle(
                           fontSize: 13,
                           height: 1.4,
