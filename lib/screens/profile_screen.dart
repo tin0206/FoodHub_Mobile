@@ -395,7 +395,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: _screenBackground,
           child: ListView(
             controller: _scrollController,
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 14),
+            padding: EdgeInsets.fromLTRB(8, 8, 8, _hasChanges ? 90 : 14),
         children: [
           // ── Avatar card ─────────────────────────────────────────────────
           Container(
@@ -847,51 +847,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          const SizedBox(height: 2),
-
-          // ── Action buttons ──────────────────────────────────────────────
-          SizedBox(
-            height: 44,
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _isSaving ? null : _cancelChanges,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _primaryText,
-                      side: BorderSide.none,
-                      backgroundColor: _cardBackground,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    child: Text(
-                      s.cancel,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: (_isSaving || !_hasChanges) ? null : _saveChanges,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF059669),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    child: Text(
-                      s.saveChanges,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
           SizedBox(
             height: 44,
             child: OutlinedButton.icon(
@@ -918,6 +873,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
           ),
         ),
+        if (_hasChanges)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 20,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: _cardBackground,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: _cardBorder),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.45 : 0.18),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: _isSaving ? null : _cancelChanges,
+                      style: TextButton.styleFrom(
+                        foregroundColor: _secondaryText,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                        minimumSize: const Size(90, 46),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                      ),
+                      child: Text(s.cancel, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    ),
+                    FilledButton(
+                      onPressed: _isSaving ? null : _saveChanges,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF059669),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                        minimumSize: const Size(130, 46),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : Text(s.saveChanges, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

@@ -362,6 +362,7 @@ class S {
   String get securityLabel => _vi ? 'Bảo mật' : 'Security';
   String get changePasswordLabel => _vi ? 'Đổi mật khẩu' : 'Change password';
   String get saveChanges => _vi ? 'Lưu thay đổi' : 'Save changes';
+  String get profileUpdated => _vi ? 'Đã cập nhật hồ sơ thành công' : 'Profile updated successfully';
   String get logOut => _vi ? 'Đăng xuất' : 'Log out';
   String get mustBePositiveNumber =>
       _vi ? 'Phải là số dương' : 'Must be a positive number';
