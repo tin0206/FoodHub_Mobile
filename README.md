@@ -35,7 +35,7 @@ Tạo file `config.prod.json` cho production (gitignored):
 Tạo file `android/app/src/main/res/values/strings.xml` (gitignored) từ template:
 
 ```bash
-cp android/app/src/main/res/values/strings.xml.example android/app/src/main/res/values/strings.xml
+cp android/app/strings.xml.example android/app/src/main/res/values/strings.xml
 ```
 
 Điền Web Client ID vào `strings.xml`.

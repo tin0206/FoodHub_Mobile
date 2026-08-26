@@ -1,4 +1,4 @@
-package com.example.foodhub_mobile
+package vn.foodhub.app
 
 import io.flutter.embedding.android.FlutterActivity
 

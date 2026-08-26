@@ -85,9 +85,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     } on ApiException catch (e) {
       if (!mounted) return;
       showErrorToast(context, e.message);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
-      showErrorToast(context, 'Google sign-up failed. Please try again.');
+      showErrorToast(context, e.toString());
     } finally {
       if (mounted) setState(() => _isGoogleLoading = false);
     }
