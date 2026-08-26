@@ -1811,6 +1811,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                     children: [
                       if (widget.onAddToPlan != null) ...[
                         Expanded(
+                          flex: 3,
                           child: FilledButton.icon(
                             onPressed: widget.onAddToPlan,
                             icon: const Icon(Icons.add, size: 16),
@@ -1828,6 +1829,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                         const SizedBox(width: 8),
                       ],
                       Expanded(
+                        flex: 2,
                         child: OutlinedButton.icon(
                           onPressed: widget.onToggleSave,
                           icon: Icon(

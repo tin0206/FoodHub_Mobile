@@ -3,8 +3,10 @@ import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/favorite_service.dart';
+import 'package:foodhub_mobile/services/meal_service.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
+import 'package:foodhub_mobile/widgets/meal_slot_picker.dart';
 import 'package:foodhub_mobile/widgets/recipe_card.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 
@@ -46,6 +48,7 @@ class _SearchScreenState extends State<SearchScreen> {
   double _savedScrollOffset = 0;
   final _recipeService = RecipeService();
   final _favoriteService = FavoriteService();
+  final _mealService = MealService();
 
   List<RecipeModel> _recipes = [];
   Map<int, int> _favoriteIdsByRecipeId = {};
@@ -220,6 +223,18 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  Future<void> _addRecipeToPlan(RecipeModel recipe) async {
+    final s = S.of(context);
+    final slotKey = await showMealSlotPicker(context, recipeName: recipe.title);
+    if (slotKey == null || !mounted) return;
+    try {
+      await _mealService.addRecipeToSlot(slotKey: slotKey, recipeId: recipe.id);
+      if (mounted) showSuccessToast(context, s.addedToPlan);
+    } on ApiException catch (e) {
+      if (mounted) showErrorToast(context, e.message);
+    }
+  }
+
   List<RecipeModel> get _filteredRecipes => _recipes;
 
   @override
@@ -244,6 +259,7 @@ class _SearchScreenState extends State<SearchScreen> {
           onBack: _closeRecipeDetails,
           isSaved: _savedCurrentRecipe,
           onToggleSave: () => _toggleSave(),
+          onAddToPlan: () => _addRecipeToPlan(recipe),
         ),
       );
     }
