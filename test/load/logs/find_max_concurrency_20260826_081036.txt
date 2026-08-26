@@ -1,0 +1,29 @@
+STRESS-07 — max concurrency search — 2026-08-26T08:10:36
+Target: https://api.foodhub.io.vn/api/v1/recipes/search
+Error definition: ok = HTTP 200 (any latency). 
+Everything else (http_error / timeout / connection_error) counts as an error.
+A concurrency level is unhealthy once its error rate exceeds 10%.
+Client request timeout: 20s
+
+Phase 1 — coarse ramp: [5, 10, 20, 40, 80, 150, 300, 500]
+
+[   5 concurrent] ok=10/10  http_error=0  timeout=0  conn_error=0  error_rate=0%  p50=499ms p95=691ms p99=691ms  throughput=8.6 req/s   [HEALTHY]
+[  10 concurrent] ok=20/20  http_error=0  timeout=0  conn_error=0  error_rate=0%  p50=481ms p95=857ms p99=857ms  throughput=16.2 req/s   [HEALTHY]
+[  20 concurrent] ok=40/40  http_error=0  timeout=0  conn_error=0  error_rate=0%  p50=728ms p95=855ms p99=870ms  throughput=24.8 req/s   [HEALTHY]
+[  40 concurrent] ok=80/80  http_error=0  timeout=0  conn_error=0  error_rate=0%  p50=802ms p95=1422ms p99=1462ms  throughput=36.5 req/s   [HEALTHY]
+[  80 concurrent] ok=17/160  http_error=0  timeout=143  conn_error=0  error_rate=89%  p50=20207ms p95=20290ms p99=20305ms  throughput=3.9 req/s   [OVER BUDGET]
+
+Phase 2 — binary search between 40 (healthy) and 80 (unhealthy)
+
+[  60 concurrent] (binary search) ok=0/120  http_error=0  timeout=120  conn_error=0  error_rate=100%  p50=20172ms p95=20205ms p99=20211ms  throughput=3.0 req/s   [OVER BUDGET]
+[  50 concurrent] (binary search) ok=0/100  http_error=0  timeout=100  conn_error=0  error_rate=100%  p50=20191ms p95=20237ms p99=20245ms  throughput=2.5 req/s   [OVER BUDGET]
+[  45 concurrent] (binary search) ok=0/90  http_error=0  timeout=90  conn_error=0  error_rate=100%  p50=20175ms p95=20218ms p99=20232ms  throughput=2.2 req/s   [OVER BUDGET]
+[  42 concurrent] (binary search) ok=0/84  http_error=0  timeout=84  conn_error=0  error_rate=100%  p50=20164ms p95=20197ms p99=20205ms  throughput=2.1 req/s   [OVER BUDGET]
+[  41 concurrent] (binary search) ok=0/82  http_error=0  timeout=82  conn_error=0  error_rate=100%  p50=20169ms p95=20205ms p99=20235ms  throughput=2.0 req/s   [OVER BUDGET]
+
+==============================================================================
+Conclusion:
+  - 40 concurrent: error_rate=0%, p50=802ms, p95=1422ms, p99=1462ms
+  - 41 concurrent: error_rate=100% (ok=0, http_error=0, timeout=82, connection_error=0)
+==============================================================================
+
