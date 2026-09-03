@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/models/user.dart';
-import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
+import 'package:foodhub_mobile/screens/auth_destination.dart';
 import 'package:foodhub_mobile/screens/login_screen.dart';
-import 'package:foodhub_mobile/screens/main_shell_screen.dart';
-import 'package:foodhub_mobile/screens/onboarding_screen.dart';
+import 'package:foodhub_mobile/screens/verify_email_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
 import 'package:foodhub_mobile/services/google_auth_service.dart';
@@ -41,21 +40,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
+  String get _deviceLanguage {
+    final code = WidgetsBinding.instance.platformDispatcher.locale.languageCode
+        .toLowerCase();
+    return code == 'vi' ? 'vi' : 'en';
+  }
+
   Future<void> _createAccount() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
     try {
-      final user = await _authService.signUp(
+      final result = await _authService.signUp(
         fullName: _fullNameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        language: _deviceLanguage,
       );
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => user.role == 'admin'
-              ? AdminShellScreen(user: user)
-              : OnboardingScreen(user: user),
+          builder: (_) => VerifyEmailScreen(
+            email: _emailController.text.trim(),
+            prefillOtp: result.otp,
+            isNewSignup: true,
+          ),
         ),
       );
     } on ApiException catch (e) {
@@ -91,11 +99,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => user.role == 'admin'
-              ? AdminShellScreen(user: user)
-              : (_looksLikeFreshProfile(user)
-                    ? OnboardingScreen(user: user)
-                    : MainShellScreen(initialUser: user)),
+          builder: (_) => destinationFor(
+            user,
+            isNewSignup: _looksLikeFreshProfile(user),
+          ),
         ),
       );
     } on ApiException catch (e) {

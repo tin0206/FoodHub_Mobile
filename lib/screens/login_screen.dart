@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
+import 'package:foodhub_mobile/screens/auth_destination.dart';
 import 'package:foodhub_mobile/screens/forgot_password_screen.dart';
-import 'package:foodhub_mobile/screens/main_shell_screen.dart';
 import 'package:foodhub_mobile/screens/signup_screen.dart';
+import 'package:foodhub_mobile/screens/verify_email_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
 import 'package:foodhub_mobile/services/google_auth_service.dart';
@@ -47,14 +48,21 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => user.role == 'admin'
-              ? AdminShellScreen(user: user)
-              : MainShellScreen(initialUser: user),
-        ),
+        MaterialPageRoute(builder: (_) => destinationFor(user)),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
+      if (isPendingSignupError(e)) {
+        final email = _emailController.text.trim();
+        final prefillOtp = await _authService.resendSignupOtpBestEffort(email);
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => VerifyEmailScreen(email: email, prefillOtp: prefillOtp),
+          ),
+        );
+        return;
+      }
       setState(() => _loginError = true);
       showErrorToast(context, e.message);
     } catch (_) {
@@ -78,11 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => user.role == 'admin'
-              ? AdminShellScreen(user: user)
-              : MainShellScreen(initialUser: user),
-        ),
+        MaterialPageRoute(builder: (_) => destinationFor(user)),
       );
     } on ApiException catch (e) {
       if (!mounted) return;

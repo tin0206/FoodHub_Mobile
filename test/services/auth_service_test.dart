@@ -93,17 +93,16 @@ void main() {
   });
 
   group('signUp', () {
-    test('trims email/name and stores the returned token', () async {
+    test('trims email/name and does not store a token until OTP is verified', () async {
       when(
         () => api.post('/auth/signup', auth: false, body: any(named: 'body')),
       ).thenAnswer(
         (_) async => {
-          'access_token': 'tok-2',
-          'user': {'id': 2, 'email': 'new@b.com', 'username': 'new'},
+          'message': 'Check your inbox',
         },
       );
 
-      await authService.signUp(
+      final result = await authService.signUp(
         fullName: '  New User  ',
         email: '  new@b.com  ',
         password: 'secret',
@@ -114,6 +113,22 @@ void main() {
       ).captured.single as Map<String, dynamic>;
       expect(captured['full_name'], 'New User');
       expect(captured['email'], 'new@b.com');
+      expect(result.message, 'Check your inbox');
+      expect(result.otp, isNull);
+      verifyNever(() => tokenStorage.saveToken(any()));
+    });
+
+    test('verifySignupOtp stores the returned token', () async {
+      when(
+        () => api.post('/auth/signup/verify-otp', auth: false, body: any(named: 'body')),
+      ).thenAnswer(
+        (_) async => {
+          'access_token': 'tok-2',
+          'user': {'id': 2, 'email': 'new@b.com', 'username': 'new'},
+        },
+      );
+
+      await authService.verifySignupOtp(email: 'new@b.com', otp: '123456');
       verify(() => tokenStorage.saveToken('tok-2')).called(1);
     });
   });
@@ -124,8 +139,18 @@ void main() {
         () => api.post('/auth/forgot-password', auth: false, body: any(named: 'body')),
       ).thenAnswer((_) async => {'message': 'Check your inbox'});
 
-      final message = await authService.forgotPassword(email: 'a@b.com');
-      expect(message, 'Check your inbox');
+      final result = await authService.forgotPassword(email: 'a@b.com');
+      expect(result.message, 'Check your inbox');
+      expect(result.otp, isNull);
+    });
+
+    test('returns the OTP when the API includes it', () async {
+      when(
+        () => api.post('/auth/forgot-password', auth: false, body: any(named: 'body')),
+      ).thenAnswer((_) async => {'message': 'ok', 'otp': '123456'});
+
+      final result = await authService.forgotPassword(email: 'a@b.com');
+      expect(result.otp, '123456');
     });
 
     test('falls back to a generic message when the API omits it', () async {
@@ -133,8 +158,41 @@ void main() {
         () => api.post('/auth/forgot-password', auth: false, body: any(named: 'body')),
       ).thenAnswer((_) async => <String, dynamic>{});
 
-      final message = await authService.forgotPassword(email: 'a@b.com');
-      expect(message, 'If the email exists, a reset link has been sent.');
+      final result = await authService.forgotPassword(email: 'a@b.com');
+      expect(result.message, 'If the email exists, a reset code has been sent.');
+    });
+
+    test('resetPassword sends email, otp, and new password', () async {
+      when(
+        () => api.post('/auth/reset-password', auth: false, body: any(named: 'body')),
+      ).thenAnswer((_) async => null);
+
+      await authService.resetPassword(
+        email: 'a@b.com',
+        otp: '123456',
+        newPassword: 'newpass1',
+      );
+
+      final captured = verify(
+        () => api.post('/auth/reset-password', auth: false, body: captureAny(named: 'body')),
+      ).captured.single as Map<String, dynamic>;
+      expect(captured['email'], 'a@b.com');
+      expect(captured['otp'], '123456');
+      expect(captured['new_password'], 'newpass1');
+    });
+
+    test('verifyResetOtp posts email and otp', () async {
+      when(
+        () => api.post('/auth/verify-reset-otp', auth: false, body: any(named: 'body')),
+      ).thenAnswer((_) async => null);
+
+      await authService.verifyResetOtp(email: 'a@b.com', otp: '123456');
+
+      final captured = verify(
+        () => api.post('/auth/verify-reset-otp', auth: false, body: captureAny(named: 'body')),
+      ).captured.single as Map<String, dynamic>;
+      expect(captured['email'], 'a@b.com');
+      expect(captured['otp'], '123456');
     });
   });
 

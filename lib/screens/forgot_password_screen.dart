@@ -16,7 +16,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
 
   bool _isSubmitting = false;
-  bool _emailSent = false;
 
   final _authService = AuthService();
 
@@ -34,23 +33,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       final email = _emailController.text.trim();
       final result = await _authService.forgotPassword(email: email);
       if (!mounted) return;
-      if (result.resetToken != null) {
-        // Dev mode: token returned directly — navigate to reset form.
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => ResetPasswordScreen(
-            email: email,
-            prefillToken: result.resetToken!,
-          ),
-        ));
-      } else {
-        setState(() => _emailSent = true);
-      }
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ResetPasswordScreen(
+          email: email,
+          prefillOtp: result.otp ?? '',
+        ),
+      ));
     } on ApiException catch (e) {
       if (!mounted) return;
       showErrorToast(context, e.message);
     } catch (_) {
       if (!mounted) return;
-      showErrorToast(context, 'Unable to send reset link.');
+      showErrorToast(context, 'Unable to send reset code.');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -129,12 +123,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ],
                       ),
                       padding: const EdgeInsets.all(22),
-                      child: _emailSent
-                          ? _SuccessView(
-                              email: _emailController.text.trim(),
-                              onBack: () => Navigator.of(context).pop(),
-                            )
-                          : Form(
+                      child: Form(
                               key: _formKey,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +139,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   ),
                                   const SizedBox(height: 6),
                                   const Text(
-                                    "Enter your email and we'll send you a reset link.",
+                                    "Enter your email and we'll send a 6-digit code.",
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: Color(0xFF6B7280),
@@ -223,7 +212,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                         child: Text(
                                           _isSubmitting
                                               ? 'Sending...'
-                                              : 'Send reset link',
+                                              : 'Send code',
                                           style: const TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w700,
@@ -269,99 +258,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _SuccessView extends StatelessWidget {
-  const _SuccessView({required this.email, required this.onBack});
-
-  final String email;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF059669), Color(0xFF047857)],
-            ),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF059669).withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.mark_email_read_outlined,
-            color: Colors.white,
-            size: 28,
-          ),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Check your inbox',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'We sent a reset link to\n$email',
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 13,
-            color: Color(0xFF6B7280),
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 22),
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF059669), Color(0xFF047857)],
-              ),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF059669).withValues(alpha: 0.35),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ElevatedButton(
-              onPressed: onBack,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: const Text(
-                'Back to sign in',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

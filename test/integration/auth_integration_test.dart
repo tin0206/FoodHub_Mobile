@@ -86,8 +86,8 @@ void main() {
         email: 'qa-does-not-exist-${DateTime.now().millisecondsSinceEpoch}@example.com',
       );
 
-      expect(knownMessage, isNotEmpty);
-      expect(unknownMessage, isNotEmpty);
+      expect(knownMessage.message, isNotEmpty);
+      expect(unknownMessage.message, isNotEmpty);
     }, skip: skip);
   });
 

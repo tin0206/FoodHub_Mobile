@@ -1450,7 +1450,7 @@ class _SetFirstPasswordSheetState extends State<_SetFirstPasswordSheet> {
       Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => ResetPasswordScreen(
           email: widget.email,
-          prefillToken: result.resetToken ?? '',
+          prefillOtp: result.otp ?? '',
           popOnSuccess: true,
         ),
       ));

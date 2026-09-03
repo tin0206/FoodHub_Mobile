@@ -3,6 +3,8 @@ import 'package:foodhub_mobile/services/api_client.dart';
 import 'package:foodhub_mobile/services/session_service.dart';
 import 'package:foodhub_mobile/services/token_storage.dart';
 
+typedef OtpDispatch = ({String message, String? otp});
+
 class AuthService {
   AuthService({
     ApiClient? apiClient,
@@ -15,6 +17,21 @@ class AuthService {
   final ApiClient _api;
   final TokenStorage _tokenStorage;
   final SessionService _session;
+
+  Future<UserModel> _persist(dynamic data) async {
+    final token = AuthToken.fromJson(data as Map<String, dynamic>);
+    await _tokenStorage.saveToken(token.accessToken);
+    _session.setUser(token.user);
+    return token.user;
+  }
+
+  OtpDispatch _otpDispatch(dynamic data, String fallback) {
+    final map = data as Map<String, dynamic>;
+    return (
+      message: map['message'] as String? ?? fallback,
+      otp: map['otp'] as String?,
+    );
+  }
 
   Future<UserModel> signIn({
     required String email,
@@ -30,17 +47,14 @@ class AuthService {
         'remember_me': rememberMe,
       },
     );
-
-    final token = AuthToken.fromJson(data as Map<String, dynamic>);
-    await _tokenStorage.saveToken(token.accessToken);
-    _session.setUser(token.user);
-    return token.user;
+    return _persist(data);
   }
 
-  Future<UserModel> signUp({
+  Future<OtpDispatch> signUp({
     required String fullName,
     required String email,
     required String password,
+    String language = 'en',
   }) async {
     final data = await _api.post(
       '/auth/signup',
@@ -49,13 +63,48 @@ class AuthService {
         'email': email.trim(),
         'password': password,
         'full_name': fullName.trim(),
+        'language': language,
       },
     );
+    return _otpDispatch(
+      data,
+      'If this email can be used, a verification code has been sent.',
+    );
+  }
 
-    final token = AuthToken.fromJson(data as Map<String, dynamic>);
-    await _tokenStorage.saveToken(token.accessToken);
-    _session.setUser(token.user);
-    return token.user;
+  Future<OtpDispatch> resendSignupOtp({required String email}) async {
+    final data = await _api.post(
+      '/auth/signup/resend-otp',
+      auth: false,
+      body: {'email': email.trim()},
+    );
+    return _otpDispatch(
+      data,
+      'If a signup is pending, a new verification code has been sent.',
+    );
+  }
+
+  Future<String?> resendSignupOtpBestEffort(String email) async {
+    try {
+      return (await resendSignupOtp(email: email)).otp;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<UserModel> verifySignupOtp({
+    required String email,
+    required String otp,
+  }) async {
+    final data = await _api.post(
+      '/auth/signup/verify-otp',
+      auth: false,
+      body: {
+        'email': email.trim(),
+        'otp': otp.trim(),
+      },
+    );
+    return _persist(data);
   }
 
   /// [tokenType] is either 'id_token' (mobile) or 'access_token' (web).
@@ -66,49 +115,49 @@ class AuthService {
     final endpoint = tokenType == 'access_token'
         ? '/auth/google/access_token'
         : '/auth/google/token';
-    // ignore: avoid_print
-    print('[AuthService] POST $endpoint  tokenType=$tokenType  tokenLen=${token.length}');
-    try {
-      final data = await _api.post(endpoint, auth: false, body: {tokenType: token});
-      // ignore: avoid_print
-      print('[AuthService] response=$data');
-      final authToken = AuthToken.fromJson(data as Map<String, dynamic>);
-      await _tokenStorage.saveToken(authToken.accessToken);
-      _session.setUser(authToken.user);
-      return authToken.user;
-    } catch (e) {
-      // ignore: avoid_print
-      print('[AuthService] ERROR: $e');
-      rethrow;
-    }
+    final data = await _api.post(endpoint, auth: false, body: {tokenType: token});
+    return _persist(data);
   }
 
-  /// Returns (message, resetToken). resetToken is non-null in dev (returned
-  /// directly by the API until email service is wired up).
-  Future<({String message, String? resetToken})> forgotPassword({
-    required String email,
-  }) async {
+  Future<OtpDispatch> forgotPassword({required String email}) async {
     final data = await _api.post(
       '/auth/forgot-password',
       auth: false,
       body: {'email': email.trim()},
     );
-    final map = data as Map<String, dynamic>;
-    return (
-      message: map['message'] as String? ?? 'If the email exists, a reset link has been sent.',
-      resetToken: map['reset_token'] as String?,
+    return _otpDispatch(
+      data,
+      'If the email exists, a reset code has been sent.',
+    );
+  }
+
+  Future<void> verifyResetOtp({
+    required String email,
+    required String otp,
+  }) async {
+    await _api.post(
+      '/auth/verify-reset-otp',
+      auth: false,
+      body: {
+        'email': email.trim(),
+        'otp': otp.trim(),
+      },
     );
   }
 
   Future<void> resetPassword({
     required String email,
-    required String token,
+    required String otp,
     required String newPassword,
   }) async {
     await _api.post(
       '/auth/reset-password',
       auth: false,
-      body: {'email': email.trim(), 'token': token, 'new_password': newPassword},
+      body: {
+        'email': email.trim(),
+        'otp': otp.trim(),
+        'new_password': newPassword,
+      },
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:foodhub_mobile/screens/login_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
@@ -9,12 +10,12 @@ class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({
     super.key,
     required this.email,
-    this.prefillToken = '',
+    this.prefillOtp = '',
     this.popOnSuccess = false,
   });
 
   final String email;
-  final String prefillToken;
+  final String prefillOtp;
   /// True khi mở từ profile (đang đăng nhập) — pop về thay vì push LoginScreen.
   final bool popOnSuccess;
 
@@ -24,11 +25,13 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _tokenController;
+  late final TextEditingController _otpController;
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
 
   bool _isSubmitting = false;
+  bool _resending = false;
+  bool _otpVerified = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _passwordTouched = false;
@@ -38,24 +41,72 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   void initState() {
     super.initState();
-    _tokenController = TextEditingController(text: widget.prefillToken);
+    _otpController = TextEditingController(text: widget.prefillOtp);
   }
 
   @override
   void dispose() {
-    _tokenController.dispose();
+    _otpController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
     super.dispose();
   }
 
+  Future<void> _resend() async {
+    if (_resending) return;
+    setState(() => _resending = true);
+    try {
+      final result = await _authService.forgotPassword(email: widget.email);
+      if (!mounted) return;
+      if (result.otp != null && result.otp!.isNotEmpty) {
+        _otpController.text = result.otp!;
+      }
+      setState(() => _otpVerified = false);
+      showSuccessToast(context, 'A new code was sent to ${widget.email}.');
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      showErrorToast(context, e.message);
+    } catch (_) {
+      if (!mounted) return;
+      showErrorToast(context, 'Unable to send reset code.');
+    } finally {
+      if (mounted) setState(() => _resending = false);
+    }
+  }
+
+  Future<void> _verifyOtp() async {
+    final code = _otpController.text.trim();
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+      _formKey.currentState?.validate();
+      return;
+    }
+    setState(() => _isSubmitting = true);
+    try {
+      await _authService.verifyResetOtp(email: widget.email, otp: code);
+      if (!mounted) return;
+      setState(() => _otpVerified = true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      showErrorToast(context, e.message);
+    } catch (_) {
+      if (!mounted) return;
+      showErrorToast(context, 'Invalid or expired reset code.');
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
   Future<void> _submit() async {
+    if (!_otpVerified) {
+      await _verifyOtp();
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
     try {
       await _authService.resetPassword(
         email: widget.email,
-        token: _tokenController.text.trim(),
+        otp: _otpController.text.trim(),
         newPassword: _passwordController.text,
       );
       if (!mounted) return;
@@ -119,7 +170,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Create a new password',
+                    _otpVerified ? 'Create a new password' : 'Enter your reset code',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.white.withValues(alpha: 0.8),
@@ -166,133 +217,65 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Enter the reset code sent to ${widget.email}',
+                          _otpVerified
+                              ? 'Code verified. Choose a new password for ${widget.email}'
+                              : 'Enter the 6-digit code sent to ${widget.email}',
                           style: const TextStyle(
                             fontSize: 13,
                             color: Color(0xFF6B7280),
                             height: 1.4,
                           ),
                         ),
-                                        const SizedBox(height: 18),
-                        _label('New password'),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          onChanged: (_) => setState(() => _passwordTouched = true),
-                          decoration: _inputDecoration(
-                            hint: 'New password',
-                            icon: Icons.lock_outline_rounded,
-                          ).copyWith(
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                size: 18,
-                                color: const Color(0xFF94A3B8),
-                              ),
-                              onPressed: () =>
-                                  setState(() => _obscurePassword = !_obscurePassword),
-                            ),
-                          ),
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return 'Please enter a new password.';
-                            if (v.length < 6) return 'Password must be at least 6 characters.';
-                            return null;
-                          },
-                        ),
-                        if (_passwordTouched) ...[
-                          const SizedBox(height: 8),
-                          PasswordRequirements(password: _passwordController.text),
-                        ],
-                        const SizedBox(height: 14),
-                        _label('Confirm password'),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _confirmController,
-                          obscureText: _obscureConfirm,
-                          decoration: _inputDecoration(
-                            hint: 'Confirm new password',
-                            icon: Icons.lock_outline_rounded,
-                          ).copyWith(
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureConfirm
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                size: 18,
-                                color: const Color(0xFF94A3B8),
-                              ),
-                              onPressed: () =>
-                                  setState(() => _obscureConfirm = !_obscureConfirm),
-                            ),
-                          ),
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return 'Please confirm your password.';
-                            if (v != _passwordController.text) return 'Passwords do not match.';
-                            return null;
-                          },
-                        ),
+                        const SizedBox(height: 18),
+                        if (!_otpVerified) ..._otpFields() else ..._passwordFields(),
                         const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: _isSubmitting
-                                  ? null
-                                  : const LinearGradient(
-                                      colors: [Color(0xFF059669), Color(0xFF047857)],
-                                    ),
-                              color: _isSubmitting ? const Color(0xFFD1D5DB) : null,
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: _isSubmitting
-                                  ? []
-                                  : [
-                                      BoxShadow(
-                                        color: const Color(0xFF059669).withValues(alpha: 0.35),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                            ),
-                            child: ElevatedButton(
-                              onPressed: _isSubmitting ? null : _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
+                        _primaryButton(
+                          loading: _isSubmitting,
+                          label: _otpVerified
+                              ? (_isSubmitting ? 'Resetting...' : 'Reset password')
+                              : (_isSubmitting ? 'Verifying...' : 'Verify code'),
+                          onPressed: _isSubmitting
+                              ? null
+                              : (_otpVerified ? _submit : _verifyOtp),
+                        ),
+                        if (!_otpVerified) ...[
+                          const SizedBox(height: 14),
+                          Center(
+                            child: GestureDetector(
+                              onTap: _resending ? null : _resend,
                               child: Text(
-                                _isSubmitting ? 'Resetting...' : 'Reset password',
+                                _resending ? 'Sending…' : "Didn't get a code? Resend",
                                 style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF059669),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                         const SizedBox(height: 14),
                         Center(
                           child: GestureDetector(
-                            onTap: () => Navigator.of(context).pop(),
-                            child: const Row(
+                            onTap: () {
+                              if (_otpVerified) {
+                                setState(() => _otpVerified = false);
+                              } else {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.arrow_back_rounded,
                                   size: 15,
                                   color: Color(0xFF059669),
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
-                                  'Back',
-                                  style: TextStyle(
+                                  _otpVerified ? 'Change code' : 'Back',
+                                  style: const TextStyle(
                                     color: Color(0xFF059669),
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
@@ -310,6 +293,154 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  List<Widget> _otpFields() {
+    return [
+      _label('Reset code'),
+      const SizedBox(height: 6),
+      TextFormField(
+        controller: _otpController,
+        keyboardType: TextInputType.number,
+        maxLength: 6,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(6),
+        ],
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 8,
+        ),
+        decoration: _inputDecoration(
+          hint: '000000',
+          icon: Icons.pin_outlined,
+        ).copyWith(counterText: ''),
+        validator: (v) {
+          if (_otpVerified) return null;
+          final code = v?.trim() ?? '';
+          if (!RegExp(r'^\d{6}$').hasMatch(code)) {
+            return 'Enter the 6-digit code from your email.';
+          }
+          return null;
+        },
+      ),
+    ];
+  }
+
+  List<Widget> _passwordFields() {
+    return [
+      _label('New password'),
+      const SizedBox(height: 6),
+      TextFormField(
+        controller: _passwordController,
+        obscureText: _obscurePassword,
+        onChanged: (_) => setState(() => _passwordTouched = true),
+        decoration: _inputDecoration(
+          hint: 'New password',
+          icon: Icons.lock_outline_rounded,
+        ).copyWith(
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscurePassword
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              size: 18,
+              color: const Color(0xFF94A3B8),
+            ),
+            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+          ),
+        ),
+        validator: (v) {
+          if (!_otpVerified) return null;
+          if (v == null || v.isEmpty) return 'Please enter a new password.';
+          if (v.length < 6) return 'Password must be at least 6 characters.';
+          return null;
+        },
+      ),
+      if (_passwordTouched) ...[
+        const SizedBox(height: 8),
+        PasswordRequirements(password: _passwordController.text),
+      ],
+      const SizedBox(height: 14),
+      _label('Confirm password'),
+      const SizedBox(height: 6),
+      TextFormField(
+        controller: _confirmController,
+        obscureText: _obscureConfirm,
+        decoration: _inputDecoration(
+          hint: 'Confirm new password',
+          icon: Icons.lock_outline_rounded,
+        ).copyWith(
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscureConfirm
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              size: 18,
+              color: const Color(0xFF94A3B8),
+            ),
+            onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+          ),
+        ),
+        validator: (v) {
+          if (!_otpVerified) return null;
+          if (v == null || v.isEmpty) return 'Please confirm your password.';
+          if (v != _passwordController.text) return 'Passwords do not match.';
+          return null;
+        },
+      ),
+    ];
+  }
+
+  Widget _primaryButton({
+    required bool loading,
+    required String label,
+    required VoidCallback? onPressed,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: loading
+              ? null
+              : const LinearGradient(
+                  colors: [Color(0xFF059669), Color(0xFF047857)],
+                ),
+          color: loading ? const Color(0xFFD1D5DB) : null,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: loading
+              ? []
+              : [
+                  BoxShadow(
+                    color: const Color(0xFF059669).withValues(alpha: 0.35),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+        ),
+        child: ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
       ),
     );
   }

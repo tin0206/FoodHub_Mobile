@@ -8,6 +8,12 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+bool isPendingSignupError(ApiException error) {
+  final msg = error.message.toLowerCase();
+  return error.statusCode == 403 &&
+      (msg.contains('not verified') || msg.contains('verify your email'));
+}
+
 String parseApiErrorMessage(dynamic body, {String fallback = 'Request failed'}) {
   if (body is Map) {
     final detail = body['detail'];
