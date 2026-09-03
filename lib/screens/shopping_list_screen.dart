@@ -7,6 +7,64 @@ import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/meal_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// ── Aisle colors ────────────────────────────────────────────────────────────
+// Gives every ingredient group its own accent color + icon so the list reads
+// at a glance instead of one flat gray card per aisle.
+
+class _AisleStyle {
+  const _AisleStyle(this.color, this.icon);
+  final Color color;
+  final IconData icon;
+}
+
+const _kAisleStyles = <String, _AisleStyle>{
+  'produce': _AisleStyle(Color(0xFF16A34A), Icons.eco_outlined),
+  'fruit': _AisleStyle(Color(0xFF16A34A), Icons.eco_outlined),
+  'vegetable': _AisleStyle(Color(0xFF16A34A), Icons.eco_outlined),
+  'herb': _AisleStyle(Color(0xFF15803D), Icons.grass_outlined),
+  'dairy': _AisleStyle(Color(0xFFCA8A04), Icons.egg_outlined),
+  'egg': _AisleStyle(Color(0xFFCA8A04), Icons.egg_outlined),
+  'meat': _AisleStyle(Color(0xFFDC2626), Icons.kebab_dining_outlined),
+  'poultry': _AisleStyle(Color(0xFFDC2626), Icons.kebab_dining_outlined),
+  'seafood': _AisleStyle(Color(0xFF0284C7), Icons.set_meal_outlined),
+  'fish': _AisleStyle(Color(0xFF0284C7), Icons.set_meal_outlined),
+  'bakery': _AisleStyle(Color(0xFFB45309), Icons.bakery_dining_outlined),
+  'bread': _AisleStyle(Color(0xFFB45309), Icons.bakery_dining_outlined),
+  'grain': _AisleStyle(Color(0xFFB45309), Icons.rice_bowl_outlined),
+  'pasta': _AisleStyle(Color(0xFFB45309), Icons.rice_bowl_outlined),
+  'pantry': _AisleStyle(Color(0xFFEA580C), Icons.kitchen_outlined),
+  'spice': _AisleStyle(Color(0xFFEA580C), Icons.spa_outlined),
+  'condiment': _AisleStyle(Color(0xFFEA580C), Icons.kitchen_outlined),
+  'sauce': _AisleStyle(Color(0xFFEA580C), Icons.kitchen_outlined),
+  'oil': _AisleStyle(Color(0xFFEA580C), Icons.kitchen_outlined),
+  'canned': _AisleStyle(Color(0xFF9333EA), Icons.inventory_2_outlined),
+  'frozen': _AisleStyle(Color(0xFF0891B2), Icons.ac_unit_outlined),
+  'beverage': _AisleStyle(Color(0xFF7C3AED), Icons.local_cafe_outlined),
+  'drink': _AisleStyle(Color(0xFF7C3AED), Icons.local_cafe_outlined),
+  'snack': _AisleStyle(Color(0xFFDB2777), Icons.icecream_outlined),
+  'household': _AisleStyle(Color(0xFF64748B), Icons.cleaning_services_outlined),
+};
+
+const _kAisleFallbackPalette = <_AisleStyle>[
+  _AisleStyle(Color(0xFF0D9488), Icons.shopping_basket_outlined),
+  _AisleStyle(Color(0xFF4F46E5), Icons.shopping_basket_outlined),
+  _AisleStyle(Color(0xFFC2410C), Icons.shopping_basket_outlined),
+  _AisleStyle(Color(0xFF0369A1), Icons.shopping_basket_outlined),
+  _AisleStyle(Color(0xFF7C2D12), Icons.shopping_basket_outlined),
+];
+
+_AisleStyle _styleForAisle(String aisleKey) {
+  final key = aisleKey.toLowerCase();
+  if (key.isEmpty || key == 'other') {
+    return const _AisleStyle(Color(0xFF6B7280), Icons.shopping_basket_outlined);
+  }
+  for (final entry in _kAisleStyles.entries) {
+    if (key.contains(entry.key)) return entry.value;
+  }
+  final hash = key.codeUnits.fold<int>(0, (sum, c) => sum + c);
+  return _kAisleFallbackPalette[hash % _kAisleFallbackPalette.length];
+}
+
 class ShoppingListScreen extends StatefulWidget {
   const ShoppingListScreen({super.key, this.date});
 
@@ -321,7 +379,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.shopping_cart_outlined, size: 56, color: secondaryText),
+                                    Icon(Icons.checklist_rounded, size: 56, color: secondaryText),
                                     const SizedBox(height: 12),
                                     Text(
                                       s.emptyShoppingList,
@@ -489,17 +547,26 @@ class _AisleSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final aisleLabel = group.aisle.isNotEmpty ? group.aisle : group.aisleKey;
+    // Ingredients the server couldn't categorize (e.g. an unrecognized item
+    // like "kaffir lime leaves") come back with an empty/`other` aisle, or
+    // with only a raw key like "produce" — show a clean localized label
+    // instead of a raw/blank key.
+    final aisleLabel = group.aisle.isNotEmpty
+        ? group.aisle
+        : S.of(context).aisleGroupDisplay(group.aisleKey);
     final total = group.items.length;
     final done = _doneCount;
     final allDone = done == total && total > 0;
+    final aisleStyle = _styleForAisle(group.aisleKey);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cardBorder),
+        border: Border.all(
+          color: allDone ? cardBorder : aisleStyle.color.withValues(alpha: isDarkMode ? 0.35 : 0.25),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.05),
@@ -526,15 +593,13 @@ class _AisleSection extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: allDone
                           ? const Color(0xFF059669).withValues(alpha: isDarkMode ? 0.25 : 0.12)
-                          : (isDarkMode
-                              ? const Color(0xFF2A2A2A)
-                              : const Color(0xFFF3F4F6)),
+                          : aisleStyle.color.withValues(alpha: isDarkMode ? 0.22 : 0.14),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      allDone ? Icons.check_rounded : Icons.storefront_outlined,
+                      allDone ? Icons.check_rounded : aisleStyle.icon,
                       size: 16,
-                      color: allDone ? const Color(0xFF059669) : secondaryText,
+                      color: allDone ? const Color(0xFF059669) : aisleStyle.color,
                     ),
                   ),
                   const SizedBox(width: 10),

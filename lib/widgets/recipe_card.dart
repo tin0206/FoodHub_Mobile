@@ -199,7 +199,7 @@ class _StatsRow extends StatelessWidget {
         Icon(Icons.schedule_rounded, size: 12, color: iconColor),
         const SizedBox(width: 3),
         Text(
-          '${recipe.cookingMinutes} min',
+          '${recipe.cookingMinutes} ${S.of(context).minSuffix}',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w500,

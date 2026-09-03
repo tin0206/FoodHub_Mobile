@@ -7,7 +7,7 @@ import 'package:foodhub_mobile/services/auth_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/password_requirements.dart';
 
-const _kDietaryTags = [
+const kDietaryTags = [
   'Dairy Free',
   'Non-Alcoholic',
   'Gluten Free',
@@ -17,7 +17,7 @@ const _kDietaryTags = [
   'Pescetarian',
 ];
 
-const _kPrimaryGoals = [
+const kPrimaryGoals = [
   'Balanced Nutrition',
   'Weight Loss',
   'Muscle Gain',
@@ -651,7 +651,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisSpacing: 8,
                   mainAxisSpacing: 8,
                   childAspectRatio: 4,
-                  children: _kPrimaryGoals.map((goal) {
+                  children: kPrimaryGoals.map((goal) {
                     final isSelected = widget.primaryGoal == goal;
                     return GestureDetector(
                       onTap: () => widget.onPrimaryGoalChanged(isSelected ? '' : goal),
@@ -762,7 +762,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: _kDietaryTags.map((tag) {
+                  children: kDietaryTags.map((tag) {
                     final isSelected = widget.selectedDietaryRestrictions.contains(tag);
                     return GestureDetector(
                       onTap: () => widget.onDietaryRestrictionToggled(tag, !isSelected),

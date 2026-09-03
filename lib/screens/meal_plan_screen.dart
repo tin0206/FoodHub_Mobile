@@ -6,7 +6,9 @@ import 'package:foodhub_mobile/screens/search_screen.dart';
 import 'package:foodhub_mobile/screens/shopping_list_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/meal_service.dart';
+import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/app_top_bar.dart';
+import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 import 'package:foodhub_mobile/widgets/recipe_image.dart';
 
@@ -19,6 +21,7 @@ class MealPlanScreen extends StatefulWidget {
 
 class _MealPlanScreenState extends State<MealPlanScreen> {
   final _mealService = MealService();
+  final _recipeService = RecipeService();
   MealPlanModel? _plan;
   bool _loading = true;
   String? _error;
@@ -33,6 +36,55 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
   void _closeRecipeDetail() {
     setState(() => _selectedItem = null);
+  }
+
+  Future<bool> _saveAsPersonalRecipe(RecipeDetailData data) async {
+    final s = S.of(context);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(28),
+            child: CircularProgressIndicator(color: Color(0xFF059669)),
+          ),
+        ),
+      ),
+    );
+    try {
+      var updated = await _recipeService.updateRecipe(
+        data.id,
+        title: data.name,
+        ingredients: data.ingredientItems,
+        directions: RecipeModel.splitLines(data.steps),
+        dietaryRestrictions: data.labels,
+        estimatedServings: data.estimatedServings,
+      );
+      if (data.pendingImageBytes != null && data.pendingImageBytes!.isNotEmpty) {
+        try {
+          final imageUrl = await _recipeService.uploadRecipeImage(
+            updated.id,
+            data.pendingImageBytes!,
+            data.pendingImageFilename,
+          );
+          if (imageUrl != null && imageUrl.isNotEmpty) {
+            updated = updated.copyWith(imageUrl: imageUrl);
+          }
+        } on ApiException catch (e) {
+          if (mounted) showErrorToast(context, e.message);
+        }
+      }
+      if (!mounted) return false;
+      Navigator.of(context).pop();
+      showSuccessToast(context, s.savedAsPersonalRecipe);
+      return true;
+    } on ApiException catch (e) {
+      if (!mounted) return false;
+      Navigator.of(context).pop();
+      showErrorToast(context, e.message);
+      return false;
+    }
   }
 
   @override
@@ -154,6 +206,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                   recipe: recipe.toDetailData(),
                   cardColor: theme.start,
                   onBack: _closeRecipeDetail,
+                  onSaveEdited: _saveAsPersonalRecipe,
                 ),
               ),
             ],
@@ -176,31 +229,33 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               ),
             ),
             padding: EdgeInsets.fromLTRB(16, topPadding + 12, 16, 16),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(10),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
                         s.todaysMealPlan,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -208,44 +263,53 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                           letterSpacing: -0.3,
                         ),
                       ),
-                      Text(
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
                         _date,
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.75),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ShoppingListScreen(date: _date),
                     ),
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 16),
-                        const SizedBox(width: 6),
-                        Text(
-                          s.shoppingList,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ShoppingListScreen(date: _date),
                         ),
-                      ],
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.checklist_rounded, color: Colors.white, size: 15),
+                            const SizedBox(width: 6),
+                            Text(
+                              s.shoppingList,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -391,6 +455,19 @@ class _PlanSlotCard extends StatelessWidget {
   final ValueChanged<MealPlanItemModel> onViewDetail;
   final VoidCallback? onDeleteSlot;
 
+  String _displayLabel(S s) {
+    switch (slot.slotKey) {
+      case 'breakfast':
+        return s.breakfast;
+      case 'lunch':
+        return s.lunch;
+      case 'dinner':
+        return s.dinner;
+      default:
+        return slot.label;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
@@ -432,7 +509,7 @@ class _PlanSlotCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    slot.label,
+                    _displayLabel(s),
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 15,

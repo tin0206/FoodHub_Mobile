@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/favorite.dart';
+import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/favorite_service.dart';
+import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_card.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
@@ -19,6 +21,7 @@ class FavoritesScreen extends StatefulWidget {
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
   final _favoriteService = FavoriteService();
+  final _recipeService = RecipeService();
   List<FavoriteModel> _favorites = [];
   bool _isLoading = true;
   String? _loadError;
@@ -393,6 +396,55 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     return result;
   }
 
+  Future<bool> _saveAsPersonalRecipe(RecipeDetailData data) async {
+    final s = S.of(context);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(28),
+            child: CircularProgressIndicator(color: Color(0xFF059669)),
+          ),
+        ),
+      ),
+    );
+    try {
+      var updated = await _recipeService.updateRecipe(
+        data.id,
+        title: data.name,
+        ingredients: data.ingredientItems,
+        directions: RecipeModel.splitLines(data.steps),
+        dietaryRestrictions: data.labels,
+        estimatedServings: data.estimatedServings,
+      );
+      if (data.pendingImageBytes != null && data.pendingImageBytes!.isNotEmpty) {
+        try {
+          final imageUrl = await _recipeService.uploadRecipeImage(
+            updated.id,
+            data.pendingImageBytes!,
+            data.pendingImageFilename,
+          );
+          if (imageUrl != null && imageUrl.isNotEmpty) {
+            updated = updated.copyWith(imageUrl: imageUrl);
+          }
+        } on ApiException catch (e) {
+          if (mounted) showErrorToast(context, e.message);
+        }
+      }
+      if (!mounted) return false;
+      Navigator.of(context).pop();
+      showSuccessToast(context, s.savedAsPersonalRecipe);
+      return true;
+    } on ApiException catch (e) {
+      if (!mounted) return false;
+      Navigator.of(context).pop();
+      showErrorToast(context, e.message);
+      return false;
+    }
+  }
+
   int get _savedCount => _favorites.length;
 
   int get _noteCount =>
@@ -415,6 +467,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           onBack: _closeRecipeDetails,
           isSaved: _savedCurrentRecipe,
           onToggleSave: _toggleSaveInDetail,
+          onSaveEdited: _saveAsPersonalRecipe,
         ),
       );
     }

@@ -34,7 +34,6 @@ class _MainShellScreenState extends State<MainShellScreen> {
   AppTab _currentTab = AppTab.home;
   final List<AppTab> _tabHistory = [AppTab.home];
   bool _isDarkMode = false;
-  String _language = 'en';
   final Map<AppTab, bool> _tabInDetail = {};
   late UserModel _user;
   final _authService = AuthService();
@@ -46,27 +45,43 @@ class _MainShellScreenState extends State<MainShellScreen> {
   void initState() {
     super.initState();
     _user = widget.initialUser;
-    _language = widget.initialUser.language ?? 'en';
+    LangScope.current.value = widget.initialUser.language ?? 'en';
+    LangScope.current.addListener(_onGlobalLanguageChanged);
     _isDarkMode = widget.initialUser.theme == 'dark';
     _dietaryRestrictions = {..._user.dietaryRestrictions};
     _primaryGoal = _user.primaryGoal ?? '';
     if (widget.initialTab != null) _currentTab = widget.initialTab!;
   }
 
+  @override
+  void dispose() {
+    LangScope.current.removeListener(_onGlobalLanguageChanged);
+    super.dispose();
+  }
+
+  // ProfileScreen takes the current language as a constructor prop rather
+  // than reading LangScope.of(context) itself, so this screen needs to
+  // rebuild whenever the global language changes.
+  void _onGlobalLanguageChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _onUserUpdated(UserModel user) {
     setState(() {
       _user = user;
-      _language = user.language ?? _language;
       _isDarkMode = user.theme == 'dark';
       _dietaryRestrictions = {...user.dietaryRestrictions};
       if (user.primaryGoal != null && user.primaryGoal!.isNotEmpty) {
         _primaryGoal = user.primaryGoal!;
       }
     });
+    if (user.language != null && user.language!.isNotEmpty) {
+      LangScope.current.value = user.language!;
+    }
   }
 
   void _onLanguageChanged(String lang) {
-    setState(() => _language = lang);
+    LangScope.current.value = lang;
   }
 
   void _onDietaryRestrictionToggled(String tag, bool selected) {
@@ -140,7 +155,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
       ProfileScreen(
         user: _user,
         isDarkMode: _isDarkMode,
-        language: _language,
+        language: LangScope.current.value,
         onThemeChanged: _onThemeChanged,
         onLanguageChanged: _onLanguageChanged,
         onLogout: _logout,
@@ -152,43 +167,40 @@ class _MainShellScreenState extends State<MainShellScreen> {
       ),
     ];
 
-    return LangScope(
-      lang: _language,
-      child: Theme(
-        data: _isDarkMode ? AppTheme.dark : AppTheme.light,
-        child: PopScope(
-          canPop: _tabHistory.length <= 1,
-          onPopInvokedWithResult: (didPop, _) {
-            if (didPop) return;
-            if (_tabHistory.length > 1 &&
-                !(_tabInDetail[_currentTab] ?? false)) {
-              setState(() {
-                _tabHistory.removeLast();
-                _currentTab = _tabHistory.last;
-              });
-            }
-          },
-          child: Scaffold(
-            body: Column(
-              children: [
-                AppTopBar(
-                  onOpenProfile: _openProfile,
-                  onSwitchToAdmin: widget.onSwitchToAdmin != null
-                      ? () => widget.onSwitchToAdmin!(context, _user)
-                      : null,
-                ),
-                Expanded(
-                  child: IndexedStack(index: _currentTab.index, children: screens),
-                ),
-              ],
-            ),
-            bottomNavigationBar: _showBottomBar
-                ? AppBottomBar(
-                    currentTab: _currentTab,
-                    onTabSelected: _onTabSelected,
-                  )
-                : null,
+    return Theme(
+      data: _isDarkMode ? AppTheme.dark : AppTheme.light,
+      child: PopScope(
+        canPop: _tabHistory.length <= 1,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          if (_tabHistory.length > 1 &&
+              !(_tabInDetail[_currentTab] ?? false)) {
+            setState(() {
+              _tabHistory.removeLast();
+              _currentTab = _tabHistory.last;
+            });
+          }
+        },
+        child: Scaffold(
+          body: Column(
+            children: [
+              AppTopBar(
+                onOpenProfile: _openProfile,
+                onSwitchToAdmin: widget.onSwitchToAdmin != null
+                    ? () => widget.onSwitchToAdmin!(context, _user)
+                    : null,
+              ),
+              Expanded(
+                child: IndexedStack(index: _currentTab.index, children: screens),
+              ),
+            ],
           ),
+          bottomNavigationBar: _showBottomBar
+              ? AppBottomBar(
+                  currentTab: _currentTab,
+                  onTabSelected: _onTabSelected,
+                )
+              : null,
         ),
       ),
     );

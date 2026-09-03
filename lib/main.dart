@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/app_theme.dart';
+import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/screens/splash_screen.dart';
 
 /// Multi-device UI preview (iPhone/Android frames).
@@ -48,7 +49,14 @@ class MyApp extends StatelessWidget {
           behavior: HitTestBehavior.translucent,
           child: MediaQuery(
             data: mediaQuery.copyWith(textScaler: const TextScaler.linear(1.12)),
-            child: preview,
+            // Above the Navigator so every pushed route (not just the
+            // current tab's widget subtree) sees the current language.
+            child: ValueListenableBuilder<String>(
+              valueListenable: LangScope.current,
+              builder: (context, lang, child) =>
+                  LangScope(lang: lang, child: child!),
+              child: preview,
+            ),
           ),
         );
       },

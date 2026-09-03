@@ -9,22 +9,21 @@ import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_image.dart';
 import 'package:image_picker/image_picker.dart';
 
+// Kept in sync with what Search can actually filter by (meal-type chips +
+// backend dietary restrictions) so a tag picked here is always discoverable.
 const kAvailableLabels = [
+  'Breakfast',
+  'Lunch',
+  'Dinner',
+  'Alcoholic',
+  'Beverage',
   'Dairy Free',
-  'Egg Free',
+  'Non-Alcoholic',
   'Gluten Free',
   'Nut Free',
+  'Pescetarian',
   'Vegan',
   'Vegetarian',
-  'Pescetarian',
-  'Healthy',
-  'Italian',
-  'Comfort Food',
-  'High Protein',
-  'Keto',
-  'Quick Meal',
-  'Meal Prep',
-  'Breakfast',
 ];
 
 class RecipeDetailData {
@@ -1020,7 +1019,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
             children: [
               SizedBox(
                 width: double.infinity,
-                height: 160,
+                height: 220,
                 child: _editImageBytes != null
                     ? Image.memory(_editImageBytes!, fit: BoxFit.cover, width: double.infinity)
                     : hasImage
@@ -1028,7 +1027,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                             imageUrl: widget.recipe.imageUrl,
                             recipeId: widget.recipe.id,
                             labels: widget.recipe.labels,
-                            height: 160,
+                            height: 220,
                             borderRadius: BorderRadius.zero,
                           )
                         : Container(
@@ -1730,141 +1729,167 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
             ),
           ),
         ),
+      if (!_isEditMode && widget.onSaveEdited != null)
+        Positioned(
+          top: 10,
+          right: 12,
+          child: GestureDetector(
+            onTap: () => setState(() => _isEditMode = true),
+            child: Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: hasImage
+                    ? Colors.black.withValues(alpha: 0.4)
+                    : Colors.white.withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.edit_outlined,
+                size: 17,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
     ],
   ),
 ),
           if (!_isCookingMode)
           Container(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-            child: widget.enableEdit
+            child: _isEditMode
                 ? Row(
                     children: [
-                      if (widget.onDelete != null && !_isEditMode) ...[
-                        OutlinedButton(
-                          onPressed: widget.onDelete,
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(0, 40),
-                            backgroundColor: panelColor,
-                            foregroundColor: const Color(0xFFDC2626),
-                            side: isDarkMode
-                                ? BorderSide.none
-                                : const BorderSide(color: Color(0xFFFCA5A5)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                          child: Text(S.of(context).delete),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      if (_isEditMode) ...[
-                        Expanded(
-                          flex: 2,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              setState(() {
-                                _isEditMode = false;
-                                _titleController.text = widget.recipe.name;
-                                _selectedEditLabels = widget.recipe.labels.toSet();
-                                _editImageBytes = null;
-                              });
-                            },
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: panelColor,
-                              foregroundColor: colors.onSurface,
-                              side: isDarkMode ? BorderSide.none : BorderSide(color: borderColor),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                            ),
-                            child: Text(S.of(context).cancel),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          flex: 3,
-                          child: FilledButton(
-                            onPressed: _saveEditedRecipe,
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size.fromHeight(40),
-                              backgroundColor: accentColor,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                            ),
-                            child: Text(S.of(context).saveChanges),
-                          ),
-                        ),
-                      ] else
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: () => setState(() => _isEditMode = true),
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size.fromHeight(40),
-                              backgroundColor: widget.cardColor,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                            ),
-                            child: Text(S.of(context).edit),
-                          ),
-                        ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      if (widget.onAddToPlan != null) ...[
-                        Expanded(
-                          flex: 3,
-                          child: FilledButton.icon(
-                            onPressed: widget.onAddToPlan,
-                            icon: const Icon(Icons.add, size: 16),
-                            label: Text(S.of(context).addToPlan),
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size.fromHeight(40),
-                              backgroundColor: const Color(0xFF059669),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
                       Expanded(
                         flex: 2,
-                        child: OutlinedButton.icon(
-                          onPressed: widget.onToggleSave,
-                          icon: Icon(
-                            (isSaved == true)
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            size: 15,
-                            color: (isSaved == true)
-                                ? const Color(0xFFDC2626)
-                                : saveColor,
-                          ),
-                          label: Text(
-                            (isSaved == true)
-                                ? S.of(context).saved
-                                : S.of(context).save,
-                          ),
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              _isEditMode = false;
+                              _titleController.text = widget.recipe.name;
+                              _selectedEditLabels = widget.recipe.labels.toSet();
+                              _editImageBytes = null;
+                            });
+                          },
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(40),
                             backgroundColor: panelColor,
-                            foregroundColor: saveColor,
-                            side: isDarkMode
-                                ? BorderSide.none
-                                : BorderSide(
-                                    color: (isSaved == true)
-                                        ? const Color(0xFFFCA5A5)
-                                        : borderColor,
-                                  ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(999),
-                            ),
+                            foregroundColor: colors.onSurface,
+                            side: isDarkMode ? BorderSide.none : BorderSide(color: borderColor),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                           ),
+                          child: Text(S.of(context).cancel),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 3,
+                        child: FilledButton(
+                          onPressed: _saveEditedRecipe,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(40),
+                            backgroundColor: accentColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                          ),
+                          child: Text(S.of(context).saveChanges),
                         ),
                       ),
                     ],
-                  ),
+                  )
+                : widget.enableEdit
+                    ? Row(
+                        children: [
+                          if (widget.onDelete != null) ...[
+                            OutlinedButton(
+                              onPressed: widget.onDelete,
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 40),
+                                backgroundColor: panelColor,
+                                foregroundColor: const Color(0xFFDC2626),
+                                side: isDarkMode
+                                    ? BorderSide.none
+                                    : const BorderSide(color: Color(0xFFFCA5A5)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                              ),
+                              child: Text(S.of(context).delete),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () => setState(() => _isEditMode = true),
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size.fromHeight(40),
+                                backgroundColor: widget.cardColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                              ),
+                              child: Text(S.of(context).edit),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          if (widget.onAddToPlan != null) ...[
+                            Expanded(
+                              flex: 3,
+                              child: FilledButton.icon(
+                                onPressed: widget.onAddToPlan,
+                                icon: const Icon(Icons.add, size: 16),
+                                label: Text(S.of(context).addToPlan),
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(40),
+                                  backgroundColor: const Color(0xFF059669),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          if (widget.onToggleSave != null)
+                            Expanded(
+                              flex: 2,
+                              child: OutlinedButton.icon(
+                                onPressed: widget.onToggleSave,
+                                icon: Icon(
+                                  (isSaved == true)
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  size: 15,
+                                  color: (isSaved == true)
+                                      ? const Color(0xFFDC2626)
+                                      : saveColor,
+                                ),
+                                label: Text(
+                                  (isSaved == true)
+                                      ? S.of(context).saved
+                                      : S.of(context).save,
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size.fromHeight(40),
+                                  backgroundColor: panelColor,
+                                  foregroundColor: saveColor,
+                                  side: isDarkMode
+                                      ? BorderSide.none
+                                      : BorderSide(
+                                          color: (isSaved == true)
+                                              ? const Color(0xFFFCA5A5)
+                                              : borderColor,
+                                        ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
           ),
         ],
       ),

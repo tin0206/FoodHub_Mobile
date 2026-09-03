@@ -27,7 +27,6 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
   late bool _isDarkMode;
   late Set<String> _dietaryRestrictions;
   late String _primaryGoal;
-  late String _language;
 
   @override
   void initState() {
@@ -36,7 +35,18 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
     _isDarkMode = u.theme == 'dark';
     _dietaryRestrictions = {...u.dietaryRestrictions};
     _primaryGoal = u.primaryGoal ?? '';
-    _language = u.language ?? 'en';
+    LangScope.current.value = u.language ?? 'en';
+    LangScope.current.addListener(_onGlobalLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    LangScope.current.removeListener(_onGlobalLanguageChanged);
+    super.dispose();
+  }
+
+  void _onGlobalLanguageChanged() {
+    if (mounted) setState(() {});
   }
 
   // Callback provided to MainShellScreen so it can navigate back to admin
@@ -78,9 +88,9 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
       ProfileScreen(
         user: widget.user,
         isDarkMode: isDark,
-        language: _language,
+        language: LangScope.current.value,
         onThemeChanged: (dark) => setState(() => _isDarkMode = dark),
-        onLanguageChanged: (lang) => setState(() => _language = lang),
+        onLanguageChanged: (lang) => LangScope.current.value = lang,
         onLogout: _logout,
         selectedDietaryRestrictions: _dietaryRestrictions,
         onDietaryRestrictionToggled: (tag, selected) {
@@ -105,11 +115,9 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
       (Icons.people_rounded, Icons.people_outline_rounded, 'Users'),
     ];
 
-    return LangScope(
-      lang: _language,
-      child: Theme(
-        data: isDark ? AppTheme.dark : AppTheme.light,
-        child: Scaffold(
+    return Theme(
+      data: isDark ? AppTheme.dark : AppTheme.light,
+      child: Scaffold(
         body: Column(
           children: [
             _AdminTopBar(
@@ -186,7 +194,6 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
             ),
           ),
         ),
-      ),
       ),
     );
   }

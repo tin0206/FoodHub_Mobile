@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:foodhub_mobile/models/ingredient.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_client.dart';
@@ -13,6 +14,12 @@ class RecipeService {
   RecipeService({ApiClient? apiClient}) : _api = apiClient ?? ApiClient();
 
   final ApiClient _api;
+
+  /// Increments whenever a recipe is created, updated (including the
+  /// auto-fork that happens when editing a recipe you don't own), or
+  /// deleted. Screens showing "my recipes" can listen to this to know when
+  /// to refetch, even when the mutation happened from a different screen.
+  static final ValueNotifier<int> changes = ValueNotifier(0);
 
   String? get _lang {
     final language = SessionService.instance.currentUser?.language;
@@ -104,7 +111,9 @@ class RecipeService {
     };
 
     final data = await _api.post('/recipes', body: body);
-    return RecipeModel.fromJson(data as Map<String, dynamic>);
+    final recipe = RecipeModel.fromJson(data as Map<String, dynamic>);
+    changes.value++;
+    return recipe;
   }
 
   Future<RecipeModel> updateRecipe(
@@ -131,7 +140,9 @@ class RecipeService {
       body: body,
       query: _withLang({}),
     );
-    return RecipeModel.fromJson(data as Map<String, dynamic>);
+    final recipe = RecipeModel.fromJson(data as Map<String, dynamic>);
+    changes.value++;
+    return recipe;
   }
 
   Future<List<IngredientHit>> searchIngredients(String query, {int limit = 8}) async {
@@ -156,6 +167,7 @@ class RecipeService {
 
   Future<void> deleteRecipe(int id) async {
     await _api.delete('/recipes/$id');
+    changes.value++;
   }
 
   Future<String?> uploadRecipeImage(

@@ -6,8 +6,17 @@ class LangScope extends InheritedWidget {
   const LangScope({super.key, required this.lang, required super.child});
   final String lang;
 
+  /// App-wide language, independent of the widget tree. A screen reached via
+  /// `Navigator.push` becomes a new route/Overlay entry — it is NOT a
+  /// descendant of whichever tab/shell widget set up a local [LangScope], so
+  /// that lookup would silently fall back to English. Wrapping the whole app
+  /// once, above the root [Navigator] (see main.dart), with a [LangScope]
+  /// driven by this notifier keeps every route in sync instead.
+  static final ValueNotifier<String> current = ValueNotifier<String>('en');
+
   static String of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<LangScope>()?.lang ?? 'en';
+      context.dependOnInheritedWidgetOfExactType<LangScope>()?.lang ??
+      current.value;
 
   @override
   bool updateShouldNotify(LangScope old) => old.lang != lang;
@@ -83,15 +92,15 @@ class S {
   String get extraMealHint => _vi ? 'Tên bữa (vd. Bữa phụ)' : 'Meal name (e.g. Snack)';
   String get emptyMealSlot => _vi ? 'Chưa có món nào' : 'No dishes yet';
   String get mealPlanHint => _vi
-      ? 'Thêm món từ gợi ý hoặc tìm kiếm. Danh sách mua sắm lấy từ nguyên liệu của từng công thức.'
-      : 'Add dishes from suggestions or search. The shopping list uses each recipe’s ingredient lines.';
+      ? 'Thêm món từ gợi ý hoặc tìm kiếm. Chi tiết nguyên liệu lấy từ từng công thức.'
+      : 'Add dishes from suggestions or search. Ingredient details are pulled from each recipe’s ingredient lines.';
   String get unableToLoadMealPlan =>
       _vi ? 'Không thể tải thực đơn.' : 'Unable to load meal plan.';
-  String get shoppingList => _vi ? 'Đi chợ' : 'Shopping list';
+  String get shoppingList => _vi ? 'Chi tiết nguyên liệu' : 'Ingredient Details';
   String get emptyShoppingList =>
-      _vi ? 'Chưa có nguyên liệu cần mua.' : 'No ingredients to buy yet.';
+      _vi ? 'Chưa có chi tiết nguyên liệu nào.' : 'No ingredient details yet.';
   String get organizingShoppingList =>
-      _vi ? 'Đang gom nguyên liệu…' : 'Organizing your shopping list…';
+      _vi ? 'Đang tổng hợp nguyên liệu…' : 'Organizing your ingredient details…';
   String get purchasedItems => _vi ? 'Đã mua' : 'Purchased';
   String get allDoneBanner => _vi ? 'Xong rồi — Chúc nấu ăn ngon!' : 'All done — happy cooking!';
   String get clearPurchased => _vi ? 'Xoá đã mua' : 'Clear purchased';
@@ -101,8 +110,50 @@ class S {
   }
   String get unmappedIngredients =>
       _vi ? 'Chưa ánh xạ' : 'Unmapped ingredients';
+  /// Shown as the group header when an ingredient couldn't be categorized
+  /// into a proper aisle (e.g. an unrecognized item like "kaffir lime
+  /// leaves") — falls back to a clean label instead of a raw/blank key.
+  String get otherAisleGroup => _vi ? 'Khác' : 'Other';
+  /// Localizes the aisle group header when the server doesn't send a ready
+  /// display name (only a raw key like "produce" / "dairy").
+  String aisleGroupDisplay(String aisleKey) {
+    final key = aisleKey.toLowerCase();
+    if (key.isEmpty || key == 'other') return otherAisleGroup;
+    if (!_vi) return aisleKey;
+    const map = {
+      'produce': 'Rau củ quả',
+      'fruit': 'Trái cây',
+      'vegetable': 'Rau củ',
+      'herb': 'Rau thơm',
+      'dairy': 'Sữa & trứng',
+      'egg': 'Trứng',
+      'meat': 'Thịt',
+      'poultry': 'Gia cầm',
+      'seafood': 'Hải sản',
+      'fish': 'Cá',
+      'bakery': 'Bánh mì',
+      'bread': 'Bánh mì',
+      'grain': 'Ngũ cốc',
+      'pasta': 'Mì / Pasta',
+      'pantry': 'Gia vị & thực phẩm khô',
+      'spice': 'Gia vị',
+      'condiment': 'Gia vị & nước sốt',
+      'sauce': 'Nước sốt',
+      'oil': 'Dầu ăn',
+      'canned': 'Đồ hộp',
+      'frozen': 'Đông lạnh',
+      'beverage': 'Đồ uống',
+      'drink': 'Đồ uống',
+      'snack': 'Đồ ăn vặt',
+      'household': 'Đồ gia dụng',
+    };
+    for (final entry in map.entries) {
+      if (key.contains(entry.key)) return entry.value;
+    }
+    return aisleKey;
+  }
   String get unableToLoadShoppingList =>
-      _vi ? 'Không thể tải danh sách mua sắm.' : 'Unable to load shopping list.';
+      _vi ? 'Không thể tải chi tiết nguyên liệu.' : 'Unable to load ingredient details.';
   String get mapAisles => _vi ? 'Gán aisle' : 'Map aisles';
   String get remappingAisles => _vi ? 'Gán lại aisle' : 'Remap aisles';
   String get mappingAisles => _vi ? 'Đang gán aisle…' : 'Mapping aisles…';
@@ -184,7 +235,6 @@ class S {
       'Breakfast': 'Bữa sáng',
       'Lunch': 'Bữa trưa',
       'Dinner': 'Bữa tối',
-      'Quick Meals': 'Nấu nhanh',
       'Alcoholic': 'Có cồn',
       'Beverage': 'Đồ uống',
       'Dairy Free': 'Không sữa',
@@ -321,6 +371,9 @@ class S {
   String get finish => _vi ? 'Hoàn thành! 🎉' : 'Finish! 🎉';
   String get edit => _vi ? 'Chỉnh sửa' : 'Edit';
   String get saved => _vi ? 'Đã lưu' : 'Saved';
+  String get savedAsPersonalRecipe => _vi
+      ? 'Đã lưu vào công thức cá nhân của bạn'
+      : 'Saved to your personal recipes';
   String get completed => _vi ? 'Hoàn thành!' : 'Completed!';
   String get greatJobChef =>
       _vi ? 'Bạn nấu quá tuyệt! 👨‍🍳' : 'Great job chef 👨‍🍳';
@@ -368,6 +421,35 @@ class S {
       _vi ? 'Phải là số dương' : 'Must be a positive number';
   String get unableToSaveProfile =>
       _vi ? 'Không thể lưu hồ sơ.' : 'Unable to save profile.';
+
+  // ── Onboarding survey (post sign-up) ─────────────────────────────────────────
+  String get onboardingSkip => _vi ? 'Bỏ qua' : 'Skip';
+  String get onboardingWelcomeTitle =>
+      _vi ? 'Cùng cá nhân hóa cho bạn' : "Let's personalize things for you";
+  String get onboardingWelcomeSubtitle => _vi
+      ? 'Vài câu hỏi nhanh giúp chúng tôi gợi ý công thức phù hợp hơn.'
+      : 'A few quick questions help us tailor recipe suggestions for you.';
+  String onboardingStepOf(int step, int total) =>
+      _vi ? 'Bước $step / $total' : 'Step $step of $total';
+  String get onboardingStepAboutTitle => _vi ? 'Về bạn' : 'About you';
+  String get onboardingStepAboutSubtitle => _vi
+      ? 'Giúp chúng tôi ước tính nhu cầu dinh dưỡng của bạn.'
+      : 'This helps us estimate your nutrition needs.';
+  String get onboardingStepGoalTitle => _vi ? 'Mục tiêu chính' : 'Primary goal';
+  String get onboardingStepGoalSubtitle => _vi
+      ? 'Bạn muốn tập trung vào điều gì?'
+      : "What's your main focus right now?";
+  String get onboardingStepDietaryTitle =>
+      _vi ? 'Chế độ ăn đặc biệt' : 'Dietary preferences';
+  String get onboardingStepDietarySubtitle => _vi
+      ? 'Chọn tất cả những gì phù hợp với bạn (không bắt buộc).'
+      : 'Select any that apply to you (optional).';
+  String get onboardingChangeLaterHint => _vi
+      ? 'Bạn có thể thay đổi thông tin này bất cứ lúc nào trong hồ sơ.'
+      : 'You can change this anytime in your profile.';
+  String get onboardingBack => _vi ? 'Quay lại' : 'Back';
+  String get onboardingContinue => _vi ? 'Tiếp tục' : 'Continue';
+  String get onboardingFinish => _vi ? 'Hoàn tất' : 'Finish';
 
   // Change password sheet
   String get changePasswordTitle => _vi ? 'Đổi mật khẩu' : 'Change password';
@@ -417,6 +499,8 @@ class S {
       'Pescetarian': 'Hải sản',
       'Vegan': 'Thuần chay',
       'Vegetarian': 'Ăn chay',
+      'Lunch': 'Bữa trưa',
+      'Dinner': 'Bữa tối',
       // recipe labels
       'Healthy': 'Lành mạnh',
       'Italian': 'Ẩm thực Ý',

@@ -14,7 +14,6 @@ const _kMealTypeCategories = [
   ('🌅', 'Breakfast'),
   ('🥗', 'Lunch'),
   ('🍝', 'Dinner'),
-  ('⚡', 'Quick Meals'),
 ];
 
 const _kDietaryEmojiMap = {
@@ -235,6 +234,55 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  Future<bool> _saveAsPersonalRecipe(RecipeDetailData data) async {
+    final s = S.of(context);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(28),
+            child: CircularProgressIndicator(color: Color(0xFF059669)),
+          ),
+        ),
+      ),
+    );
+    try {
+      var updated = await _recipeService.updateRecipe(
+        data.id,
+        title: data.name,
+        ingredients: data.ingredientItems,
+        directions: RecipeModel.splitLines(data.steps),
+        dietaryRestrictions: data.labels,
+        estimatedServings: data.estimatedServings,
+      );
+      if (data.pendingImageBytes != null && data.pendingImageBytes!.isNotEmpty) {
+        try {
+          final imageUrl = await _recipeService.uploadRecipeImage(
+            updated.id,
+            data.pendingImageBytes!,
+            data.pendingImageFilename,
+          );
+          if (imageUrl != null && imageUrl.isNotEmpty) {
+            updated = updated.copyWith(imageUrl: imageUrl);
+          }
+        } on ApiException catch (e) {
+          if (mounted) showErrorToast(context, e.message);
+        }
+      }
+      if (!mounted) return false;
+      Navigator.of(context).pop();
+      showSuccessToast(context, s.savedAsPersonalRecipe);
+      return true;
+    } on ApiException catch (e) {
+      if (!mounted) return false;
+      Navigator.of(context).pop();
+      showErrorToast(context, e.message);
+      return false;
+    }
+  }
+
   List<RecipeModel> get _filteredRecipes => _recipes;
 
   @override
@@ -260,6 +308,7 @@ class _SearchScreenState extends State<SearchScreen> {
           isSaved: _savedCurrentRecipe,
           onToggleSave: () => _toggleSave(),
           onAddToPlan: () => _addRecipeToPlan(recipe),
+          onSaveEdited: _saveAsPersonalRecipe,
         ),
       );
     }

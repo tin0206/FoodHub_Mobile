@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
 import 'package:foodhub_mobile/screens/login_screen.dart';
 import 'package:foodhub_mobile/screens/main_shell_screen.dart';
+import 'package:foodhub_mobile/screens/onboarding_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
 import 'package:foodhub_mobile/services/google_auth_service.dart';
@@ -20,10 +22,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   bool _isSubmitting = false;
   bool _isGoogleLoading = false;
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   bool _passwordTouched = false;
 
   final _authService = AuthService();
@@ -33,6 +37,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _fullNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -50,7 +55,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         MaterialPageRoute(
           builder: (_) => user.role == 'admin'
               ? AdminShellScreen(user: user)
-              : MainShellScreen(initialUser: user),
+              : OnboardingScreen(user: user),
         ),
       );
     } on ApiException catch (e) {
@@ -63,6 +68,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
+
+  /// A brand-new Google sign-up has no profile data yet; a returning Google
+  /// user does. There's no explicit "new account" flag from the API, so this
+  /// is the signal used to decide whether to show the onboarding survey.
+  bool _looksLikeFreshProfile(UserModel user) =>
+      user.age == null &&
+      user.weight == null &&
+      (user.primaryGoal == null || user.primaryGoal!.isEmpty) &&
+      user.dietaryRestrictions.isEmpty;
 
   Future<void> _signUpWithGoogle() async {
     setState(() => _isGoogleLoading = true);
@@ -79,7 +93,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         MaterialPageRoute(
           builder: (_) => user.role == 'admin'
               ? AdminShellScreen(user: user)
-              : MainShellScreen(initialUser: user),
+              : (_looksLikeFreshProfile(user)
+                    ? OnboardingScreen(user: user)
+                    : MainShellScreen(initialUser: user)),
         ),
       );
     } on ApiException catch (e) {
@@ -196,56 +212,76 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const _FieldLabel('Full name'),
-                          const SizedBox(height: 5),
-                          TextFormField(
-                            controller: _fullNameController,
-                            textCapitalization: TextCapitalization.words,
-                            decoration: authInputDecoration(
-                              hint: 'John Doe',
-                              icon: Icons.person_outline_rounded,
-                            ),
-                            validator: (v) {
-                              final name = v?.trim() ?? '';
-                              if (name.isEmpty) {
-                                return 'Please enter your full name.';
-                              }
-                              if (name.length < 2) {
-                                return 'Name must be at least 2 characters.';
-                              }
-                              if (name.length > 50) {
-                                return 'Name must be under 50 characters.';
-                              }
-                              if (!RegExp(
-                                r"^[a-zA-ZÀ-ỹ\s'\-]+$",
-                              ).hasMatch(name)) {
-                                return 'Name can only contain letters and spaces.';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 11),
-                          const _FieldLabel('Email address'),
-                          const SizedBox(height: 5),
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: authInputDecoration(
-                              hint: 'you@example.com',
-                              icon: Icons.mail_outline_rounded,
-                            ),
-                            validator: (v) {
-                              final email = v?.trim() ?? '';
-                              if (email.isEmpty) {
-                                return 'Please enter your email.';
-                              }
-                              if (!RegExp(
-                                r'^[\w.+\-]+@([\w\-]+\.)+[a-zA-Z]{2,}$',
-                              ).hasMatch(email)) {
-                                return 'Please enter a valid email address.';
-                              }
-                              return null;
-                            },
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const _FieldLabel('Full name'),
+                                    const SizedBox(height: 5),
+                                    TextFormField(
+                                      controller: _fullNameController,
+                                      textCapitalization:
+                                          TextCapitalization.words,
+                                      decoration: authInputDecoration(
+                                        hint: 'John Doe',
+                                        icon: Icons.person_outline_rounded,
+                                      ),
+                                      validator: (v) {
+                                        final name = v?.trim() ?? '';
+                                        if (name.isEmpty) {
+                                          return 'Please enter your full name.';
+                                        }
+                                        if (name.length < 2) {
+                                          return 'Name must be at least 2 characters.';
+                                        }
+                                        if (name.length > 50) {
+                                          return 'Name must be under 50 characters.';
+                                        }
+                                        if (!RegExp(
+                                          r"^[a-zA-ZÀ-ỹ\s'\-]+$",
+                                        ).hasMatch(name)) {
+                                          return 'Name can only contain letters and spaces.';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const _FieldLabel('Email'),
+                                    const SizedBox(height: 5),
+                                    TextFormField(
+                                      controller: _emailController,
+                                      keyboardType: TextInputType.emailAddress,
+                                      decoration: authInputDecoration(
+                                        hint: 'you@example.com',
+                                        icon: Icons.mail_outline_rounded,
+                                      ),
+                                      validator: (v) {
+                                        final email = v?.trim() ?? '';
+                                        if (email.isEmpty) {
+                                          return 'Please enter your email.';
+                                        }
+                                        if (!RegExp(
+                                          r'^[\w.+\-]+@([\w\-]+\.)+[a-zA-Z]{2,}$',
+                                        ).hasMatch(email)) {
+                                          return 'Please enter a valid email address.';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 11),
                           const _FieldLabel('Password'),
@@ -290,6 +326,41 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               password: _passwordController.text,
                             ),
                           ],
+                          const SizedBox(height: 11),
+                          const _FieldLabel('Confirm password'),
+                          const SizedBox(height: 5),
+                          TextFormField(
+                            controller: _confirmPasswordController,
+                            obscureText: _obscureConfirmPassword,
+                            decoration:
+                                authInputDecoration(
+                                  hint: '••••••••',
+                                  icon: Icons.lock_outline_rounded,
+                                ).copyWith(
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscureConfirmPassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      size: 18,
+                                      color: const Color(0xFF94A3B8),
+                                    ),
+                                    onPressed: () => setState(
+                                      () => _obscureConfirmPassword =
+                                          !_obscureConfirmPassword,
+                                    ),
+                                  ),
+                                ),
+                            validator: (v) {
+                              if (v == null || v.isEmpty) {
+                                return 'Please confirm your password.';
+                              }
+                              if (v != _passwordController.text) {
+                                return 'Passwords do not match.';
+                              }
+                              return null;
+                            },
+                          ),
                         ],
                       ),
                     ),

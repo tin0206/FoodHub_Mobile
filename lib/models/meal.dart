@@ -175,9 +175,10 @@ class ShoppingListItemModel {
   final List<ShoppingListSourceModel> sources;
 
   String get displayLabel {
+    final label = name.isNotEmpty ? name : key;
     final qty = quantityText.trim();
-    if (qty.isEmpty) return name;
-    return '$qty $name';
+    if (qty.isEmpty) return label;
+    return '$qty $label';
   }
 
   factory ShoppingListItemModel.fromJson(Map<String, dynamic> json) {

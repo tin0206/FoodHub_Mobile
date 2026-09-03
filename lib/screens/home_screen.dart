@@ -57,12 +57,22 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadTopFavorites();
     _loadSuggestions();
     _loadMealPlan();
+    RecipeService.changes.addListener(_onRecipesChanged);
   }
 
   @override
   void dispose() {
     _suggestionPoll?.cancel();
+    RecipeService.changes.removeListener(_onRecipesChanged);
     super.dispose();
+  }
+
+  /// A recipe was created/updated/deleted — possibly from another screen
+  /// (e.g. editing a public recipe forks it into "my recipes"). Refetch so
+  /// it shows up here too.
+  void _onRecipesChanged() {
+    if (!mounted) return;
+    _loadRecipes();
   }
 
   Future<void> _loadRecipes() async {
@@ -241,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         else
           _HorizontalScrollRow(
-            height: 175,
+            height: 190,
             isDarkMode: isDarkMode,
             builder: (ctrl) => ListView.separated(
               controller: ctrl,
@@ -447,6 +457,55 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<bool> _saveAsPersonalRecipe(RecipeDetailData data) async {
+    final s = S.of(context);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(28),
+            child: CircularProgressIndicator(color: Color(0xFF059669)),
+          ),
+        ),
+      ),
+    );
+    try {
+      var updated = await _recipeService.updateRecipe(
+        data.id,
+        title: data.name,
+        ingredients: data.ingredientItems,
+        directions: RecipeModel.splitLines(data.steps),
+        dietaryRestrictions: data.labels,
+        estimatedServings: data.estimatedServings,
+      );
+      if (data.pendingImageBytes != null && data.pendingImageBytes!.isNotEmpty) {
+        try {
+          final imageUrl = await _recipeService.uploadRecipeImage(
+            updated.id,
+            data.pendingImageBytes!,
+            data.pendingImageFilename,
+          );
+          if (imageUrl != null && imageUrl.isNotEmpty) {
+            updated = updated.copyWith(imageUrl: imageUrl);
+          }
+        } on ApiException catch (e) {
+          if (mounted) showErrorToast(context, e.message);
+        }
+      }
+      if (!mounted) return false;
+      Navigator.of(context).pop();
+      showSuccessToast(context, s.savedAsPersonalRecipe);
+      return true;
+    } on ApiException catch (e) {
+      if (!mounted) return false;
+      Navigator.of(context).pop();
+      showErrorToast(context, e.message);
+      return false;
+    }
+  }
+
   Future<void> _onDeleteRecipe() async {
     final index = _selectedRecipeCardIndex;
     final current = _selectedRecipe;
@@ -554,6 +613,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ? () => unawaited(_toggleSaveRecipe(topRecipe.id))
               : null,
           onAddToPlan: () => _addRecipeToPlan(topRecipe),
+          onSaveEdited: _saveAsPersonalRecipe,
         ),
       );
     }
@@ -759,7 +819,7 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             else
               _HorizontalScrollRow(
-                height: 175,
+                height: 190,
                 isDarkMode: isDarkMode,
                 builder: (ctrl) => ListView.separated(
                   controller: ctrl,
@@ -1094,7 +1154,7 @@ class _PersonalRecipeStats extends StatelessWidget {
     final subColor = Theme.of(context).colorScheme.onSurfaceVariant;
     const ts = TextStyle(fontSize: 10, fontWeight: FontWeight.w500);
 
-    final timeText = Text('${recipe.cookingMinutes} min',
+    final timeText = Text('${recipe.cookingMinutes} ${S.of(context).minSuffix}',
         style: ts.copyWith(color: subColor));
 
     Widget divider() => Container(
