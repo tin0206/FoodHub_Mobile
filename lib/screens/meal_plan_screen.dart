@@ -3,7 +3,7 @@ import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/meal.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/screens/search_screen.dart';
-import 'package:foodhub_mobile/screens/shopping_list_screen.dart';
+import 'package:foodhub_mobile/screens/ingredients_detail_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/meal_service.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
@@ -283,7 +283,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                     GestureDetector(
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => ShoppingListScreen(date: _date),
+                          builder: (_) => IngredientsDetailScreen(date: _date),
                         ),
                       ),
                       child: Container(

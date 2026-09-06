@@ -35,7 +35,7 @@ class S {
   String get navHome => _vi ? 'Trang chủ' : 'Home';
   String get navSearch => _vi ? 'Tìm kiếm' : 'Search';
   String get navRecs => _vi ? 'Gợi ý' : 'Recs';
-  String get navFavorites => _vi ? 'Yêu thích' : 'Favorites';
+  String get navCollection => _vi ? 'Bộ sưu tập' : 'Collection';
 
   // ── Shared ──────────────────────────────────────────────────────────────────
   String get cancel => _vi ? 'Hủy' : 'Cancel';
@@ -60,6 +60,9 @@ class S {
       _vi ? 'Thêm công thức đầu tiên' : 'Add your first recipe';
   String get unableToLoadRecipes =>
       _vi ? 'Không thể tải công thức.' : 'Unable to load recipes.';
+  String get homeGreetingTitle => _vi
+      ? 'Bạn muốn nấu gì hôm nay?'
+      : 'What are we cooking today?';
   String get topRecipes => _vi ? 'Công thức phổ biến' : 'Top Recipes';
   String get recommendedRecipes => _vi ? 'Gợi ý cho bạn' : 'Recommended for you';
   String get comingSoon => _vi ? 'Sắp ra mắt' : 'Coming soon';
@@ -246,6 +249,14 @@ class S {
     };
     return map[value] ?? value;
   }
+
+  // ── Collection screen (Personal Recipes + Favorites tabs) ────────────────────
+  String get collectionTitle => _vi ? 'Bộ sưu tập' : 'Collection';
+  String get personalRecipesSubtitle => _vi
+      ? 'Công thức bạn đã tạo và lưu'
+      : 'Recipes you\'ve created and saved';
+  String get totalRecipesLabel => _vi ? 'Tổng số' : 'Total';
+  String get withPhotosLabel => _vi ? 'Có ảnh' : 'With Photos';
 
   // ── Favorites screen ────────────────────────────────────────────────────────
   String get favoritesTitle => _vi ? 'Yêu thích' : 'Favorites';

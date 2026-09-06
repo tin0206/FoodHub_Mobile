@@ -69,6 +69,16 @@ class _SearchScreenState extends State<SearchScreen> {
     _loadRecipes();
     _loadFavoriteIds();
     FavoriteService.changes.addListener(_onFavoritesChanged);
+    LangScope.current.addListener(_onLanguageChanged);
+  }
+
+  // Recipe content (titles, ingredients, aisles, dietary labels) is
+  // localized server-side by the `lang` query param — refetch so it's not
+  // left showing the previous language after a switch.
+  void _onLanguageChanged() {
+    if (!mounted) return;
+    _loadDietaryRestrictions();
+    _loadRecipes();
   }
 
   Future<void> _loadDietaryRestrictions() async {
@@ -146,6 +156,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void dispose() {
     FavoriteService.changes.removeListener(_onFavoritesChanged);
+    LangScope.current.removeListener(_onLanguageChanged);
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();

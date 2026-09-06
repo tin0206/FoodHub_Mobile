@@ -177,6 +177,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  // Only takes effect once "Save changes" below is pressed — kept in step
+  // with every other field on this screen instead of applying on tap.
+  void _selectLanguage(String lang) {
+    setState(() => _pendingLanguage = lang);
+  }
+
   Future<void> _saveChanges() async {
     if (_isSaving) return;
     final s = S.of(context);
@@ -518,7 +524,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       flag: '🇻🇳',
                       isSelected: _pendingLanguage == 'vi',
                       isDarkMode: widget.isDarkMode,
-                      onTap: () => setState(() => _pendingLanguage = 'vi'),
+                      onTap: () => _selectLanguage('vi'),
                     ),
                     const SizedBox(width: 8),
                     _LangOption(
@@ -526,7 +532,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       flag: '🇺🇸',
                       isSelected: _pendingLanguage == 'en',
                       isDarkMode: widget.isDarkMode,
-                      onTap: () => setState(() => _pendingLanguage = 'en'),
+                      onTap: () => _selectLanguage('en'),
                     ),
                   ],
                 ),

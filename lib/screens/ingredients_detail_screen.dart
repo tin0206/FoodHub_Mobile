@@ -63,16 +63,16 @@ _AisleStyle _styleForAisle(String aisleKey) {
   return _kAisleFallbackPalette[hash % _kAisleFallbackPalette.length];
 }
 
-class ShoppingListScreen extends StatefulWidget {
-  const ShoppingListScreen({super.key, this.date});
+class IngredientsDetailScreen extends StatefulWidget {
+  const IngredientsDetailScreen({super.key, this.date});
 
   final String? date;
 
   @override
-  State<ShoppingListScreen> createState() => _ShoppingListScreenState();
+  State<IngredientsDetailScreen> createState() => _IngredientsDetailScreenState();
 }
 
-class _ShoppingListScreenState extends State<ShoppingListScreen> {
+class _IngredientsDetailScreenState extends State<IngredientsDetailScreen> {
   static const _checkedPrefix = 'shopping_checked_';
 
   final _mealService = MealService();

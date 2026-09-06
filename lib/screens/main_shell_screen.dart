@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/app_theme.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/user.dart';
-import 'package:foodhub_mobile/screens/favorites_screen.dart';
+import 'package:foodhub_mobile/screens/collection_screen.dart';
 import 'package:foodhub_mobile/screens/home_screen.dart';
 import 'package:foodhub_mobile/screens/login_screen.dart';
 import 'package:foodhub_mobile/screens/profile_screen.dart';
@@ -149,7 +149,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
         primaryGoal: _primaryGoal,
         onDetailModeChanged: (v) => _onDetailModeChanged(AppTab.recs, v),
       ),
-      FavoritesScreen(
+      CollectionScreen(
         onDetailModeChanged: (v) => _onDetailModeChanged(AppTab.favorites, v),
       ),
       ProfileScreen(

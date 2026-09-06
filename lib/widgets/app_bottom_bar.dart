@@ -60,9 +60,9 @@ class AppBottomBar extends StatelessWidget {
                 onTap: () => onTabSelected(AppTab.recs),
               ),
               _BottomTabItem(
-                label: s.navFavorites,
-                icon: Icons.favorite_border_rounded,
-                selectedIcon: Icons.favorite_rounded,
+                label: s.navCollection,
+                icon: Icons.collections_bookmark_outlined,
+                selectedIcon: Icons.collections_bookmark_rounded,
                 isSelected: currentTab == AppTab.favorites,
                 isDarkMode: isDarkMode,
                 onTap: () => onTabSelected(AppTab.favorites),
