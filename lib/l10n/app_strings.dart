@@ -325,8 +325,8 @@ class S {
       _vi ? 'Giai đoạn: $phase' : 'Phase: $phase';
   String get startingSession =>
       _vi ? 'Đang khởi động phiên trợ lý...' : 'Starting companion session...';
-  String get waitingForAi =>
-      _vi ? 'Đang chờ phản hồi từ AI...' : 'Queued — waiting for AI...';
+  String get aiThinking =>
+      _vi ? 'Đang suy nghĩ…' : 'Thinking…';
   String get resetChatTitle => _vi ? 'Đặt lại cuộc trò chuyện?' : 'Reset chat?';
   String get resetChatDesc => _vi
       ? 'Thao tác này sẽ xóa cuộc trò chuyện và các dữ liệu đã nhận diện. Tùy chọn hồ sơ vẫn được giữ nguyên.'

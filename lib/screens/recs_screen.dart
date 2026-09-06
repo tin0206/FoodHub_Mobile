@@ -366,7 +366,8 @@ class _RecsScreenState extends State<RecsScreen> {
         dietaryRestrictions: data.labels,
         estimatedServings: data.estimatedServings,
       );
-      if (data.pendingImageBytes != null && data.pendingImageBytes!.isNotEmpty) {
+      if (data.pendingImageBytes != null &&
+          data.pendingImageBytes!.isNotEmpty) {
         try {
           final imageUrl = await _recipeService.uploadRecipeImage(
             updated.id,
@@ -567,8 +568,9 @@ class _RecsScreenState extends State<RecsScreen> {
     setState(() {
       switch (result) {
         case AiCaptureIngredientsResult(:final ingredients):
-          _composeIngredientsText =
-              S.of(context).ingredientsDetectedList(ingredients.join(', '));
+          _composeIngredientsText = S
+              .of(context)
+              .ingredientsDetectedList(ingredients.join(', '));
         case AiCaptureDishResult(:final dish):
           _setDishComposeFrom(dish, context);
       }
@@ -681,7 +683,7 @@ class _RecsScreenState extends State<RecsScreen> {
                             child: Text(
                               _isBootstrapping
                                   ? S.of(context).startingSession
-                                  : S.of(context).waitingForAi,
+                                  : S.of(context).aiThinking,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isDarkMode
@@ -696,9 +698,7 @@ class _RecsScreenState extends State<RecsScreen> {
                   }
                   final message = _messages[index];
                   final isLatestAiMessage =
-                      !busy &&
-                      !message.isUser &&
-                      index == _messages.length - 1;
+                      !busy && !message.isUser && index == _messages.length - 1;
                   final isLatestAiReply =
                       isLatestAiMessage && _lastSentMessage != null;
                   return Padding(
@@ -708,7 +708,9 @@ class _RecsScreenState extends State<RecsScreen> {
                       isDarkMode: isDarkMode,
                       onRerun: isLatestAiReply ? _rerunLast : null,
                       onOpenRecipe: _openRecipeFromChat,
-                      onSelectOption: isLatestAiMessage ? _sendOptionSelection : null,
+                      onSelectOption: isLatestAiMessage
+                          ? _sendOptionSelection
+                          : null,
                     ),
                   );
                 },
@@ -1159,7 +1161,9 @@ class _ChatBubble extends StatelessWidget {
                           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: const Color(0xFF059669).withValues(alpha: 0.45),
+                              color: const Color(
+                                0xFF059669,
+                              ).withValues(alpha: 0.45),
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
