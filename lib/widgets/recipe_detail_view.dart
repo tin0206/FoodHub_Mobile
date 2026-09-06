@@ -226,6 +226,18 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
     });
   }
 
+  /// Leaves edit mode back to viewing this recipe's detail — used by both
+  /// the "Cancel" button and the header's back arrow, which should never
+  /// leave the whole detail screen while mid-edit.
+  void _cancelEdit() {
+    setState(() {
+      _isEditMode = false;
+      _titleController.text = widget.recipe.name;
+      _selectedEditLabels = widget.recipe.labels.toSet();
+      _editImageBytes = null;
+    });
+  }
+
   @override
   void dispose() {
     for (final c in _ingredientControllers) {
@@ -1056,7 +1068,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
                 top: 10,
                 left: 12,
                 child: GestureDetector(
-                  onTap: widget.onBack,
+                  onTap: _cancelEdit,
                   child: Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
@@ -1758,41 +1770,55 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
           Container(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
             child: _isEditMode
-                ? Row(
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        flex: 2,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              _isEditMode = false;
-                              _titleController.text = widget.recipe.name;
-                              _selectedEditLabels = widget.recipe.labels.toSet();
-                              _editImageBytes = null;
-                            });
-                          },
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: panelColor,
-                            foregroundColor: colors.onSurface,
-                            side: isDarkMode ? BorderSide.none : BorderSide(color: borderColor),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                      if (!widget.enableEdit) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            S.of(context).editClonesToPersonalHint,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: colors.onSurfaceVariant,
+                              height: 1.35,
+                            ),
                           ),
-                          child: Text(S.of(context).cancel),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 3,
-                        child: FilledButton(
-                          onPressed: _saveEditedRecipe,
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(40),
-                            backgroundColor: accentColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                      ],
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: OutlinedButton(
+                              onPressed: _cancelEdit,
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: panelColor,
+                                foregroundColor: colors.onSurface,
+                                side: isDarkMode ? BorderSide.none : BorderSide(color: borderColor),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                              ),
+                              child: Text(S.of(context).cancel),
+                            ),
                           ),
-                          child: Text(S.of(context).saveChanges),
-                        ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            flex: 3,
+                            child: FilledButton(
+                              onPressed: _saveEditedRecipe,
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size.fromHeight(40),
+                                backgroundColor: accentColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                              ),
+                              child: Text(
+                                widget.enableEdit ? S.of(context).saveChanges : S.of(context).save,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   )

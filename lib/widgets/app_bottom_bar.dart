@@ -61,8 +61,8 @@ class AppBottomBar extends StatelessWidget {
               ),
               _BottomTabItem(
                 label: s.navCollection,
-                icon: Icons.collections_bookmark_outlined,
-                selectedIcon: Icons.collections_bookmark_rounded,
+                icon: Icons.bookmark_border,
+                selectedIcon: Icons.bookmark_rounded,
                 isSelected: currentTab == AppTab.favorites,
                 isDarkMode: isDarkMode,
                 onTap: () => onTabSelected(AppTab.favorites),
@@ -121,8 +121,7 @@ class _BottomTabItem extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 10.5,
-                  fontWeight:
-                      isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   color: isSelected ? activeColor : inactiveColor,
                 ),
               ),

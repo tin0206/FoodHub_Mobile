@@ -252,9 +252,8 @@ class S {
 
   // ── Collection screen (Personal Recipes + Favorites tabs) ────────────────────
   String get collectionTitle => _vi ? 'Bộ sưu tập' : 'Collection';
-  String get personalRecipesSubtitle => _vi
-      ? 'Công thức bạn đã tạo và lưu'
-      : 'Recipes you\'ve created and saved';
+  String get personalRecipesSubtitle =>
+      _vi ? 'Công thức bạn đã tạo' : 'Recipes you\'ve created';
   String get totalRecipesLabel => _vi ? 'Tổng số' : 'Total';
 
   // ── Favorites screen ────────────────────────────────────────────────────────
@@ -384,6 +383,9 @@ class S {
   String get savedAsPersonalRecipe => _vi
       ? 'Đã lưu vào công thức cá nhân của bạn'
       : 'Saved to your personal recipes';
+  String get editClonesToPersonalHint => _vi
+      ? 'Chỉnh sửa sẽ lưu thành một bản sao mới vào Công thức cá nhân — bản gốc không thay đổi.'
+      : "Editing this will save a new copy to your Personal Recipes — the original stays unchanged.";
   String get completed => _vi ? 'Hoàn thành!' : 'Completed!';
   String get greatJobChef =>
       _vi ? 'Bạn nấu quá tuyệt! 👨‍🍳' : 'Great job chef 👨‍🍳';
