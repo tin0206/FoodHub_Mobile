@@ -335,9 +335,6 @@ class _CollectionScreenState extends State<CollectionScreen> {
     }
   }
 
-  int get _withPhotosCount =>
-      _recipes.where((r) => (r.imageUrl ?? '').isNotEmpty).length;
-
   // ── Favorites: data + actions (unchanged behavior) ────────────────────────
 
   Future<void> _loadFavorites() async {
@@ -879,24 +876,10 @@ class _CollectionScreenState extends State<CollectionScreen> {
         ),
       ),
       const SizedBox(height: 8),
-      Row(
-        children: [
-          Expanded(
-            child: _SummaryCard(
-              value: '${_recipes.length}',
-              label: s.totalRecipesLabel,
-              isDarkMode: isDarkMode,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _SummaryCard(
-              value: '$_withPhotosCount',
-              label: s.withPhotosLabel,
-              isDarkMode: isDarkMode,
-            ),
-          ),
-        ],
+      _SummaryCard(
+        value: '${_recipes.length}',
+        label: s.totalRecipesLabel,
+        isDarkMode: isDarkMode,
       ),
       const SizedBox(height: 8),
       if (_isLoadingRecipes)

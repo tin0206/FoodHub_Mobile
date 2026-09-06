@@ -256,7 +256,6 @@ class S {
       ? 'Công thức bạn đã tạo và lưu'
       : 'Recipes you\'ve created and saved';
   String get totalRecipesLabel => _vi ? 'Tổng số' : 'Total';
-  String get withPhotosLabel => _vi ? 'Có ảnh' : 'With Photos';
 
   // ── Favorites screen ────────────────────────────────────────────────────────
   String get favoritesTitle => _vi ? 'Yêu thích' : 'Favorites';
