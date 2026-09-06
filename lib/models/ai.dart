@@ -262,32 +262,6 @@ class DetectionItemModel {
   }
 }
 
-class AiJobAcceptedModel {
-  const AiJobAcceptedModel({
-    required this.taskId,
-    required this.status,
-    required this.requestType,
-    this.imageUrl,
-    this.sessionId,
-  });
-
-  final String taskId;
-  final String status;
-  final String requestType;
-  final String? imageUrl;
-  final String? sessionId;
-
-  factory AiJobAcceptedModel.fromJson(Map<String, dynamic> json) {
-    return AiJobAcceptedModel(
-      taskId: json['task_id'] as String,
-      status: json['status'] as String? ?? 'pending',
-      requestType: json['request_type'] as String? ?? '',
-      imageUrl: json['image_url'] as String?,
-      sessionId: json['session_id'] as String?,
-    );
-  }
-}
-
 class AiRequestDetailModel {
   const AiRequestDetailModel({
     required this.taskId,
@@ -297,6 +271,7 @@ class AiRequestDetailModel {
     this.outputPayload,
     this.errorMessage,
     this.durationMs,
+    this.sessionId,
   });
 
   final String taskId;
@@ -306,6 +281,7 @@ class AiRequestDetailModel {
   final Map<String, dynamic>? outputPayload;
   final String? errorMessage;
   final int? durationMs;
+  final String? sessionId;
 
   bool get isTerminal => status == 'completed' || status == 'failed';
 
@@ -322,6 +298,7 @@ class AiRequestDetailModel {
           : null,
       errorMessage: json['error_message'] as String?,
       durationMs: json['duration_ms'] as int?,
+      sessionId: json['session_id'] as String?,
     );
   }
 }

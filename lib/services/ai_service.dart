@@ -7,7 +7,6 @@ class AiService {
 
   final ApiClient _api;
 
-  static const Duration _pollInterval = Duration(seconds: 1);
   static const Duration _visionTimeout = Duration(seconds: 90);
   static const Duration _chatTimeout = Duration(seconds: 200);
 
@@ -20,8 +19,9 @@ class AiService {
   }) async {
     // ignore: avoid_print
     print('[AiService] POST /ai/chat/welcome');
-    final accepted = await _api.post(
+    final data = await _api.post(
       '/ai/chat/welcome',
+      timeout: _chatTimeout,
       body: {
         if (sessionId != null && sessionId.isNotEmpty) 'session_id': sessionId,
         'dietary_restrictions': dietaryRestrictions,
@@ -30,18 +30,10 @@ class AiService {
         'ingredients': ingredients,
       },
     );
-    final job = AiJobAcceptedModel.fromJson(accepted as Map<String, dynamic>);
+    final detail = _requireCompleted(data);
     // ignore: avoid_print
-    print('[AiService] welcome accepted job=${job.taskId} session=${job.sessionId}');
-    final detail = await _waitForResult(job.taskId, timeout: _chatTimeout);
-    final payload = Map<String, dynamic>.from(detail.outputPayload ?? {});
-    payload.putIfAbsent('task_id', () => detail.taskId);
-    payload.putIfAbsent(
-      'session_id',
-      () => job.sessionId ?? sessionId ?? detail.taskId,
-    );
-    payload.putIfAbsent('phase', () => 'gather');
-    return ChatResponseModel.fromJson(payload);
+    print('[AiService] welcome done job=${detail.taskId} session=${detail.sessionId}');
+    return _chatFromDetail(detail, fallbackSessionId: sessionId);
   }
 
   Future<ChatResponseModel> chat({
@@ -52,8 +44,9 @@ class AiService {
     String? primaryGoal,
     List<String> ingredients = const [],
   }) async {
-    final accepted = await _api.post(
+    final data = await _api.post(
       '/ai/chat',
+      timeout: _chatTimeout,
       body: {
         'message': message,
         'session_id': sessionId,
@@ -65,15 +58,10 @@ class AiService {
         'ingredients': ingredients,
       },
     );
-    final job = AiJobAcceptedModel.fromJson(accepted as Map<String, dynamic>);
-    final detail = await _waitForResult(job.taskId, timeout: _chatTimeout);
-    final payload = Map<String, dynamic>.from(detail.outputPayload ?? {});
-    payload.putIfAbsent('task_id', () => detail.taskId);
-    payload.putIfAbsent(
-      'session_id',
-      () => job.sessionId ?? sessionId,
+    return _chatFromDetail(
+      _requireCompleted(data),
+      fallbackSessionId: sessionId,
     );
-    return ChatResponseModel.fromJson(payload);
   }
 
   Future<ChatResponseModel> selectOption({
@@ -83,12 +71,13 @@ class AiService {
     List<String> dietaryRestrictions = const [],
     String? primaryGoal,
   }) async {
-    final accepted = await _api.post(
+    final data = await _api.post(
       '/ai/chat',
+      timeout: _chatTimeout,
       body: {
         'session_id': sessionId,
         'selected_option_index': selectedOptionIndex,
-        'message': null,
+        'message': '.',
         'conversation_history':
             conversationHistory.map((m) => m.toJson()).toList(),
         'dietary_restrictions': dietaryRestrictions,
@@ -96,12 +85,10 @@ class AiService {
           'primary_goal': primaryGoal,
       },
     );
-    final job = AiJobAcceptedModel.fromJson(accepted as Map<String, dynamic>);
-    final detail = await _waitForResult(job.taskId, timeout: _chatTimeout);
-    final payload = Map<String, dynamic>.from(detail.outputPayload ?? {});
-    payload.putIfAbsent('task_id', () => detail.taskId);
-    payload.putIfAbsent('session_id', () => job.sessionId ?? sessionId);
-    return ChatResponseModel.fromJson(payload);
+    return _chatFromDetail(
+      _requireCompleted(data),
+      fallbackSessionId: sessionId,
+    );
   }
 
   Future<DishRecognitionModel> recognizeDish({
@@ -109,22 +96,17 @@ class AiService {
     required String filename,
     String contentType = 'image/jpeg',
   }) async {
-    final accepted = await _api.postMultipart(
+    final data = await _api.postMultipart(
       '/ai/dish-recognition',
       fieldName: 'file',
       bytes: bytes,
       filename: filename,
       contentType: contentType,
+      timeout: _visionTimeout,
     );
-    final job = AiJobAcceptedModel.fromJson(accepted as Map<String, dynamic>);
-    final detail = await _waitForResult(job.taskId, timeout: _visionTimeout);
+    final detail = _requireCompleted(data);
     final payload = Map<String, dynamic>.from(detail.outputPayload ?? {});
     payload.putIfAbsent('task_id', () => detail.taskId);
-    if ((payload['image_url'] == null ||
-            (payload['image_url'] as String).isEmpty) &&
-        job.imageUrl != null) {
-      payload['image_url'] = job.imageUrl;
-    }
     return DishRecognitionModel.fromJson(payload);
   }
 
@@ -134,23 +116,18 @@ class AiService {
     String contentType = 'image/jpeg',
     String language = 'en',
   }) async {
-    final accepted = await _api.postMultipart(
+    final data = await _api.postMultipart(
       '/ai/ingredients/detect',
       fieldName: 'file',
       bytes: bytes,
       filename: filename,
       contentType: contentType,
       fields: {'language': language},
+      timeout: _visionTimeout,
     );
-    final job = AiJobAcceptedModel.fromJson(accepted as Map<String, dynamic>);
-    final detail = await _waitForResult(job.taskId, timeout: _visionTimeout);
+    final detail = _requireCompleted(data);
     final payload = Map<String, dynamic>.from(detail.outputPayload ?? {});
     payload.putIfAbsent('task_id', () => detail.taskId);
-    if ((payload['image_url'] == null ||
-            (payload['image_url'] as String).isEmpty) &&
-        job.imageUrl != null) {
-      payload['image_url'] = job.imageUrl;
-    }
     return IngredientsDetectModel.fromJson(payload);
   }
 
@@ -159,30 +136,32 @@ class AiService {
     return AiRequestDetailModel.fromJson(data as Map<String, dynamic>);
   }
 
-  Future<AiRequestDetailModel> _waitForResult(
-    String taskId, {
-    required Duration timeout,
-  }) async {
-    final deadline = DateTime.now().add(timeout);
-    while (DateTime.now().isBefore(deadline)) {
-      final detail = await getRequest(taskId);
-      if (detail.status == 'completed') {
-        if (detail.outputPayload == null) {
-          throw ApiException('AI job completed without a result payload.');
-        }
-        return detail;
-      }
-      if (detail.status == 'failed') {
-        throw ApiException(
-          detail.errorMessage?.isNotEmpty == true
-              ? detail.errorMessage!
-              : 'AI job failed.',
-        );
-      }
-      await Future<void>.delayed(_pollInterval);
+  AiRequestDetailModel _requireCompleted(dynamic data) {
+    final detail = AiRequestDetailModel.fromJson(data as Map<String, dynamic>);
+    if (detail.status == 'failed') {
+      throw ApiException(
+        detail.errorMessage?.isNotEmpty == true
+            ? detail.errorMessage!
+            : 'AI job failed.',
+      );
     }
-    throw ApiException(
-      'AI job timed out after ${timeout.inSeconds}s. Please try again.',
+    if (detail.status != 'completed' || detail.outputPayload == null) {
+      throw ApiException('AI job completed without a result payload.');
+    }
+    return detail;
+  }
+
+  ChatResponseModel _chatFromDetail(
+    AiRequestDetailModel detail, {
+    String? fallbackSessionId,
+  }) {
+    final payload = Map<String, dynamic>.from(detail.outputPayload ?? {});
+    payload.putIfAbsent('task_id', () => detail.taskId);
+    payload.putIfAbsent(
+      'session_id',
+      () => detail.sessionId ?? fallbackSessionId ?? detail.taskId,
     );
+    payload.putIfAbsent('phase', () => 'gather');
+    return ChatResponseModel.fromJson(payload);
   }
 }

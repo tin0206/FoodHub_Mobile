@@ -14,6 +14,7 @@ class MealService {
   MealService({ApiClient? apiClient}) : _api = apiClient ?? ApiClient();
 
   final ApiClient _api;
+  static const Duration _aiTimeout = Duration(seconds: 200);
 
   String? get _lang {
     final language = SessionService.instance.currentUser?.language;
@@ -33,6 +34,7 @@ class MealService {
   Future<MealSuggestionModel> getTodaySuggestions({String? date}) async {
     final data = await _api.get(
       '/meal-suggestions/today',
+      timeout: _aiTimeout,
       query: _query({
         if (date != null && date.isNotEmpty) 'suggestion_date': date,
       }),
@@ -46,6 +48,7 @@ class MealService {
   }) async {
     final data = await _api.post(
       '/meal-suggestions/today/refresh',
+      timeout: _aiTimeout,
       query: _query({
         if (date != null && date.isNotEmpty) 'suggestion_date': date,
       }),
@@ -155,6 +158,7 @@ class MealService {
     final planDate = date ?? localIsoDate();
     final data = await _api.get(
       '/meal-plans/$planDate/shopping-list',
+      timeout: _aiTimeout,
       query: _query(),
     );
     return ShoppingListModel.fromJson(data as Map<String, dynamic>);

@@ -33,11 +33,16 @@ class ApiClient {
     String path, {
     Map<String, String>? query,
     bool auth = true,
+    Duration? timeout,
   }) async {
-    final response = await http.get(
+    var future = http.get(
       _uri(path, query),
       headers: await _headers(auth: auth),
     );
+    if (timeout != null) {
+      future = future.timeout(timeout);
+    }
+    final response = await future;
     return _handleResponse(response);
   }
 
@@ -46,12 +51,17 @@ class ApiClient {
     Map<String, dynamic>? body,
     Map<String, String>? query,
     bool auth = true,
+    Duration? timeout,
   }) async {
-    final response = await http.post(
+    var future = http.post(
       _uri(path, query),
       headers: await _headers(auth: auth),
       body: body == null ? null : jsonEncode(body),
     );
+    if (timeout != null) {
+      future = future.timeout(timeout);
+    }
+    final response = await future;
     return _handleResponse(response);
   }
 
@@ -103,6 +113,7 @@ class ApiClient {
     String contentType = 'image/jpeg',
     Map<String, String>? fields,
     bool auth = true,
+    Duration? timeout,
   }) async {
     final request = http.MultipartRequest('POST', _uri(path));
     final headers = await _headers(auth: auth);
@@ -118,7 +129,11 @@ class ApiClient {
       ),
     );
 
-    final streamed = await request.send();
+    var sendFuture = request.send();
+    if (timeout != null) {
+      sendFuture = sendFuture.timeout(timeout);
+    }
+    final streamed = await sendFuture;
     final response = await http.Response.fromStream(streamed);
     return _handleResponse(response);
   }

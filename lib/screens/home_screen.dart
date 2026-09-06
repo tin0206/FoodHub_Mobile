@@ -48,7 +48,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSuggestionsLoading = true;
   String? _suggestionsError;
   MealPlanModel? _mealPlan;
-  Timer? _suggestionPoll;
 
   @override
   void initState() {
@@ -62,7 +61,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _suggestionPoll?.cancel();
     RecipeService.changes.removeListener(_onRecipesChanged);
     super.dispose();
   }
@@ -129,7 +127,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadSuggestions({bool refresh = false}) async {
-    _suggestionPoll?.cancel();
     setState(() {
       _isSuggestionsLoading = true;
       _suggestionsError = null;
@@ -141,33 +138,11 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       setState(() {
         _suggestions = data;
-        _isSuggestionsLoading = data.isPending;
-        _suggestionsError = data.isFailed ? (data.errorMessage ?? S.of(context).suggestionsFailed) : null;
+        _isSuggestionsLoading = false;
+        _suggestionsError = data.isFailed
+            ? (data.errorMessage ?? S.of(context).suggestionsFailed)
+            : null;
       });
-      if (data.isPending) {
-        _suggestionPoll = Timer.periodic(const Duration(seconds: 3), (_) async {
-          try {
-            final next = await _mealService.getTodaySuggestions();
-            if (!mounted) return;
-            setState(() {
-              _suggestions = next;
-              _isSuggestionsLoading = next.isPending;
-              _suggestionsError = next.isFailed
-                  ? (next.errorMessage ?? S.of(context).suggestionsFailed)
-                  : null;
-            });
-            if (!next.isPending) _suggestionPoll?.cancel();
-          } catch (e) {
-            _suggestionPoll?.cancel();
-            if (mounted) {
-              setState(() {
-                _isSuggestionsLoading = false;
-                _suggestionsError = e is ApiException ? e.message : S.of(context).suggestionsFailed;
-              });
-            }
-          }
-        });
-      }
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/meal.dart';
@@ -84,7 +82,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   final Set<String> _checked = {};
   final Set<String> _expanded = {};
   final Set<String> _collapsedAisles = {};
-  Timer? _poll;
 
   String get _date => widget.date ?? localIsoDate();
 
@@ -92,12 +89,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   void initState() {
     super.initState();
     _load();
-  }
-
-  @override
-  void dispose() {
-    _poll?.cancel();
-    super.dispose();
   }
 
   Future<void> _loadChecked() async {
@@ -160,40 +151,19 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         pruned = _pruneChecked(list);
       });
       if (pruned) _saveChecked();
-      _syncPoll(list);
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
         _error = e.message;
         _loading = false;
       });
-      _poll?.cancel();
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = S.of(context).unableToLoadShoppingList;
         _loading = false;
       });
-      _poll?.cancel();
     }
-  }
-
-  void _syncPoll(ShoppingListModel list) {
-    _poll?.cancel();
-    if (!list.isPending) return;
-    _poll = Timer.periodic(const Duration(seconds: 3), (_) async {
-      try {
-        final next = await _mealService.getShoppingList(date: _date);
-        if (!mounted) return;
-        var pruned = false;
-        setState(() {
-          _list = next;
-          pruned = _pruneChecked(next);
-        });
-        if (pruned) _saveChecked();
-        if (!next.isPending) _poll?.cancel();
-      } catch (_) {}
-    });
   }
 
   int get _totalItems =>
