@@ -39,7 +39,6 @@ class AiService {
   Future<ChatResponseModel> chat({
     required String message,
     required String sessionId,
-    List<ChatMessageModel> conversationHistory = const [],
     List<String> dietaryRestrictions = const [],
     String? primaryGoal,
     List<String> ingredients = const [],
@@ -50,8 +49,6 @@ class AiService {
       body: {
         'message': message,
         'session_id': sessionId,
-        'conversation_history':
-            conversationHistory.map((m) => m.toJson()).toList(),
         'dietary_restrictions': dietaryRestrictions,
         if (primaryGoal != null && primaryGoal.isNotEmpty)
           'primary_goal': primaryGoal,
@@ -67,7 +64,6 @@ class AiService {
   Future<ChatResponseModel> selectOption({
     required String sessionId,
     required int selectedOptionIndex,
-    List<ChatMessageModel> conversationHistory = const [],
     List<String> dietaryRestrictions = const [],
     String? primaryGoal,
   }) async {
@@ -78,8 +74,6 @@ class AiService {
         'session_id': sessionId,
         'selected_option_index': selectedOptionIndex,
         'message': '.',
-        'conversation_history':
-            conversationHistory.map((m) => m.toJson()).toList(),
         'dietary_restrictions': dietaryRestrictions,
         if (primaryGoal != null && primaryGoal.isNotEmpty)
           'primary_goal': primaryGoal,

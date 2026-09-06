@@ -492,7 +492,6 @@ class _RecsScreenState extends State<RecsScreen> {
       final response = await _aiService.chat(
         message: merged,
         sessionId: _sessionId!,
-        conversationHistory: _conversationHistory,
         dietaryRestrictions: dietary,
         primaryGoal: widget.primaryGoal,
         ingredients: ingredients,
