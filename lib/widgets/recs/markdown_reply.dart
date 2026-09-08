@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:foodhub_mobile/config/api_config.dart';
 import 'package:foodhub_mobile/models/ai.dart';
 
 class MarkdownSection {
@@ -11,10 +12,11 @@ class MarkdownSection {
 }
 
 class RecipeLinkRef {
-  const RecipeLinkRef({required this.title, required this.recipeId});
+  const RecipeLinkRef({required this.title, required this.recipeId, this.imageUrl = ''});
 
   final String title;
   final String recipeId;
+  final String imageUrl;
 }
 
 final _mdLinkPattern = RegExp(r'\[([^\]]+)\]\(([^)]+)\)');
@@ -61,25 +63,25 @@ List<RecipeLinkRef> mergeRecipeCtas({
   final seenIds = <String>{};
   final seenTitles = <String>{};
 
-  void add(String title, String? id) {
+  void add(String title, String? id, {String imageUrl = ''}) {
     final t = title.trim();
     if (t.isEmpty) return;
     final keyId = (id ?? '').trim();
     if (keyId.isNotEmpty) {
       if (!seenIds.add(keyId)) return;
-      out.add(RecipeLinkRef(title: t, recipeId: keyId));
+      out.add(RecipeLinkRef(title: t, recipeId: keyId, imageUrl: imageUrl));
       seenTitles.add(t.toLowerCase());
       return;
     }
     if (!seenTitles.add(t.toLowerCase())) return;
-    out.add(RecipeLinkRef(title: t, recipeId: ''));
+    out.add(RecipeLinkRef(title: t, recipeId: '', imageUrl: imageUrl));
   }
 
   for (final link in fromMarkdown) {
-    add(link.title, link.recipeId);
+    add(link.title, link.recipeId, imageUrl: link.imageUrl);
   }
   for (final r in recipes) {
-    add(r.title, r.recipeId);
+    add(r.title, r.recipeId, imageUrl: r.imageUrl);
   }
   return out;
 }
@@ -183,84 +185,25 @@ MarkdownStyleSheet recsMarkdownStyle(bool isDarkMode) {
   );
 }
 
-/// Full-width, tall recipe CTA for easy tap-to-detail.
-class RecipeDetailCtaButton extends StatelessWidget {
-  const RecipeDetailCtaButton({
-    super.key,
-    required this.title,
-    required this.isDarkMode,
-    required this.onPressed,
-  });
-
-  final String title;
-  final bool isDarkMode;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: FilledButton(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF059669),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.menu_book_rounded, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'View',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.white.withValues(alpha: 0.9),
-              ),
-            ),
-            const SizedBox(width: 2),
-            const Icon(Icons.chevron_right_rounded, size: 22),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class RecipeCtaList extends StatelessWidget {
   const RecipeCtaList({
     super.key,
     required this.links,
     required this.isDarkMode,
     required this.onOpen,
+    this.imageResolver,
   });
 
   final List<RecipeLinkRef> links;
   final bool isDarkMode;
   final void Function(RecipeLinkRef link) onOpen;
+  final Future<String?> Function(String recipeId)? imageResolver;
 
   @override
   Widget build(BuildContext context) {
     if (links.isEmpty) return const SizedBox.shrink();
+
+    final secondaryText = isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -272,23 +215,133 @@ class RecipeCtaList extends StatelessWidget {
             fontSize: 12,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.2,
-            color: isDarkMode
-                ? const Color(0xFF94A3B8)
-                : const Color(0xFF6B7280),
+            color: secondaryText,
           ),
         ),
         const SizedBox(height: 8),
-        ...links.map(
-          (link) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: RecipeDetailCtaButton(
-              title: link.title,
-              isDarkMode: isDarkMode,
-              onPressed: () => onOpen(link),
-            ),
+        ...links.map((link) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _RecipeCtaCard(
+            link: link,
+            isDarkMode: isDarkMode,
+            onTap: () => onOpen(link),
+            imageResolver: imageResolver,
           ),
-        ),
+        )),
       ],
+    );
+  }
+}
+
+class _RecipeCtaCard extends StatefulWidget {
+  const _RecipeCtaCard({
+    required this.link,
+    required this.isDarkMode,
+    required this.onTap,
+    this.imageResolver,
+  });
+
+  final RecipeLinkRef link;
+  final bool isDarkMode;
+  final VoidCallback onTap;
+  final Future<String?> Function(String recipeId)? imageResolver;
+
+  @override
+  State<_RecipeCtaCard> createState() => _RecipeCtaCardState();
+}
+
+class _RecipeCtaCardState extends State<_RecipeCtaCard> {
+  String _imageUrl = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _imageUrl = ApiConfig.resolveImageUrl(widget.link.imageUrl);
+    if (_imageUrl.isEmpty) _resolveImage();
+  }
+
+  Future<void> _resolveImage() async {
+    final id = widget.link.recipeId;
+    if (id.isEmpty || widget.imageResolver == null) return;
+    final url = await widget.imageResolver!(id);
+    if (!mounted || url == null || url.isEmpty) return;
+    final resolved = ApiConfig.resolveImageUrl(url);
+    if (resolved.isNotEmpty) setState(() => _imageUrl = resolved);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDarkMode;
+    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final primaryText = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
+    final secondaryText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE5E7EB);
+
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
+              child: _imageUrl.isNotEmpty
+                  ? Image.network(
+                      _imageUrl,
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _RecipeImagePlaceholder(isDarkMode: isDark),
+                    )
+                  : _RecipeImagePlaceholder(isDarkMode: isDark),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                widget.link.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: primaryText,
+                  height: 1.25,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Icon(Icons.chevron_right_rounded, color: secondaryText, size: 20),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecipeImagePlaceholder extends StatelessWidget {
+  const _RecipeImagePlaceholder({required this.isDarkMode});
+  final bool isDarkMode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 72,
+      height: 72,
+      color: isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFF1F5F9),
+      child: Icon(Icons.menu_book_rounded, color: isDarkMode ? const Color(0xFF374151) : const Color(0xFFCBD5E1), size: 26),
     );
   }
 }
@@ -300,12 +353,14 @@ class MarkdownReplyBody extends StatelessWidget {
     required this.isDarkMode,
     this.recipes = const [],
     this.onOpenRecipe,
+    this.imageResolver,
   });
 
   final String markdown;
   final bool isDarkMode;
   final List<RagRecipeModel> recipes;
   final void Function(RecipeLinkRef link)? onOpenRecipe;
+  final Future<String?> Function(String recipeId)? imageResolver;
 
   @override
   Widget build(BuildContext context) {
@@ -357,6 +412,7 @@ class MarkdownReplyBody extends StatelessWidget {
             links: ctas,
             isDarkMode: isDarkMode,
             onOpen: onOpenRecipe!,
+            imageResolver: imageResolver,
           ),
       ],
     );

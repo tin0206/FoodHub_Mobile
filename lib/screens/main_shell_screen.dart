@@ -45,7 +45,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
   void initState() {
     super.initState();
     _user = widget.initialUser;
-    LangScope.current.value = widget.initialUser.language ?? 'en';
+    final userLang = widget.initialUser.language;
+    if (userLang != null && userLang.isNotEmpty) {
+      LangScope.current.value = userLang;
+    }
     LangScope.current.addListener(_onGlobalLanguageChanged);
     _isDarkMode = widget.initialUser.theme == 'dark';
     _dietaryRestrictions = {..._user.dietaryRestrictions};

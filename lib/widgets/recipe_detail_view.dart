@@ -2140,6 +2140,10 @@ class _DetailHeaderInfo extends StatelessWidget {
             ],
           ],
         ),
+        if (recipe.nutrition != null) ...[
+          const SizedBox(height: 6),
+          _NutritionPillRow(nutrition: recipe.nutrition!),
+        ],
         if (recipe.labels.isNotEmpty) ...[
           const SizedBox(height: 6),
           Wrap(
@@ -2170,6 +2174,46 @@ class _DetailHeaderInfo extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+// ── Nutrition pill row (shown in recipe detail header) ────────────────────────
+
+class _NutritionPillRow extends StatelessWidget {
+  const _NutritionPillRow({required this.nutrition});
+
+  final RecipeNutrition nutrition;
+
+  @override
+  Widget build(BuildContext context) {
+    String fmt(double? v) => v == null ? '—' : (v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(1));
+    final s = S.of(context);
+    final items = <String>[
+      if (nutrition.kcalPerServing != null) '${fmt(nutrition.kcalPerServing)} ${s.calSuffix}',
+      if (nutrition.proteinPerServing != null) '${fmt(nutrition.proteinPerServing)}g ${s.proteinShort}',
+      if (nutrition.carbsPerServing != null) '${fmt(nutrition.carbsPerServing)}g ${s.carbsShort}',
+      if (nutrition.fatPerServing != null) '${fmt(nutrition.fatPerServing)}g ${s.fatShort}',
+    ];
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: items.map((label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      )).toList(),
     );
   }
 }

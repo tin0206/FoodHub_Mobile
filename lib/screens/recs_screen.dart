@@ -42,8 +42,6 @@ class _RecsScreenState extends State<RecsScreen> {
   bool _isSending = false;
   bool _isBootstrapping = true;
   String? _sessionId;
-  String? _lastSentMessage;
-  List<String> _lastSentIngredients = const [];
   RecipeDetailData? _selectedRecipeDetail;
   bool _openingRecipe = false;
   int _recipeCacheEpoch = 0;
@@ -106,8 +104,6 @@ class _RecsScreenState extends State<RecsScreen> {
       );
       setState(() {
         _sessionId = response.sessionId ?? sessionId;
-        _lastSentMessage = null;
-        _lastSentIngredients = const [];
         _messages.add(
           _ChatMessage(
             text: response.reply.isNotEmpty
@@ -132,8 +128,6 @@ class _RecsScreenState extends State<RecsScreen> {
       if (!mounted) return;
       setState(() {
         _sessionId = sessionId;
-        _lastSentMessage = null;
-        _lastSentIngredients = const [];
         _messages.add(
           _ChatMessage(text: S.of(context).unableToReachAi, isUser: false),
         );
@@ -291,6 +285,13 @@ class _RecsScreenState extends State<RecsScreen> {
     });
   }
 
+  Future<String?> _resolveRecipeImageUrl(String recipeId) async {
+    final id = int.tryParse(recipeId);
+    if (id == null) return null;
+    final detail = await _recipeById(id);
+    return detail?.imageUrl;
+  }
+
   void _prefetchRecipes(String markdown, List<RagRecipeModel> recipes) {
     for (final id in _recipeIdsFrom(markdown, recipes)) {
       unawaited(_recipeById(id));
@@ -440,8 +441,6 @@ class _RecsScreenState extends State<RecsScreen> {
 
     setState(() {
       _messages.add(_ChatMessage(text: merged, isUser: true));
-      _lastSentMessage = merged;
-      _lastSentIngredients = ingredients;
       _isSending = true;
       _clearComposeDetections();
       _promptController.clear();
@@ -449,40 +448,6 @@ class _RecsScreenState extends State<RecsScreen> {
     _scrollToBottom();
 
     await _sendToAi(merged, ingredients);
-  }
-
-  Future<void> _rerunLast() async {
-    if (_isSending || _isBootstrapping) return;
-    final last = _lastSentMessage;
-    if (last == null || last.isEmpty) return;
-
-    final sessionId = _sessionId;
-    if (sessionId == null || sessionId.isEmpty) {
-      await _bootstrapWelcome();
-      if (_sessionId == null) return;
-    }
-
-    setState(() {
-      // Drop the previous assistant reply so rerun regenerates it.
-      if (_messages.isNotEmpty && !_messages.last.isUser) {
-        _messages.removeLast();
-      }
-      if (_conversationHistory.isNotEmpty &&
-          _conversationHistory.last.role == 'assistant') {
-        _conversationHistory.removeLast();
-      }
-      // Keep history aligned: remove the matching user turn so _sendToAi
-      // can append it again with the new assistant reply.
-      if (_conversationHistory.isNotEmpty &&
-          _conversationHistory.last.role == 'user' &&
-          _conversationHistory.last.content == last) {
-        _conversationHistory.removeLast();
-      }
-      _isSending = true;
-    });
-    _scrollToBottom();
-
-    await _sendToAi(last, _lastSentIngredients);
   }
 
   Future<void> _sendToAi(String merged, List<String> ingredients) async {
@@ -552,8 +517,6 @@ class _RecsScreenState extends State<RecsScreen> {
         );
       }
       _messages.add(_ChatMessage(text: option.label, isUser: true));
-      _lastSentMessage = option.label;
-      _lastSentIngredients = const [];
       _isSending = true;
     });
     _scrollToBottom();
@@ -698,18 +661,16 @@ class _RecsScreenState extends State<RecsScreen> {
                   final message = _messages[index];
                   final isLatestAiMessage =
                       !busy && !message.isUser && index == _messages.length - 1;
-                  final isLatestAiReply =
-                      isLatestAiMessage && _lastSentMessage != null;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: _ChatBubble(
                       message: message,
                       isDarkMode: isDarkMode,
-                      onRerun: isLatestAiReply ? _rerunLast : null,
                       onOpenRecipe: _openRecipeFromChat,
                       onSelectOption: isLatestAiMessage
                           ? _sendOptionSelection
                           : null,
+                      imageResolver: _resolveRecipeImageUrl,
                     ),
                   );
                 },
@@ -1001,15 +962,15 @@ class _ChatBubble extends StatelessWidget {
     required this.message,
     required this.isDarkMode,
     this.onOpenRecipe,
-    this.onRerun,
     this.onSelectOption,
+    this.imageResolver,
   });
 
   final _ChatMessage message;
   final bool isDarkMode;
   final void Function(RecipeLinkRef link)? onOpenRecipe;
-  final VoidCallback? onRerun;
   final void Function(ChatOptionModel option)? onSelectOption;
+  final Future<String?> Function(String recipeId)? imageResolver;
 
   @override
   Widget build(BuildContext context) {
@@ -1059,10 +1020,6 @@ class _ChatBubble extends StatelessWidget {
         ),
       );
     }
-
-    final muted = isDarkMode
-        ? const Color(0xFF94A3B8)
-        : const Color(0xFF6B7280);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1135,6 +1092,7 @@ class _ChatBubble extends StatelessWidget {
                         isDarkMode: isDarkMode,
                         recipes: message.recipes,
                         onOpenRecipe: onOpenRecipe,
+                        imageResolver: imageResolver,
                       ),
               ),
             ),
@@ -1232,22 +1190,6 @@ class _ChatBubble extends StatelessWidget {
                   ),
                 );
               }).toList(),
-            ),
-          ),
-        if (onRerun != null && message.options.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(left: 38, top: 4),
-            child: TextButton.icon(
-              onPressed: onRerun,
-              style: TextButton.styleFrom(
-                foregroundColor: muted,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
-              ),
-              icon: const Icon(Icons.refresh_rounded, size: 16),
-              label: const Text('Rerun', style: TextStyle(fontSize: 12)),
             ),
           ),
       ],

@@ -37,6 +37,7 @@ class RagRecipeModel {
     this.dietaryRestrictions = const [],
     this.estimatedServings,
     this.locale = 'en',
+    this.imageUrl = '',
   });
 
   final String title;
@@ -47,6 +48,7 @@ class RagRecipeModel {
   final List<String> dietaryRestrictions;
   final int? estimatedServings;
   final String locale;
+  final String imageUrl;
 
   factory RagRecipeModel.fromJson(Map<String, dynamic> json) {
     final rawId = json['recipe_id'] ?? json['id'];
@@ -66,6 +68,7 @@ class RagRecipeModel {
           ? (json['estimated_servings'] as num).toInt()
           : null,
       locale: (json['locale'] as String?) ?? 'en',
+      imageUrl: json['image_url'] as String? ?? '',
     );
   }
 

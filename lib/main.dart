@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/app_theme.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/screens/splash_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Multi-device UI preview (iPhone/Android frames).
 /// On by default in debug. Disable if camera breaks:
@@ -15,6 +16,17 @@ const bool _kDevicePreview = bool.fromEnvironment(
 );
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final prefs = await SharedPreferences.getInstance();
+  final savedLang = prefs.getString('app_language');
+  if (savedLang != null && savedLang.isNotEmpty) {
+    LangScope.current.value = savedLang;
+  }
+  LangScope.current.addListener(() {
+    prefs.setString('app_language', LangScope.current.value);
+  });
+
   runApp(
     DevicePreview(
       enabled: !kReleaseMode && _kDevicePreview,
