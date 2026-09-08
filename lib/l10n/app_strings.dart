@@ -320,6 +320,8 @@ class S {
   String get dishRecognitionFailed => _vi
       ? 'Nhận diện món ăn thất bại. Thử ảnh khác.'
       : 'Dish recognition failed. Please try another photo.';
+  String get dishRecognitionPickHint =>
+      _vi ? 'Chọn món ăn phù hợp nhất' : 'Select the best match';
   String get confirmDetectedIngredients =>
       _vi ? 'Xác nhận nguyên liệu phát hiện' : 'Confirm detected ingredients';
   String get addSelected => _vi ? 'Thêm đã chọn' : 'Add selected';

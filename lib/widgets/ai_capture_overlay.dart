@@ -169,7 +169,32 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
 
         if (!mounted) return;
         setState(() => _isProcessing = false);
-        Navigator.of(context).pop(AiCaptureDishResult(result));
+
+        final candidates = result.results.where((r) => r.dishName.isNotEmpty).toList();
+        if (candidates.isEmpty) {
+          _showSnack(S.of(context).dishRecognitionFailed);
+          return;
+        }
+
+        final lang = LangScope.of(context);
+        final selected = await showModalBottomSheet<DishResultModel>(
+          context: context,
+          isScrollControlled: true,
+          showDragHandle: true,
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          builder: (ctx) => LangScope(
+            lang: lang,
+            child: _DishResultsSheet(results: candidates),
+          ),
+        );
+
+        if (!mounted || selected == null) return;
+        Navigator.of(context).pop(AiCaptureDishResult(DishRecognitionModel(
+          taskId: result.taskId,
+          dishName: selected.dishName,
+          results: [selected],
+          imageUrl: result.imageUrl,
+        )));
       }
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -911,4 +936,125 @@ class _DetectionOverlayPainter extends CustomPainter {
   bool shouldRepaint(covariant _DetectionOverlayPainter oldDelegate) {
     return oldDelegate.detections != detections || oldDelegate.accent != accent;
   }
+}
+
+// ── Dish recognition result cards ────────────────────────────────────────────
+
+class _DishResultsSheet extends StatelessWidget {
+  const _DishResultsSheet({required this.results});
+
+  final List<DishResultModel> results;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF141414) : Colors.white;
+    final primary = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
+    final secondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              S.of(context).dishDetectMode,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: primary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              S.of(context).dishRecognitionPickHint,
+              style: TextStyle(fontSize: 13, color: secondary),
+            ),
+            const SizedBox(height: 14),
+            ...results.map((dish) => _DishCard(dish: dish, bg: bg, primary: primary, secondary: secondary)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DishCard extends StatelessWidget {
+  const _DishCard({
+    required this.dish,
+    required this.bg,
+    required this.primary,
+    required this.secondary,
+  });
+
+  final DishResultModel dish;
+  final Color bg;
+  final Color primary;
+  final Color secondary;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedUrl = ApiConfig.resolveImageUrl(dish.imageUrl);
+
+    return GestureDetector(
+      onTap: () => Navigator.of(context).pop(dish),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
+              child: resolvedUrl.isNotEmpty
+                  ? Image.network(
+                      resolvedUrl,
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholder(),
+                    )
+                  : _placeholder(),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                dish.dishName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: primary,
+                  height: 1.3,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: Icon(Icons.chevron_right_rounded, color: secondary, size: 20),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _placeholder() => Container(
+    width: 72,
+    height: 72,
+    color: const Color(0xFFF1F5F9),
+    child: const Icon(Icons.restaurant_rounded, color: Color(0xFFCBD5E1), size: 28),
+  );
 }

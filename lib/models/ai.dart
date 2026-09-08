@@ -174,17 +174,21 @@ class DishResultModel {
     required this.rank,
     required this.dishName,
     required this.confidence,
+    this.imageUrl = '',
   });
 
   final int rank;
   final String dishName;
   final double confidence;
+  final String imageUrl;
 
   factory DishResultModel.fromJson(Map<String, dynamic> json) {
+    final recipe = json['recipe'] as Map<String, dynamic>?;
     return DishResultModel(
       rank: json['rank'] as int? ?? 0,
-      dishName: json['dish_name'] as String? ?? '',
+      dishName: recipe?['title'] as String? ?? json['dish_name'] as String? ?? '',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
+      imageUrl: recipe?['image_url'] as String? ?? '',
     );
   }
 }
