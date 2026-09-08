@@ -365,10 +365,12 @@ class MarkdownReplyBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final extracted = extractRecipeMarkdownLinks(markdown);
-    final ctas = mergeRecipeCtas(
-      fromMarkdown: extracted.links,
-      recipes: recipes,
-    );
+    // Only show recipe cards when the markdown itself contains recipe links.
+    // If the AI replied with detailed text (no links), suppress the card list
+    // even if the API response included a recipes payload.
+    final ctas = extracted.links.isEmpty
+        ? <RecipeLinkRef>[]
+        : mergeRecipeCtas(fromMarkdown: extracted.links, recipes: recipes);
     final sections = parseMarkdownSections(extracted.markdown);
     final style = recsMarkdownStyle(isDarkMode);
     final hasHeadings = sections.any((s) => s.title.isNotEmpty);
