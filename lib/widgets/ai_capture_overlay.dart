@@ -164,6 +164,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
         final result = await _aiService.recognizeDish(
           bytes: bytes,
           filename: filename,
+          language: LangScope.of(context),
         );
 
         if (!mounted) return;

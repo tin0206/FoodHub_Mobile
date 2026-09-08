@@ -89,6 +89,7 @@ class AiService {
     required List<int> bytes,
     required String filename,
     String contentType = 'image/jpeg',
+    String language = 'en',
   }) async {
     final data = await _api.postMultipart(
       '/ai/dish-recognition',
@@ -96,6 +97,7 @@ class AiService {
       bytes: bytes,
       filename: filename,
       contentType: contentType,
+      fields: {'language': language},
       timeout: _visionTimeout,
     );
     final detail = _requireCompleted(data);
