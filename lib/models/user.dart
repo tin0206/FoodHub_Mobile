@@ -8,6 +8,7 @@ class UserModel {
     this.isActive = true,
     this.age,
     this.weight,
+    this.gender,
     this.language,
     this.theme = 'light',
     this.calorieTarget,
@@ -33,6 +34,7 @@ class UserModel {
   bool get isGoogleOnly => googleId != null && !hasPassword;
   final int? age;
   final double? weight;
+  final String? gender;
   final String? language;
   final String theme;
   final int? calorieTarget;
@@ -52,6 +54,7 @@ class UserModel {
       isActive: json['is_active'] as bool? ?? true,
       age: json['age'] as int?,
       weight: (json['weight'] as num?)?.toDouble(),
+      gender: json['gender'] as String?,
       language: json['language'] as String?,
       theme: json['theme'] as String? ?? 'light',
       calorieTarget: json['calorie_target'] as int?,
@@ -73,6 +76,7 @@ class UserModel {
     String? fullName,
     int? age,
     double? weight,
+    String? gender,
     int? calorieTarget,
     int? proteinTarget,
     int? carbTarget,
@@ -86,6 +90,7 @@ class UserModel {
     if (fullName != null) data['full_name'] = fullName;
     if (age != null) data['age'] = age;
     if (weight != null) data['weight'] = weight;
+    if (gender != null) data['gender'] = gender.isEmpty ? null : gender;
     if (calorieTarget != null) data['calorie_target'] = calorieTarget;
     if (proteinTarget != null) data['protein_target'] = proteinTarget;
     if (carbTarget != null) data['carb_target'] = carbTarget;
@@ -94,12 +99,8 @@ class UserModel {
       data['dietary_restrictions'] = dietaryRestrictions;
     }
     if (primaryGoal != null) data['primary_goal'] = primaryGoal;
-    if (language != null) {
-      data['language'] = language;
-    }
-    if (theme != null) {
-      data['theme'] = theme;
-    }
+    if (language != null) data['language'] = language;
+    if (theme != null) data['theme'] = theme;
     return data;
   }
 
@@ -107,6 +108,7 @@ class UserModel {
     String? fullName,
     int? age,
     double? weight,
+    String? gender,
     int? calorieTarget,
     int? proteinTarget,
     int? carbTarget,
@@ -124,6 +126,7 @@ class UserModel {
       isActive: isActive,
       age: age ?? this.age,
       weight: weight ?? this.weight,
+      gender: gender ?? this.gender,
       calorieTarget: calorieTarget ?? this.calorieTarget,
       proteinTarget: proteinTarget ?? this.proteinTarget,
       carbTarget: carbTarget ?? this.carbTarget,

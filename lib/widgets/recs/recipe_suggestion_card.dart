@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/models/ai.dart';
-import 'package:foodhub_mobile/widgets/recs/markdown_reply.dart';
 
 class RecipeSuggestionList extends StatelessWidget {
   const RecipeSuggestionList({
@@ -105,10 +104,42 @@ class _RecipeSuggestionCardState extends State<RecipeSuggestionCard> {
           if (widget.onOpenDetails != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-              child: RecipeDetailCtaButton(
-                title: recipe.title,
-                isDarkMode: isDark,
-                onPressed: widget.onOpenDetails!,
+              child: GestureDetector(
+                onTap: widget.onOpenDetails,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF059669).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFF059669).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          recipe.title,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? const Color(0xFF4ADE80)
+                                : const Color(0xFF059669),
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.open_in_new_rounded,
+                        size: 14,
+                        color: isDark
+                            ? const Color(0xFF4ADE80)
+                            : const Color(0xFF059669),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           InkWell(

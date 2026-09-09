@@ -36,6 +36,7 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
 
   late String _role;
   late bool _isActive;
+  late String _gender;
   late Set<String> _dietaryRestrictions;
   late String? _primaryGoal;
   bool _isSaving = false;
@@ -77,6 +78,7 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
         text: u?.fatTarget != null ? '${u!.fatTarget}' : '');
     _role = u?.role ?? 'user';
     _isActive = u?.isActive ?? true;
+    _gender = u?.gender ?? '';
     _dietaryRestrictions = {...?u?.dietaryRestrictions};
     _primaryGoal = u?.primaryGoal;
   }
@@ -119,6 +121,7 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
           'carb_target': int.parse(_carbCtrl.text.trim()),
         if (_fatCtrl.text.trim().isNotEmpty)
           'fat_target': int.parse(_fatCtrl.text.trim()),
+        if (_gender.isNotEmpty) 'gender': _gender,
         if (_primaryGoal != null) 'primary_goal': _primaryGoal,
         'dietary_restrictions': _dietaryRestrictions.toList(),
       };
@@ -144,6 +147,7 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
           _isSaving = false;
           _role = 'user';
           _isActive = true;
+          _gender = '';
           _dietaryRestrictions = {};
           _primaryGoal = null;
           _notice = 'User created successfully.';
@@ -384,6 +388,57 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
                       ],
                     ),
                   ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // ── Gender ────────────────────────────────────────────────
+            _FormSection(
+              title: 'Gender',
+              icon: Icons.wc_rounded,
+              isDark: isDark,
+              cardBg: cardBg,
+              textPrimary: textPrimary,
+              children: [
+                Text('Optional', style: TextStyle(fontSize: 12, color: textSub)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    ('male', 'Male'),
+                    ('female', 'Female'),
+                    ('other', 'Other'),
+                  ].asMap().entries.map((e) {
+                    final (value, label) = e.value;
+                    final sel = _gender == value;
+                    return Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: e.key < 2 ? 7 : 0),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _gender = sel ? '' : value),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            decoration: BoxDecoration(
+                              color: sel
+                                  ? kAdminAccent
+                                  : (isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              label,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: sel ? Colors.white : textSub,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ],
             ),

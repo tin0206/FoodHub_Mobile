@@ -75,11 +75,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late String _snapProtein;
   late String _snapCarb;
   late String _snapFat;
+  late String _snapGender;
   late String _snapLanguage;
   late String _snapTheme;
 
   late bool _pendingDarkMode;
   late String _pendingLanguage;
+  late String _pendingGender;
 
   bool _isSaving = false;
   String? _ageError;
@@ -98,6 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _applyUser(widget.user);
     _pendingDarkMode = widget.isDarkMode;
     _pendingLanguage = widget.language;
+    _pendingGender = _snapGender;
     _fullNameController = TextEditingController(text: _snapFullName)..addListener(_onFieldChanged);
     _emailController = TextEditingController(text: _snapEmail);
     _ageController = TextEditingController(text: _snapAge)..addListener(_onFieldChanged);
@@ -115,6 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _applyUser(widget.user);
       _pendingDarkMode = widget.isDarkMode;
       _pendingLanguage = widget.language;
+      _pendingGender = _snapGender;
       _fullNameController.text = _snapFullName;
       _emailController.text = _snapEmail;
       _ageController.text = _snapAge;
@@ -131,12 +135,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _snapEmail = user.email;
     _snapAge = user.age?.toString() ?? '';
     _snapWeight = user.weight?.toString() ?? '';
+    _snapGender = user.gender ?? '';
+    _snapLanguage = user.language ?? 'en';
+    _snapTheme = user.theme;
     _snapCalorie = user.calorieTarget?.toString() ?? '';
     _snapProtein = user.proteinTarget?.toString() ?? '';
     _snapCarb = user.carbTarget?.toString() ?? '';
     _snapFat = user.fatTarget?.toString() ?? '';
-    _snapLanguage = user.language ?? 'en';
-    _snapTheme = user.theme;
   }
 
   bool get _hasChanges {
@@ -147,6 +152,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_proteinTargetController.text.trim() != _snapProtein) return true;
     if (_carbTargetController.text.trim() != _snapCarb) return true;
     if (_fatTargetController.text.trim() != _snapFat) return true;
+    if (_pendingGender != _snapGender) return true;
     if (_pendingLanguage != _snapLanguage) return true;
     if (_pendingDarkMode != (_snapTheme == 'dark')) return true;
     final userDiet = widget.user.dietaryRestrictions.toSet();
@@ -259,6 +265,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'full_name': _fullNameController.text.trim(),
         if (ageVal.isNotEmpty) 'age': int.parse(ageVal),
         if (weightVal.isNotEmpty) 'weight': double.parse(weightVal),
+        'gender': _pendingGender.isEmpty ? null : _pendingGender,
         if (calorieVal.isNotEmpty) 'calorie_target': int.parse(calorieVal),
         if (proteinVal.isNotEmpty) 'protein_target': int.parse(proteinVal),
         if (carbVal.isNotEmpty) 'carb_target': int.parse(carbVal),
@@ -353,6 +360,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _pendingDarkMode = _snapTheme == 'dark';
       _pendingLanguage = _snapLanguage;
+      _pendingGender = _snapGender;
       _fullNameController.text = _snapFullName;
       _emailController.text = _snapEmail;
       _ageController.text = _snapAge;
@@ -621,6 +629,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                Text(s.genderLabel, style: TextStyle(fontSize: 11, color: _secondaryText)),
+                const SizedBox(height: 6),
+                Row(
+                  children: ['male', 'female', 'other'].asMap().entries.map((e) {
+                    final g = e.value;
+                    final isSelected = _pendingGender == g;
+                    return Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: e.key < 2 ? 7 : 0),
+                        child: GestureDetector(
+                          onTap: () => setState(
+                            () => _pendingGender = isSelected ? '' : g,
+                          ),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(vertical: 9),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? (widget.isDarkMode
+                                      ? const Color(0xFF059669).withValues(alpha: 0.22)
+                                      : const Color(0xFFDCFCE7))
+                                  : _fieldFill,
+                              borderRadius: BorderRadius.circular(8),
+                              border: isSelected
+                                  ? Border.all(color: const Color(0xFF059669).withValues(alpha: 0.6))
+                                  : Border.all(color: _fieldBorder),
+                            ),
+                            child: Text(
+                              s.genderDisplay(g),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                color: isSelected
+                                    ? (widget.isDarkMode ? const Color(0xFF4ADE80) : const Color(0xFF16A34A))
+                                    : _secondaryText,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ],
             ),

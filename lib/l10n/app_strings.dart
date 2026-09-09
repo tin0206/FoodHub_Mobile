@@ -412,6 +412,18 @@ class S {
   String get emailLabel => 'Email';
   String get ageLabel => _vi ? 'Tuổi' : 'Age';
   String get weightLabel => _vi ? 'Cân nặng (kg)' : 'Weight (kg)';
+  String get genderLabel => _vi ? 'Giới tính' : 'Gender';
+  String get genderMale => _vi ? 'Nam' : 'Male';
+  String get genderFemale => _vi ? 'Nữ' : 'Female';
+  String get genderOther => _vi ? 'Khác' : 'Other';
+  String genderDisplay(String value) {
+    switch (value) {
+      case 'male': return genderMale;
+      case 'female': return genderFemale;
+      case 'other': return genderOther;
+      default: return value;
+    }
+  }
   String get nutritionGoals => _vi ? 'Mục tiêu dinh dưỡng' : 'Nutrition Goals';
   String get setDietaryObjectives =>
       _vi ? 'Đặt mục tiêu dinh dưỡng' : 'Set your dietary objectives';

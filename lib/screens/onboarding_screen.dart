@@ -34,6 +34,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String? _ageError;
   String? _weightError;
   String _primaryGoal = '';
+  String _gender = '';
   final Set<String> _dietaryRestrictions = {};
   bool _saving = false;
   String? _error;
@@ -129,6 +130,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         widget.user.toProfileUpdateJson(
           age: age.isNotEmpty ? int.tryParse(age) : null,
           weight: weight.isNotEmpty ? double.tryParse(weight) : null,
+          gender: _gender.isNotEmpty ? _gender : null,
           primaryGoal: _primaryGoal,
           dietaryRestrictions: _dietaryRestrictions.toList(),
           language: LangScope.current.value,
@@ -282,10 +284,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       subtitle: s.onboardingStepAboutSubtitle,
                       ageLabel: s.ageLabel,
                       weightLabel: s.weightLabel,
+                      genderLabel: s.genderLabel,
+                      genderDisplay: s.genderDisplay,
                       ageController: _ageController,
                       weightController: _weightController,
                       ageError: _ageError,
                       weightError: _weightError,
+                      selectedGender: _gender,
+                      onGenderSelected: (g) => setState(
+                        () => _gender = _gender == g ? '' : g,
+                      ),
                       onAgeChanged: () {
                         if (_ageError != null) setState(() => _ageError = null);
                       },
@@ -499,16 +507,22 @@ class _StepHeader extends StatelessWidget {
   }
 }
 
+const _kGenderOptions = ['male', 'female', 'other'];
+
 class _AboutStep extends StatelessWidget {
   const _AboutStep({
     required this.title,
     required this.subtitle,
     required this.ageLabel,
     required this.weightLabel,
+    required this.genderLabel,
+    required this.genderDisplay,
     required this.ageController,
     required this.weightController,
     required this.ageError,
     required this.weightError,
+    required this.selectedGender,
+    required this.onGenderSelected,
     required this.onAgeChanged,
     required this.onWeightChanged,
   });
@@ -517,10 +531,14 @@ class _AboutStep extends StatelessWidget {
   final String subtitle;
   final String ageLabel;
   final String weightLabel;
+  final String genderLabel;
+  final String Function(String) genderDisplay;
   final TextEditingController ageController;
   final TextEditingController weightController;
   final String? ageError;
   final String? weightError;
+  final String selectedGender;
+  final ValueChanged<String> onGenderSelected;
   final VoidCallback onAgeChanged;
   final VoidCallback onWeightChanged;
 
@@ -557,6 +575,51 @@ class _AboutStep extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 14),
+        Text(
+          genderLabel,
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: _kGenderOptions.asMap().entries.map((e) {
+            final g = e.value;
+            final active = selectedGender == g;
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: e.key < _kGenderOptions.length - 1 ? 8 : 0),
+                child: GestureDetector(
+                  onTap: () => onGenderSelected(g),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    decoration: BoxDecoration(
+                      color: active ? const Color(0xFFD1FAE5) : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: active ? const Color(0xFF059669) : const Color(0xFFE5E7EB),
+                        width: active ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Text(
+                      genderDisplay(g),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                        color: active ? const Color(0xFF065F46) : const Color(0xFF374151),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
