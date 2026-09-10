@@ -13,20 +13,7 @@ import 'package:foodhub_mobile/widgets/ai_capture_overlay.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 import 'package:foodhub_mobile/widgets/recs/markdown_reply.dart';
-
-bool isDetailRecipeMarkdown(String text) {
-  final hasIngredients = RegExp(
-    r'(?:^#{1,4}[^\n]*(?:ingredient|nguy[eê]n\s*li[eê]u)|\*\*[^*\n]*(?:ingredient|nguy[eê]n\s*li[eê]u)[^*\n]*\*\*)',
-    caseSensitive: false,
-    multiLine: true,
-  ).hasMatch(text);
-  final hasSteps = RegExp(
-    r'(?:^#{1,4}[^\n]*(?:(?:cooking\s+)?steps?|instructions?|directions?|c[aá]ch\s+l[aà]m)|\*\*[^*\n]*(?:(?:cooking\s+)?steps?|instructions?|directions?|c[aá]ch\s+l[aà]m)[^*\n]*\*\*)',
-    caseSensitive: false,
-    multiLine: true,
-  ).hasMatch(text);
-  return hasIngredients && hasSteps;
-}
+import 'package:foodhub_mobile/widgets/recs/recipe_version_diff.dart';
 
 class RecsScreen extends StatefulWidget {
   const RecsScreen({
@@ -977,6 +964,15 @@ class _RecsScreenState extends State<RecsScreen> {
                   final message = _messages[index];
                   final isLatestAiMessage =
                       !busy && !message.isUser && index == _messages.length - 1;
+                  final previousMarkdown = message.isUser
+                      ? null
+                      : findPreviousRecipeMarkdown(
+                          messages: [
+                            for (final m in _messages)
+                              (isUser: m.isUser, text: m.text),
+                          ],
+                          currentIndex: index,
+                        );
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: _ChatBubble(
@@ -990,6 +986,7 @@ class _RecsScreenState extends State<RecsScreen> {
                       messageIndex: index,
                       savedRecipeId: message.savedRecipeId,
                       isAddingRecipe: _savingRecipeMessages.contains(index),
+                      previousMarkdown: previousMarkdown,
                       onAddRecipe: message.isUser
                           ? null
                           : () => _addRecipeFromChat(index),
@@ -1350,6 +1347,7 @@ class _ChatBubble extends StatelessWidget {
     this.savedRecipeId,
     this.isAddingRecipe = false,
     this.onAddRecipe,
+    this.previousMarkdown,
   });
 
   final _ChatMessage message;
@@ -1361,6 +1359,7 @@ class _ChatBubble extends StatelessWidget {
   final int? savedRecipeId;
   final bool isAddingRecipe;
   final VoidCallback? onAddRecipe;
+  final String? previousMarkdown;
 
   @override
   Widget build(BuildContext context) {
@@ -1483,6 +1482,7 @@ class _ChatBubble extends StatelessWidget {
                         recipes: message.recipes,
                         onOpenRecipe: onOpenRecipe,
                         imageResolver: imageResolver,
+                        previousMarkdown: previousMarkdown,
                       ),
               ),
             ),

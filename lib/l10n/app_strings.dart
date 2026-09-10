@@ -341,6 +341,14 @@ class S {
   String get unableToReachAi => _vi
       ? 'Không thể kết nối với trợ lý AI. Vui lòng thử lại.'
       : 'Unable to reach AI assistant. Please try again.';
+  String get recipeDiffPrevious => _vi ? 'Trước đó' : 'Previous';
+  String get recipeDiffCurrent => _vi ? 'Hiện tại' : 'Now';
+  String get recipeDiffAdded =>
+      _vi ? 'Đã thêm ở phiên bản này' : 'Added in this version';
+  String get recipeDiffRemoved =>
+      _vi ? 'Đã xóa so với phiên bản trước' : 'Removed from previous version';
+  String get recipeDiffChanged => _vi ? 'Đã sửa' : 'Changed';
+  String get close => _vi ? 'Đóng' : 'Close';
 
   // ── Recipe detail / cooking mode ────────────────────────────────────────────
   String get addPhoto => _vi ? 'Thêm ảnh' : 'Add Photo';
