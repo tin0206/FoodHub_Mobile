@@ -18,10 +18,12 @@ const kDietaryTags = [
 ];
 
 const kPrimaryGoals = [
+  'Lose Weight',
+  'Gain Weight',
+  'Build Muscle',
   'Balanced Nutrition',
-  'Weight Loss',
-  'Muscle Gain',
-  'High Protein',
+  'Improve Health',
+  'Maintain Weight',
 ];
 
 class ProfileScreen extends StatefulWidget {

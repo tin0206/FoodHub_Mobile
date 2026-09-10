@@ -45,6 +45,7 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
 
   static const _goals = [
     'Lose Weight',
+    'Gain Weight',
     'Build Muscle',
     'Balanced Nutrition',
     'Improve Health',

@@ -505,7 +505,13 @@ class S {
   String goalDisplay(String goal) {
     if (!_vi) return goal;
     const map = {
+      'Lose Weight': 'Giảm cân',
+      'Gain Weight': 'Tăng cân',
+      'Build Muscle': 'Tăng cơ',
       'Balanced Nutrition': 'Dinh dưỡng cân bằng',
+      'Improve Health': 'Cải thiện sức khỏe',
+      'Maintain Weight': 'Duy trì cân nặng',
+      // legacy values (users who saved old options)
       'Weight Loss': 'Giảm cân',
       'Muscle Gain': 'Tăng cơ',
       'High Protein': 'Nhiều protein',
