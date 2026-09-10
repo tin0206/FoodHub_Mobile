@@ -351,7 +351,9 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                   if (_mode == AiCaptureMode.ingredients &&
                       _accumulatedIngredients.isNotEmpty)
                     Container(
-                      color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.52),
+                      ),
                       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
                       child: Wrap(
                         spacing: 6,
@@ -360,12 +362,12 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                         children: _accumulatedIngredients
                             .map(
                               (item) => Container(
-                                padding: const EdgeInsets.fromLTRB(10, 4, 4, 4),
+                                padding: const EdgeInsets.fromLTRB(10, 5, 5, 5),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF059669).withValues(alpha: 0.08),
+                                  color: const Color(0xFF059669).withValues(alpha: 0.22),
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
-                                    color: const Color(0xFF059669).withValues(alpha: 0.45),
+                                    color: const Color(0xFF059669).withValues(alpha: 0.6),
                                   ),
                                 ),
                                 child: Row(
@@ -374,12 +376,12 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                                     Text(
                                       item,
                                       style: const TextStyle(
-                                        color: Color(0xFF111827),
+                                        color: Colors.white,
                                         fontSize: 11,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
+                                    const SizedBox(width: 5),
                                     GestureDetector(
                                       onTap: () => setState(
                                         () => _accumulatedIngredients.remove(item),
@@ -388,12 +390,12 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
                                         width: 18,
                                         height: 18,
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF6B7280).withValues(alpha: 0.15),
+                                          color: Colors.white.withValues(alpha: 0.18),
                                           shape: BoxShape.circle,
                                         ),
                                         child: const Icon(
                                           Icons.close,
-                                          color: Color(0xFF6B7280),
+                                          color: Colors.white70,
                                           size: 11,
                                         ),
                                       ),

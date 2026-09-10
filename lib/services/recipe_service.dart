@@ -100,6 +100,7 @@ class RecipeService {
     required List<String> directions,
     List<String>? dietaryRestrictions,
     int? estimatedServings,
+    String? imageUrl,
   }) async {
     final body = <String, dynamic>{
       'title': title,
@@ -108,6 +109,7 @@ class RecipeService {
       if (dietaryRestrictions != null && dietaryRestrictions.isNotEmpty)
         'dietary_restrictions': dietaryRestrictions,
       if (estimatedServings != null) 'estimated_servings': estimatedServings,
+      if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
     };
 
     final data = await _api.post('/recipes', body: body);

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/config/api_config.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/ai.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
@@ -12,6 +13,20 @@ import 'package:foodhub_mobile/widgets/ai_capture_overlay.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
 import 'package:foodhub_mobile/widgets/recs/markdown_reply.dart';
+
+bool isDetailRecipeMarkdown(String text) {
+  final hasIngredients = RegExp(
+    r'(?:^#{1,4}[^\n]*(?:ingredient|nguy[eê]n\s*li[eê]u)|\*\*[^*\n]*(?:ingredient|nguy[eê]n\s*li[eê]u)[^*\n]*\*\*)',
+    caseSensitive: false,
+    multiLine: true,
+  ).hasMatch(text);
+  final hasSteps = RegExp(
+    r'(?:^#{1,4}[^\n]*(?:(?:cooking\s+)?steps?|instructions?|directions?|c[aá]ch\s+l[aà]m)|\*\*[^*\n]*(?:(?:cooking\s+)?steps?|instructions?|directions?|c[aá]ch\s+l[aà]m)[^*\n]*\*\*)',
+    caseSensitive: false,
+    multiLine: true,
+  ).hasMatch(text);
+  return hasIngredients && hasSteps;
+}
 
 class RecsScreen extends StatefulWidget {
   const RecsScreen({
@@ -55,6 +70,7 @@ class _RecsScreenState extends State<RecsScreen> {
   final FavoriteService _favoriteService = FavoriteService();
   final Map<int, int> _recipeToFavoriteId = {};
   bool _favoritesLoaded = false;
+  final Set<int> _savingRecipeMessages = {};
 
   @override
   void initState() {
@@ -285,16 +301,53 @@ class _RecsScreenState extends State<RecsScreen> {
     });
   }
 
+  /// Build a lightweight detail view from RAG data already in the message list,
+  /// avoiding a network round-trip when the AI already sent the recipe payload.
+  RecipeDetailData? _detailFromRagRecipe(int id) {
+    for (final msg in _messages) {
+      if (msg.isUser || msg.recipes.isEmpty) continue;
+      for (final r in msg.recipes) {
+        final rid = int.tryParse(r.recipeId ?? '');
+        if (rid == id) {
+          final detail = RecipeDetailData(
+            id: id,
+            name: r.title,
+            imageUrl: ApiConfig.resolveImageUrl(r.imageUrl).isNotEmpty
+                ? ApiConfig.resolveImageUrl(r.imageUrl)
+                : null,
+            cookingMinutes: 0,
+            estimatedServings: r.estimatedServings,
+            ingredients: r.ingredients.join('\n'),
+            steps: r.directions.join('\n'),
+            labels: r.dietaryRestrictions,
+          );
+          _recipeCache[id] = detail;
+          return detail;
+        }
+      }
+    }
+    return null;
+  }
+
   Future<String?> _resolveRecipeImageUrl(String recipeId) async {
     final id = int.tryParse(recipeId);
     if (id == null) return null;
+    // Try RAG data first (already in memory)
+    final fromRag = _detailFromRagRecipe(id);
+    if (fromRag?.imageUrl != null) return fromRag!.imageUrl;
     final detail = await _recipeById(id);
     return detail?.imageUrl;
   }
 
   void _prefetchRecipes(String markdown, List<RagRecipeModel> recipes) {
     for (final id in _recipeIdsFrom(markdown, recipes)) {
-      unawaited(_recipeById(id));
+      // Seed cache from RAG payload; only fetch if missing
+      if (!_recipeCache.containsKey(id)) {
+        _detailFromRagRecipe(id);
+      }
+      if (!_recipeCache.containsKey(id)) {
+        unawaited(_recipeById(id));
+      }
     }
   }
 
@@ -311,6 +364,7 @@ class _RecsScreenState extends State<RecsScreen> {
       return;
     }
 
+    // 1. Memory cache
     final cached = _recipeCache[id];
     if (cached != null) {
       widget.onDetailModeChanged?.call(true);
@@ -319,6 +373,18 @@ class _RecsScreenState extends State<RecsScreen> {
       return;
     }
 
+    // 2. RAG payload already in message list — no network call needed
+    final fromRag = _detailFromRagRecipe(id);
+    if (fromRag != null) {
+      widget.onDetailModeChanged?.call(true);
+      setState(() => _selectedRecipeDetail = fromRag);
+      unawaited(_loadFavorites());
+      // Fetch full detail in background to enrich cache (cooking time, nutrition…)
+      unawaited(_recipeById(id));
+      return;
+    }
+
+    // 3. Full API fetch
     setState(() => _openingRecipe = true);
     final detail = await _recipeById(id);
     if (!mounted) return;
@@ -502,6 +568,196 @@ class _RecsScreenState extends State<RecsScreen> {
     }
   }
 
+  Future<void> _sendDishDetection() async {
+    if (_isSending || _isBootstrapping) return;
+    final text = _composeDishText?.trim();
+    if (text == null || text.isEmpty) return;
+    if (_sessionId == null || _sessionId!.isEmpty) return;
+    setState(() {
+      _messages.add(_ChatMessage(text: text, isUser: true));
+      _isSending = true;
+      _composeDishText = null;
+    });
+    _scrollToBottom();
+    await _sendToAi(text, []);
+  }
+
+  Future<void> _sendIngredientsDetection() async {
+    if (_isSending || _isBootstrapping) return;
+    final text = _composeIngredientsText?.trim();
+    if (text == null || text.isEmpty) return;
+    if (_sessionId == null || _sessionId!.isEmpty) return;
+    final ingredients = _ingredientsForApi();
+    setState(() {
+      _messages.add(_ChatMessage(text: text, isUser: true));
+      _isSending = true;
+      _composeIngredientsText = null;
+    });
+    _scrollToBottom();
+    await _sendToAi(text, ingredients);
+  }
+
+
+  static bool _isSectionKeyword(String text) {
+    const kw = [
+      'ingredient', 'nguyên liệu', 'nguyên liêu',
+      'step', 'instruction', 'direction', 'cách làm', 'cach lam',
+      'note', 'tip', 'nutrition', 'dinh dưỡng',
+      'preparation', 'chuẩn bị', 'serve', 'khẩu phần',
+    ];
+    final lower = text.toLowerCase();
+    return kw.any((k) => lower.contains(k));
+  }
+
+  String _extractTitleFromMarkdown(String text) {
+    // 1. First heading that is NOT a known section keyword
+    for (final m in RegExp(r'^#{1,3}\s+(.+)$', multiLine: true).allMatches(text)) {
+      final title = m.group(1)!.trim().replaceAll(RegExp(r'\*+'), '');
+      if (title.isNotEmpty && !_isSectionKeyword(title)) return title;
+    }
+    // 2. Bold text in the intro (before the first heading), e.g. **Pepper Chicken**
+    final firstHeadingOffset =
+        RegExp(r'^#{1,3}\s+', multiLine: true).firstMatch(text)?.start;
+    final intro = firstHeadingOffset != null
+        ? text.substring(0, firstHeadingOffset)
+        : text;
+    final bold = RegExp(r'\*\*([^*\n]{3,80})\*\*').firstMatch(intro);
+    if (bold != null) {
+      final t = bold.group(1)!.trim();
+      if (!_isSectionKeyword(t)) return t;
+    }
+    // 3. First non-empty, non-heading plain line in intro
+    for (final line in intro.split('\n')) {
+      final clean = line.trim().replaceAll(RegExp(r'\*+'), '').trim();
+      if (clean.isNotEmpty && clean.length >= 3 && clean.length <= 80) return clean;
+    }
+    return 'Recipe';
+  }
+
+  List<String> _extractSectionLines(String text, RegExp sectionPattern) {
+    final lines = text.split('\n');
+    final result = <String>[];
+    var inSection = false;
+    for (final line in lines) {
+      final trimmed = line.trim();
+      final isHeading = RegExp(r'^#{1,4}\s+', multiLine: true).hasMatch(trimmed) ||
+          RegExp(r'^\*\*[^*]+\*\*\s*:?\s*$').hasMatch(trimmed);
+      if (isHeading) {
+        if (sectionPattern.hasMatch(trimmed.toLowerCase())) {
+          inSection = true;
+          continue;
+        } else if (inSection) {
+          break;
+        }
+      }
+      if (!inSection) continue;
+      if (trimmed.isEmpty || trimmed == '---' || trimmed == '***' || trimmed == '___') continue;
+      final clean = trimmed
+          .replaceFirst(RegExp(r'^[-*•]\s+'), '')
+          .replaceFirst(RegExp(r'^\d+\.\s+'), '')
+          .replaceAll(RegExp(r'\*+'), '')
+          .trim();
+      if (clean.isNotEmpty) result.add(clean);
+    }
+    return result;
+  }
+
+  List<String> _extractIngredientsFromMarkdown(String text) {
+    return _extractSectionLines(
+      text,
+      RegExp(r'ingredient|nguy[eê]n\s*li[eê]u', caseSensitive: false),
+    );
+  }
+
+  List<String> _extractDirectionsFromMarkdown(String text) {
+    return _extractSectionLines(
+      text,
+      RegExp(r'(?:cooking\s+)?steps?|instructions?|directions?|c[aá]ch\s+l[aà]m', caseSensitive: false),
+    );
+  }
+
+  /// Looks backward from [beforeIndex] for an AI message that has a recipe
+  /// whose title best matches [title] (case-insensitive contains).
+  RagRecipeModel? _findSnapshotRecipe(String title, int beforeIndex) {
+    final lower = title.toLowerCase();
+    for (var i = beforeIndex - 1; i >= 0; i--) {
+      final msg = _messages[i];
+      if (msg.isUser || msg.recipes.isEmpty) continue;
+      // Exact or contains match
+      final exact = msg.recipes.where(
+        (r) => r.title.toLowerCase() == lower,
+      ).firstOrNull;
+      if (exact != null) return exact;
+      final contains = msg.recipes.where(
+        (r) => r.title.toLowerCase().contains(lower) ||
+            lower.contains(r.title.toLowerCase()),
+      ).firstOrNull;
+      if (contains != null) return contains;
+      // Any recipe from the last list message (best guess)
+      return msg.recipes.first;
+    }
+    return null;
+  }
+
+  Future<void> _addRecipeFromChat(int messageIndex) async {
+    if (messageIndex < 0 || messageIndex >= _messages.length) return;
+    final message = _messages[messageIndex];
+    if (message.savedRecipeId != null) return;
+    if (_savingRecipeMessages.contains(messageIndex)) return;
+
+    final title = _extractTitleFromMarkdown(message.text);
+    final ingredients = _extractIngredientsFromMarkdown(message.text);
+    final directions = _extractDirectionsFromMarkdown(message.text);
+
+    if (ingredients.isEmpty || directions.isEmpty) {
+      if (mounted) showErrorToast(context, S.of(context).unableToSaveRecipe);
+      return;
+    }
+
+    // Snapshot from nearest preceding list reply
+    final snapshot = _findSnapshotRecipe(title, messageIndex);
+    final imageUrl = snapshot?.imageUrl ?? '';
+    final dietary = snapshot?.dietaryRestrictions ?? const [];
+    final servings = snapshot?.estimatedServings;
+
+    setState(() => _savingRecipeMessages.add(messageIndex));
+
+    Future<RecipeModel> tryCreate() => _recipeService.createRecipe(
+          title: title,
+          ingredients: ingredients,
+          directions: directions,
+          dietaryRestrictions: dietary.isNotEmpty ? dietary : null,
+          estimatedServings: servings,
+          imageUrl: imageUrl.isNotEmpty ? imageUrl : null,
+        );
+
+    RecipeModel? created;
+    String? errorMsg;
+    try {
+      created = await tryCreate();
+    } on ApiException catch (e) {
+      debugPrint('[Recs] Add from chat fail #1: ${e.statusCode} ${e.message}');
+      try {
+        created = await tryCreate();
+      } on ApiException catch (e2) {
+        debugPrint('[Recs] Add from chat fail #2: ${e2.statusCode} ${e2.message}');
+        errorMsg = '[${e2.statusCode ?? "?"}] ${e2.message}';
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _savingRecipeMessages.remove(messageIndex);
+      if (created != null) _messages[messageIndex].savedRecipeId = created.id;
+    });
+    if (created != null) {
+      RecipeService.changes.value++;
+      showSuccessToast(context, S.of(context).savedAsPersonalRecipe);
+    } else {
+      showErrorToast(context, errorMsg ?? S.of(context).unableToSaveRecipe);
+    }
+  }
+
   Future<void> _sendOptionSelection(ChatOptionModel option) async {
     if (_isSending || _isBootstrapping) return;
     if (_sessionId == null || _sessionId!.isEmpty) return;
@@ -671,6 +927,12 @@ class _RecsScreenState extends State<RecsScreen> {
                           ? _sendOptionSelection
                           : null,
                       imageResolver: _resolveRecipeImageUrl,
+                      messageIndex: index,
+                      savedRecipeId: message.savedRecipeId,
+                      isAddingRecipe: _savingRecipeMessages.contains(index),
+                      onAddRecipe: message.isUser
+                          ? null
+                          : () => _addRecipeFromChat(index),
                     ),
                   );
                 },
@@ -690,6 +952,7 @@ class _RecsScreenState extends State<RecsScreen> {
                       isDarkMode: isDarkMode,
                       enabled: !busy,
                       onEdit: _editDishes,
+                      onSend: _sendDishDetection,
                     ),
                     const SizedBox(height: 8),
                   ],
@@ -700,8 +963,31 @@ class _RecsScreenState extends State<RecsScreen> {
                       isDarkMode: isDarkMode,
                       enabled: !busy,
                       onEdit: _editIngredients,
+                      onSend: _sendIngredientsDetection,
                     ),
                     const SizedBox(height: 8),
+                  ],
+                  if (hasDish || hasIngredients) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          const Text('💡', style: TextStyle(fontSize: 11.5)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Want recipe suggestions based on this? Hit send to see some ideas!',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: isDarkMode
+                                    ? const Color(0xFF64748B)
+                                    : const Color(0xFF9CA3AF),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                   _UserComposeField(
                     controller: _promptController,
@@ -783,6 +1069,7 @@ class _ComposeDetectionField extends StatelessWidget {
     required this.isDarkMode,
     required this.enabled,
     required this.onEdit,
+    this.onSend,
   });
 
   final String text;
@@ -790,6 +1077,7 @@ class _ComposeDetectionField extends StatelessWidget {
   final bool isDarkMode;
   final bool enabled;
   final VoidCallback onEdit;
+  final VoidCallback? onSend;
 
   @override
   Widget build(BuildContext context) {
@@ -835,6 +1123,26 @@ class _ComposeDetectionField extends StatelessWidget {
             visualDensity: VisualDensity.compact,
             icon: Icon(Icons.edit_outlined, size: 18, color: muted),
           ),
+          if (onSend != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: InkWell(
+                onTap: enabled ? onSend : null,
+                borderRadius: BorderRadius.circular(999),
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: enabled
+                        ? const Color(0xFF059669)
+                        : const Color(0xFF059669).withValues(alpha: 0.4),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.send, size: 13, color: Colors.white),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -923,18 +1231,26 @@ class _UserComposeField extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.only(right: 6),
-            child: InkWell(
-              onTap: enabled ? onSubmit : null,
-              borderRadius: BorderRadius.circular(999),
-              child: Container(
-                width: 28,
-                height: 28,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF059669),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.send, size: 15, color: Colors.white),
-              ),
+            child: ListenableBuilder(
+              listenable: controller,
+              builder: (context, _) {
+                final canSend = enabled && controller.text.isNotEmpty;
+                return InkWell(
+                  onTap: canSend ? onSubmit : null,
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: canSend
+                          ? const Color(0xFF059669)
+                          : const Color(0xFF059669).withValues(alpha: 0.35),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.send, size: 15, color: Colors.white),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -944,7 +1260,7 @@ class _UserComposeField extends StatelessWidget {
 }
 
 class _ChatMessage {
-  const _ChatMessage({
+  _ChatMessage({
     required this.text,
     required this.isUser,
     this.recipes = const [],
@@ -955,6 +1271,7 @@ class _ChatMessage {
   final bool isUser;
   final List<RagRecipeModel> recipes;
   final List<ChatOptionModel> options;
+  int? savedRecipeId;
 }
 
 class _ChatBubble extends StatelessWidget {
@@ -964,6 +1281,10 @@ class _ChatBubble extends StatelessWidget {
     this.onOpenRecipe,
     this.onSelectOption,
     this.imageResolver,
+    this.messageIndex,
+    this.savedRecipeId,
+    this.isAddingRecipe = false,
+    this.onAddRecipe,
   });
 
   final _ChatMessage message;
@@ -971,6 +1292,10 @@ class _ChatBubble extends StatelessWidget {
   final void Function(RecipeLinkRef link)? onOpenRecipe;
   final void Function(ChatOptionModel option)? onSelectOption;
   final Future<String?> Function(String recipeId)? imageResolver;
+  final int? messageIndex;
+  final int? savedRecipeId;
+  final bool isAddingRecipe;
+  final VoidCallback? onAddRecipe;
 
   @override
   Widget build(BuildContext context) {
@@ -1192,7 +1517,85 @@ class _ChatBubble extends StatelessWidget {
               }).toList(),
             ),
           ),
+        if (onAddRecipe != null && isDetailRecipeMarkdown(message.text))
+          Padding(
+            padding: const EdgeInsets.only(left: 38, top: 8),
+            child: _AddRecipeFromChatButton(
+              isSaving: isAddingRecipe,
+              savedRecipeId: savedRecipeId,
+              isDarkMode: isDarkMode,
+              onAdd: onAddRecipe,
+            ),
+          ),
       ],
+    );
+  }
+}
+
+class _AddRecipeFromChatButton extends StatelessWidget {
+  const _AddRecipeFromChatButton({
+    required this.isSaving,
+    required this.savedRecipeId,
+    required this.isDarkMode,
+    required this.onAdd,
+  });
+
+  final bool isSaving;
+  final int? savedRecipeId;
+  final bool isDarkMode;
+  final VoidCallback? onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSaved = savedRecipeId != null;
+    final bgColor = isDarkMode ? const Color(0xFF1A2E1A) : const Color(0xFFECFDF5);
+    final borderColor = isDarkMode
+        ? const Color(0xFF059669).withValues(alpha: 0.4)
+        : const Color(0xFF059669).withValues(alpha: 0.3);
+    final textColor =
+        isDarkMode ? const Color(0xFF4ADE80) : const Color(0xFF059669);
+
+    return GestureDetector(
+      onTap: (isSaving || isSaved) ? null : onAdd,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSaving)
+              SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: textColor,
+                ),
+              )
+            else if (isSaved)
+              Icon(Icons.check_circle_rounded, size: 14, color: textColor)
+            else
+              Icon(Icons.bookmark_add_outlined, size: 14, color: textColor),
+            const SizedBox(width: 6),
+            Text(
+              isSaving
+                  ? 'Saving…'
+                  : isSaved
+                      ? 'Saved to my recipes'
+                      : 'Add to my recipes',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

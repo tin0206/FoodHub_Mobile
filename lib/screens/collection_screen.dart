@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/favorite.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
+import 'package:foodhub_mobile/services/ai_service.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/favorite_service.dart';
 import 'package:foodhub_mobile/services/meal_service.dart';
@@ -1449,6 +1450,7 @@ class _AddRecipePanel extends StatefulWidget {
 
 class _AddRecipePanelState extends State<_AddRecipePanel> {
   final _recipeService = RecipeService();
+  final _aiService = AiService();
   final _nameController = TextEditingController();
   final _cookingMinutesController = TextEditingController();
   final _servingsController = TextEditingController();
@@ -1461,6 +1463,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
   final Set<String> _selectedLabels = {};
   List<String> _availableLabels = [];
   bool _isSaving = false;
+  bool _isDetectingDish = false;
   Uint8List? _imageBytes;
   String _imageFilename = 'recipe.jpg';
 
@@ -1484,10 +1487,36 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
     );
     if (file == null || !mounted) return;
     final bytes = await file.readAsBytes();
+    final filename = file.name.isNotEmpty ? file.name : 'recipe.jpg';
     setState(() {
       _imageBytes = bytes;
-      _imageFilename = file.name.isNotEmpty ? file.name : 'recipe.jpg';
+      _imageFilename = filename;
     });
+    unawaited(_detectDishName(bytes, filename));
+  }
+
+  Future<void> _detectDishName(Uint8List bytes, String filename) async {
+    if (!mounted) return;
+    setState(() => _isDetectingDish = true);
+    try {
+      final result = await _aiService.recognizeDish(
+        bytes: bytes,
+        filename: filename,
+        language: LangScope.current.value,
+      );
+      if (!mounted) return;
+      // Fill title only if field is still empty
+      if (_nameController.text.trim().isEmpty) {
+        final name = result.results.isNotEmpty
+            ? result.results.first.dishName
+            : result.dishName;
+        if (name.isNotEmpty) _nameController.text = name;
+      }
+    } catch (_) {
+      // Silently ignore detection errors
+    } finally {
+      if (mounted) setState(() => _isDetectingDish = false);
+    }
   }
 
   @override
@@ -1769,29 +1798,51 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                   _AddSectionCard(
                     isDarkMode: isDarkMode,
                     panelColor: panelColor,
-                    child: TextField(
-                      controller: _nameController,
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: textColor,
-                        letterSpacing: -0.3,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: s.recipeNameHint,
-                        hintStyle: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: hintColor,
-                          letterSpacing: -0.3,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _nameController,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: textColor,
+                              letterSpacing: -0.3,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: _isDetectingDish
+                                  ? (LangScope.current.value == 'vi'
+                                      ? 'Đang nhận diện món ăn…'
+                                      : 'Detecting dish name…')
+                                  : s.recipeNameHint,
+                              hintStyle: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: hintColor,
+                                letterSpacing: -0.3,
+                              ),
+                              isDense: true,
+                              filled: false,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                            ),
+                          ),
                         ),
-                        isDense: true,
-                        filled: false,
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                      ),
+                        if (_isDetectingDish)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                color: hintColor,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 10),
