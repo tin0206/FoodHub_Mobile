@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:foodhub_mobile/config/api_config.dart';
 import 'package:foodhub_mobile/models/ai.dart';
+import 'package:foodhub_mobile/widgets/recs/recipe_version_diff.dart';
 
 class MarkdownSection {
   const MarkdownSection({required this.title, required this.body});
@@ -354,6 +355,7 @@ class MarkdownReplyBody extends StatelessWidget {
     this.recipes = const [],
     this.onOpenRecipe,
     this.imageResolver,
+    this.previousMarkdown,
   });
 
   final String markdown;
@@ -361,6 +363,7 @@ class MarkdownReplyBody extends StatelessWidget {
   final List<RagRecipeModel> recipes;
   final void Function(RecipeLinkRef link)? onOpenRecipe;
   final Future<String?> Function(String recipeId)? imageResolver;
+  final String? previousMarkdown;
 
   @override
   Widget build(BuildContext context) {
@@ -375,35 +378,41 @@ class MarkdownReplyBody extends StatelessWidget {
     final style = recsMarkdownStyle(isDarkMode);
     final hasHeadings = sections.any((s) => s.title.isNotEmpty);
 
-    final content = !hasHeadings
-        ? MarkdownBody(
-            data: extracted.markdown.trim().isEmpty ? ' ' : extracted.markdown,
-            styleSheet: style,
-            softLineBreak: true,
-          )
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < sections.length; i++) ...[
-                if (i > 0) const SizedBox(height: 6),
-                if (sections[i].title.isEmpty)
-                  MarkdownBody(
-                    data: sections[i].body,
-                    styleSheet: style,
-                    softLineBreak: true,
-                  )
-                else
-                  _MarkdownSectionTile(
-                    title: sections[i].title,
-                    body: sections[i].body,
-                    isDarkMode: isDarkMode,
-                    styleSheet: style,
-                    initiallyExpanded: i == 0 ||
-                        (sections.first.title.isEmpty ? i == 1 : false),
-                  ),
-              ],
-            ],
-          );
+    final diffHunks = _diffHunks(extracted.markdown);
+    final Widget content;
+    if (diffHunks != null) {
+      content = RecipeDiffBody(hunks: diffHunks, isDarkMode: isDarkMode);
+    } else if (!hasHeadings) {
+      content = MarkdownBody(
+        data: extracted.markdown.trim().isEmpty ? ' ' : extracted.markdown,
+        styleSheet: style,
+        softLineBreak: true,
+      );
+    } else {
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < sections.length; i++) ...[
+            if (i > 0) const SizedBox(height: 6),
+            if (sections[i].title.isEmpty)
+              MarkdownBody(
+                data: sections[i].body,
+                styleSheet: style,
+                softLineBreak: true,
+              )
+            else
+              _MarkdownSectionTile(
+                title: sections[i].title,
+                body: sections[i].body,
+                isDarkMode: isDarkMode,
+                styleSheet: style,
+                initiallyExpanded: i == 0 ||
+                    (sections.first.title.isEmpty ? i == 1 : false),
+              ),
+          ],
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -418,6 +427,14 @@ class MarkdownReplyBody extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  List<RecipeDiffHunk>? _diffHunks(String currentMarkdown) {
+    final previous = previousMarkdown;
+    if (previous == null || !isModifiedRecipeMarkdown(markdown)) return null;
+    final previousClean = extractRecipeMarkdownLinks(previous).markdown;
+    final hunks = diffRecipeLines(previousClean, currentMarkdown);
+    return recipeDiffHasVisibleChanges(hunks) ? hunks : null;
   }
 }
 
