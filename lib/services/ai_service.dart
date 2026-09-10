@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:foodhub_mobile/models/ai.dart';
 import 'package:foodhub_mobile/services/api_client.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
@@ -9,6 +10,10 @@ class AiService {
 
   static const Duration _visionTimeout = Duration(seconds: 90);
   static const Duration _chatTimeout = Duration(seconds: 200);
+
+  /// Increments whenever a chat message is sent/received, so any open history
+  /// panel knows to refresh the session list.
+  static final ValueNotifier<int> sessionChanges = ValueNotifier(0);
 
   /// Start companion session — returns welcome reply + stable [sessionId].
   Future<ChatResponseModel> welcome({
@@ -159,5 +164,47 @@ class AiService {
     );
     payload.putIfAbsent('phase', () => 'gather');
     return ChatResponseModel.fromJson(payload);
+  }
+
+  Future<List<ChatSessionModel>> listSessions({
+    int skip = 0,
+    int limit = 30,
+  }) async {
+    final data = await _api.get(
+      '/ai/sessions',
+      query: {'skip': '$skip', 'limit': '$limit'},
+    );
+    List<dynamic> items;
+    if (data is List) {
+      items = data;
+    } else if (data is Map<String, dynamic>) {
+      // Wrapped response: {"sessions": [...]} or {"items": [...]} etc.
+      final v = data['sessions'] ?? data['items'] ?? data['data'] ?? data['results'];
+      items = v is List ? v : [];
+      debugPrint('[AiService] listSessions wrapped response keys=${data.keys.toList()}');
+    } else {
+      items = [];
+    }
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map(ChatSessionModel.fromJson)
+        .toList();
+  }
+
+  Future<ChatSessionDetailModel> getSession(String sessionId) async {
+    final data = await _api.get('/ai/sessions/$sessionId');
+    return ChatSessionDetailModel.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteSession(String sessionId) async {
+    await _api.delete('/ai/sessions/$sessionId');
+  }
+
+  Future<ChatSessionModel> renameSession(String sessionId, String title) async {
+    final data = await _api.patch(
+      '/ai/sessions/$sessionId',
+      body: {'title': title},
+    );
+    return ChatSessionModel.fromJson(data as Map<String, dynamic>);
   }
 }

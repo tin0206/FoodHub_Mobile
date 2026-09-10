@@ -531,6 +531,7 @@ class _RecsScreenState extends State<RecsScreen> {
       _conversationHistory
         ..add(ChatMessageModel(role: 'user', content: merged))
         ..add(ChatMessageModel(role: 'assistant', content: response.reply));
+      AiService.sessionChanges.value++;
 
       if (!mounted) return;
       setState(() {
@@ -758,6 +759,64 @@ class _RecsScreenState extends State<RecsScreen> {
     }
   }
 
+  Future<void> _loadSession(String sessionId) async {
+    try {
+      final detail = await _aiService.getSession(sessionId);
+      if (!mounted) return;
+      setState(() {
+        _sessionId = detail.sessionId;
+        _messages.clear();
+        _conversationHistory.clear();
+        _selectedRecipeDetail = null;
+        _recipeCacheEpoch++;
+        _recipeCache.clear();
+        _recipeFetches.clear();
+        _composeDishText = null;
+        _composeIngredientsText = null;
+        _promptController.clear();
+        _savingRecipeMessages.clear();
+        _welcomeStarted = true;
+        for (final msg in detail.messages) {
+          _messages.add(_ChatMessage(text: msg.content, isUser: msg.isUser));
+          _conversationHistory.add(
+            ChatMessageModel(role: msg.role, content: msg.content),
+          );
+        }
+      });
+      widget.onDetailModeChanged?.call(false);
+      _scrollToBottom();
+    } catch (e) {
+      if (mounted) {
+        showErrorToast(context, 'Failed to load chat session');
+      }
+    }
+  }
+
+  Future<void> _showHistorySheet() async {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: isDarkMode ? const Color(0xFF141414) : Colors.white,
+      builder: (ctx) => _HistorySheet(
+        isDarkMode: isDarkMode,
+        currentSessionId: _sessionId,
+        onLoadSession: (sessionId) async {
+          Navigator.of(ctx).pop();
+          await _loadSession(sessionId);
+        },
+        onNewChat: () {
+          Navigator.of(ctx).pop();
+          _welcomeStarted = true;
+          _clearComposeDetections();
+          _promptController.clear();
+          _bootstrapWelcome();
+        },
+      ),
+    );
+  }
+
   Future<void> _sendOptionSelection(ChatOptionModel option) async {
     if (_isSending || _isBootstrapping) return;
     if (_sessionId == null || _sessionId!.isEmpty) return;
@@ -881,6 +940,7 @@ class _RecsScreenState extends State<RecsScreen> {
               child: _ChatHeader(
                 isDarkMode: isDarkMode,
                 onReset: busy ? null : _resetChat,
+                onHistory: busy ? null : _showHistorySheet,
               ),
             ),
             Expanded(
@@ -1007,17 +1067,23 @@ class _RecsScreenState extends State<RecsScreen> {
 }
 
 class _ChatHeader extends StatelessWidget {
-  const _ChatHeader({required this.isDarkMode, required this.onReset});
+  const _ChatHeader({
+    required this.isDarkMode,
+    required this.onReset,
+    this.onHistory,
+  });
 
   final bool isDarkMode;
   final VoidCallback? onReset;
+  final VoidCallback? onHistory;
 
   @override
   Widget build(BuildContext context) {
+    final iconColor = isDarkMode ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280);
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             width: 28,
@@ -1046,15 +1112,14 @@ class _ChatHeader extends StatelessWidget {
             ),
           ),
           IconButton(
+            onPressed: onHistory,
+            tooltip: 'Chat history',
+            icon: Icon(Icons.history_rounded, size: 22, color: iconColor),
+          ),
+          IconButton(
             onPressed: onReset,
             tooltip: 'Reset chat',
-            icon: Icon(
-              Icons.restart_alt_rounded,
-              size: 22,
-              color: isDarkMode
-                  ? const Color(0xFFCBD5E1)
-                  : const Color(0xFF6B7280),
-            ),
+            icon: Icon(Icons.restart_alt_rounded, size: 22, color: iconColor),
           ),
         ],
       ),
@@ -1708,5 +1773,487 @@ class _TextAreaEditSheetState extends State<_TextAreaEditSheet> {
         ),
       ),
     );
+  }
+}
+
+class _HistorySheet extends StatefulWidget {
+  const _HistorySheet({
+    required this.isDarkMode,
+    required this.currentSessionId,
+    required this.onLoadSession,
+    required this.onNewChat,
+  });
+
+  final bool isDarkMode;
+  final String? currentSessionId;
+  final Future<void> Function(String sessionId) onLoadSession;
+  final VoidCallback onNewChat;
+
+  @override
+  State<_HistorySheet> createState() => _HistorySheetState();
+}
+
+class _HistorySheetState extends State<_HistorySheet> {
+  final AiService _aiService = AiService();
+  List<ChatSessionModel>? _sessions;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSessions();
+    AiService.sessionChanges.addListener(_onSessionChanged);
+  }
+
+  @override
+  void dispose() {
+    AiService.sessionChanges.removeListener(_onSessionChanged);
+    super.dispose();
+  }
+
+  void _onSessionChanged() {
+    if (mounted) _fetchSessions();
+  }
+
+  Future<void> _fetchSessions() async {
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final sessions = await _aiService.listSessions(limit: 30);
+      if (!mounted) return;
+      setState(() {
+        _sessions = sessions;
+        _loading = false;
+      });
+    } catch (e, st) {
+      debugPrint('[History] listSessions error: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _deleteSession(ChatSessionModel session) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: widget.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        title: Text(
+          'Delete chat?',
+          style: TextStyle(
+            color: widget.isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827),
+          ),
+        ),
+        content: Text(
+          'This will permanently delete "${session.displayTitle}".',
+          style: TextStyle(
+            color: widget.isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await _aiService.deleteSession(session.sessionId);
+      if (!mounted) return;
+      setState(() => _sessions?.removeWhere((s) => s.sessionId == session.sessionId));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete session')),
+        );
+      }
+    }
+  }
+
+  Future<void> _renameSession(ChatSessionModel session) async {
+    final controller = TextEditingController(
+      text: session.title?.isNotEmpty == true ? session.title : '',
+    );
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: widget.isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+        title: Text(
+          'Rename chat',
+          style: TextStyle(
+            color: widget.isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827),
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: TextStyle(
+            color: widget.isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF111827),
+          ),
+          decoration: InputDecoration(
+            hintText: 'Enter a title…',
+            hintStyle: TextStyle(
+              color: widget.isDarkMode ? const Color(0xFF64748B) : const Color(0xFF9CA3AF),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(
+                color: const Color(0xFF059669).withValues(alpha: 0.4),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFF059669), width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF059669)),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null || result.isEmpty || !mounted) return;
+    try {
+      final updated = await _aiService.renameSession(session.sessionId, result);
+      if (!mounted) return;
+      setState(() {
+        final idx = _sessions?.indexWhere((s) => s.sessionId == session.sessionId) ?? -1;
+        if (idx >= 0) _sessions![idx] = updated;
+      });
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to rename session')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText = widget.isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
+    final secondaryText = widget.isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final dividerColor = widget.isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFE5E7EB);
+    final maxH = MediaQuery.of(context).size.height * 0.78;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxH),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 12, 10),
+            child: Row(
+              children: [
+                Icon(Icons.history_rounded, size: 20, color: const Color(0xFF059669)),
+                const SizedBox(width: 8),
+                Text(
+                  'Chat History',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: primaryText,
+                  ),
+                ),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: widget.onNewChat,
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: const Text('New chat'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF059669),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                if (_loading)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF059669),
+                      ),
+                    ),
+                  )
+                else
+                  IconButton(
+                    onPressed: _fetchSessions,
+                    icon: Icon(Icons.refresh_rounded, size: 20, color: secondaryText),
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Refresh',
+                  ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: dividerColor),
+          // Body
+          if (_loading && _sessions == null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 48),
+              child: Center(
+                child: CircularProgressIndicator(color: const Color(0xFF059669)),
+              ),
+            )
+          else if (_error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 32),
+              child: Column(
+                children: [
+                  Icon(Icons.error_outline_rounded, size: 40, color: secondaryText),
+                  const SizedBox(height: 10),
+                  Text('Failed to load history', style: TextStyle(color: secondaryText)),
+                  const SizedBox(height: 4),
+                  Text(
+                    _error ?? '',
+                    style: TextStyle(fontSize: 11, color: secondaryText),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _fetchSessions,
+                    child: const Text('Retry', style: TextStyle(color: Color(0xFF059669))),
+                  ),
+                ],
+              ),
+            )
+          else if (_sessions == null || _sessions!.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
+              child: Column(
+                children: [
+                  Icon(Icons.chat_bubble_outline_rounded, size: 44, color: secondaryText),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No chat history yet',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: primaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Your conversations will appear here.',
+                    style: TextStyle(fontSize: 13, color: secondaryText),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            Flexible(
+              child: ListView.separated(
+                padding: const EdgeInsets.only(bottom: 20),
+                shrinkWrap: true,
+                itemCount: _sessions!.length,
+                separatorBuilder: (_, i) => Divider(
+                  height: 1,
+                  color: dividerColor,
+                  indent: 16,
+                  endIndent: 16,
+                ),
+                itemBuilder: (ctx, i) {
+                  final session = _sessions![i];
+                  return _SessionTile(
+                    session: session,
+                    isCurrent: session.sessionId == widget.currentSessionId,
+                    isDarkMode: widget.isDarkMode,
+                    onTap: session.sessionId == widget.currentSessionId
+                        ? null
+                        : () => widget.onLoadSession(session.sessionId),
+                    onDelete: () => _deleteSession(session),
+                    onRename: () => _renameSession(session),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SessionTile extends StatelessWidget {
+  const _SessionTile({
+    required this.session,
+    required this.isCurrent,
+    required this.isDarkMode,
+    required this.onTap,
+    required this.onDelete,
+    required this.onRename,
+  });
+
+  final ChatSessionModel session;
+  final bool isCurrent;
+  final bool isDarkMode;
+  final VoidCallback? onTap;
+  final VoidCallback onDelete;
+  final VoidCallback onRename;
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryText = isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
+    final secondaryText = isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+
+    return InkWell(
+      onTap: onTap,
+      onLongPress: onRename,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: isCurrent
+                    ? const Color(0xFF059669)
+                    : const Color(0xFF059669).withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.chat_rounded,
+                size: 18,
+                color: isCurrent ? Colors.white : const Color(0xFF059669),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          session.displayTitle,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: primaryText,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isCurrent) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF059669).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Active',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF059669),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          session.lastMessage?.isNotEmpty == true
+                              ? session.lastMessage!
+                              : '${session.messageCount} message${session.messageCount == 1 ? '' : 's'}',
+                          style: TextStyle(fontSize: 12, color: secondaryText),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _formatDate(session.updatedAt ?? session.createdAt),
+                        style: TextStyle(fontSize: 11, color: secondaryText),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 2),
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'rename') onRename();
+                if (value == 'delete') onDelete();
+              },
+              icon: Icon(Icons.more_vert_rounded, size: 18, color: secondaryText),
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'rename',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, size: 16, color: Color(0xFF059669)),
+                      SizedBox(width: 8),
+                      Text('Rename'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _formatDate(DateTime? date) {
+    if (date == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${date.day}/${date.month}';
   }
 }

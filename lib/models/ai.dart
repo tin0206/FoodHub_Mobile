@@ -310,6 +310,105 @@ class AiRequestDetailModel {
   }
 }
 
+class ChatSessionModel {
+  const ChatSessionModel({
+    required this.sessionId,
+    this.title,
+    this.lastMessage,
+    this.messageCount = 0,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  final String sessionId;
+  final String? title;
+  final String? lastMessage;
+  final int messageCount;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  String get displayTitle =>
+      (title != null && title!.trim().isNotEmpty) ? title!.trim() : 'New chat';
+
+  factory ChatSessionModel.fromJson(Map<String, dynamic> json) {
+    return ChatSessionModel(
+      sessionId: json['session_id'] as String? ?? '',
+      title: json['title'] as String?,
+      lastMessage: json['last_message'] as String?,
+      messageCount: (json['message_count'] as num?)?.toInt() ?? 0,
+      createdAt: _parseDate(json['created_at']),
+      updatedAt: _parseDate(json['updated_at']),
+    );
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value is String && value.isNotEmpty) return DateTime.tryParse(value);
+    return null;
+  }
+
+  ChatSessionModel copyWith({String? title}) => ChatSessionModel(
+        sessionId: sessionId,
+        title: title ?? this.title,
+        lastMessage: lastMessage,
+        messageCount: messageCount,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+}
+
+class ChatHistoryMessageModel {
+  const ChatHistoryMessageModel({
+    required this.role,
+    required this.content,
+    this.createdAt,
+  });
+
+  final String role;
+  final String content;
+  final DateTime? createdAt;
+
+  bool get isUser => role == 'user';
+
+  factory ChatHistoryMessageModel.fromJson(Map<String, dynamic> json) =>
+      ChatHistoryMessageModel(
+        role: json['role'] as String? ?? 'user',
+        content: json['content'] as String? ?? '',
+        createdAt: ChatSessionModel._parseDate(json['created_at']),
+      );
+}
+
+class ChatSessionDetailModel {
+  const ChatSessionDetailModel({
+    required this.sessionId,
+    this.title,
+    this.messages = const [],
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  final String sessionId;
+  final String? title;
+  final List<ChatHistoryMessageModel> messages;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  String get displayTitle =>
+      (title != null && title!.trim().isNotEmpty) ? title!.trim() : 'New chat';
+
+  factory ChatSessionDetailModel.fromJson(Map<String, dynamic> json) =>
+      ChatSessionDetailModel(
+        sessionId: json['session_id'] as String? ?? '',
+        title: json['title'] as String?,
+        messages: (json['messages'] as List<dynamic>?)
+                ?.whereType<Map<String, dynamic>>()
+                .map(ChatHistoryMessageModel.fromJson)
+                .toList() ??
+            const [],
+        createdAt: ChatSessionModel._parseDate(json['created_at']),
+        updatedAt: ChatSessionModel._parseDate(json['updated_at']),
+      );
+}
+
 class IngredientsStreamFrame {
   const IngredientsStreamFrame({
     this.ingredients = const [],
