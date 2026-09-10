@@ -1,5 +1,4 @@
 import 'package:foodhub_mobile/models/admin.dart';
-import 'package:foodhub_mobile/models/aisle_mapping.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/services/api_client.dart';
@@ -8,25 +7,6 @@ class AdminService {
   AdminService({ApiClient? apiClient}) : _api = apiClient ?? ApiClient();
 
   final ApiClient _api;
-
-  // ── Aisle mapping ─────────────────────────────────────────────────────────
-
-  Future<AisleMappingStatus> aisleStatus() async {
-    final data = await _api.get('/admin/recipes/aisles');
-    return AisleMappingStatus.fromJson(data as Map<String, dynamic>);
-  }
-
-  Future<AisleMappingStatus> mapAisles({bool force = false, int? recipeId}) async {
-    final body = <String, dynamic>{'force': force};
-    if (recipeId != null) body['recipe_id'] = recipeId;
-    final data = await _api.post('/admin/recipes/map-aisles', body: body);
-    return AisleMappingStatus.fromJson(data as Map<String, dynamic>);
-  }
-
-  Future<AisleMappingStatus> stopMapAisles() async {
-    final data = await _api.post('/admin/recipes/map-aisles/stop');
-    return AisleMappingStatus.fromJson(data as Map<String, dynamic>);
-  }
 
   // ── Overview ──────────────────────────────────────────────────────────────
 

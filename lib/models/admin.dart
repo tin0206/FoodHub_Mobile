@@ -105,18 +105,46 @@ class AdminOverview {
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
 
+class AdminLabelCount {
+  const AdminLabelCount({required this.label, required this.count});
+  final String label;
+  final int count;
+  factory AdminLabelCount.fromJson(Map<String, dynamic> json) => AdminLabelCount(
+        label: json['label'] as String? ?? '',
+        count: (json['count'] as num?)?.toInt() ?? 0,
+      );
+}
+
+// Legacy alias kept for any remaining references
+typedef AdminPopularLabel = AdminLabelCount;
+
 class AdminTopRecipe {
   const AdminTopRecipe({
     required this.id,
     required this.title,
     required this.favoritesCount,
+    this.viewCount = 0,
+    this.score = 0,
   });
-
   final int id;
   final String title;
   final int favoritesCount;
+  final int viewCount;
+  final int score;
 
   factory AdminTopRecipe.fromJson(Map<String, dynamic> json) {
+    // New format: {"recipe": {...}, "favorite_count": N, "view_count": N, "score": N}
+    // Old format: {"id": N, "title": "...", "favorites_count": N}
+    final recipe = json['recipe'] as Map<String, dynamic>?;
+    if (recipe != null) {
+      return AdminTopRecipe(
+        id: (recipe['id'] as num?)?.toInt() ?? 0,
+        title: recipe['title'] as String? ?? '',
+        favoritesCount: (json['favorite_count'] as num?)?.toInt() ?? 0,
+        viewCount: (json['view_count'] as num?)?.toInt() ?? 0,
+        score: (json['score'] as num?)?.toInt() ?? 0,
+      );
+    }
     return AdminTopRecipe(
       id: (json['id'] as num?)?.toInt() ?? 0,
       title: json['title'] as String? ?? '',
@@ -125,32 +153,109 @@ class AdminTopRecipe {
   }
 }
 
-class AdminPopularLabel {
-  const AdminPopularLabel({required this.label, required this.count});
+class AdminTopUser {
+  const AdminTopUser({
+    required this.id,
+    required this.username,
+    this.fullName,
+    this.email = '',
+    this.recipesCreated = 0,
+    this.favoritesCount = 0,
+    this.chatSessions = 0,
+    this.score = 0,
+  });
+  final int id;
+  final String username;
+  final String? fullName;
+  final String email;
+  final int recipesCreated;
+  final int favoritesCount;
+  final int chatSessions;
+  final int score;
 
-  final String label;
-  final int count;
+  String get displayName => (fullName != null && fullName!.isNotEmpty) ? fullName! : username;
 
-  factory AdminPopularLabel.fromJson(Map<String, dynamic> json) {
-    return AdminPopularLabel(
-      label: json['label'] as String? ?? '',
-      count: (json['count'] as num?)?.toInt() ?? 0,
+  factory AdminTopUser.fromJson(Map<String, dynamic> json) {
+    final user = json['user'] as Map<String, dynamic>?;
+    final u = user ?? json;
+    return AdminTopUser(
+      id: (u['id'] as num?)?.toInt() ?? 0,
+      username: u['username'] as String? ?? '',
+      fullName: u['full_name'] as String?,
+      email: u['email'] as String? ?? '',
+      recipesCreated: (json['recipes_created'] as num?)?.toInt() ?? 0,
+      favoritesCount: (json['favorites_count'] as num?)?.toInt() ?? 0,
+      chatSessions: (json['chat_sessions'] as num?)?.toInt() ?? 0,
+      score: (json['score'] as num?)?.toInt() ?? 0,
     );
   }
 }
 
+class AdminAiUsage {
+  const AdminAiUsage({
+    required this.requestType,
+    required this.total,
+    required this.failed,
+    required this.failRate,
+  });
+  final String requestType;
+  final int total;
+  final int failed;
+  final double failRate;
+
+  factory AdminAiUsage.fromJson(Map<String, dynamic> json) => AdminAiUsage(
+        requestType: json['request_type'] as String? ?? '',
+        total: (json['total'] as num?)?.toInt() ?? 0,
+        failed: (json['failed'] as num?)?.toInt() ?? 0,
+        failRate: (json['fail_rate'] as num?)?.toDouble() ?? 0,
+      );
+}
+
+class AdminActivePoint {
+  const AdminActivePoint({required this.period, required this.activeUsers});
+  final String period;
+  final int activeUsers;
+
+  factory AdminActivePoint.fromJson(Map<String, dynamic> json) => AdminActivePoint(
+        period: json['period'] as String? ?? '',
+        activeUsers: (json['active_users'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class AdminMealPlanAdoption {
+  const AdminMealPlanAdoption({
+    required this.totalUsers,
+    required this.usersWithMealPlans,
+    required this.totalMealPlans,
+    required this.usersWithSuggestions,
+    required this.totalSuggestions,
+    required this.adoptionRate,
+  });
+  final int totalUsers;
+  final int usersWithMealPlans;
+  final int totalMealPlans;
+  final int usersWithSuggestions;
+  final int totalSuggestions;
+  final double adoptionRate;
+
+  factory AdminMealPlanAdoption.fromJson(Map<String, dynamic> json) => AdminMealPlanAdoption(
+        totalUsers: (json['total_users'] as num?)?.toInt() ?? 0,
+        usersWithMealPlans: (json['users_with_meal_plans'] as num?)?.toInt() ?? 0,
+        totalMealPlans: (json['total_meal_plans'] as num?)?.toInt() ?? 0,
+        usersWithSuggestions: (json['users_with_suggestions'] as num?)?.toInt() ?? 0,
+        totalSuggestions: (json['total_suggestions'] as num?)?.toInt() ?? 0,
+        adoptionRate: (json['adoption_rate'] as num?)?.toDouble() ?? 0,
+      );
+}
+
 class AdminDailySignup {
   const AdminDailySignup({required this.date, required this.count});
-
   final String date;
   final int count;
-
-  factory AdminDailySignup.fromJson(Map<String, dynamic> json) {
-    return AdminDailySignup(
-      date: json['date'] as String? ?? '',
-      count: (json['count'] as num?)?.toInt() ?? 0,
-    );
-  }
+  factory AdminDailySignup.fromJson(Map<String, dynamic> json) => AdminDailySignup(
+        date: json['date'] as String? ?? '',
+        count: (json['count'] as num?)?.toInt() ?? 0,
+      );
 }
 
 class AdminAnalytics {
@@ -158,22 +263,43 @@ class AdminAnalytics {
     required this.topRecipes,
     required this.popularLabels,
     required this.dailySignups,
+    this.topUsers = const [],
+    this.aiUsage = const [],
+    this.dailyActiveUsers = const [],
+    this.weeklyActiveUsers = const [],
+    this.dietaryDistribution = const [],
+    this.mealPlanAdoption,
   });
 
   final List<AdminTopRecipe> topRecipes;
-  final List<AdminPopularLabel> popularLabels;
+  final List<AdminLabelCount> popularLabels;
   final List<AdminDailySignup> dailySignups;
+  final List<AdminTopUser> topUsers;
+  final List<AdminAiUsage> aiUsage;
+  final List<AdminActivePoint> dailyActiveUsers;
+  final List<AdminActivePoint> weeklyActiveUsers;
+  final List<AdminLabelCount> dietaryDistribution;
+  final AdminMealPlanAdoption? mealPlanAdoption;
 
   factory AdminAnalytics.fromJson(Map<String, dynamic> json) {
-    List<T> parseList<T>(dynamic raw, T Function(Map<String, dynamic>) fromJson) {
+    List<T> parseList<T>(dynamic raw, T Function(Map<String, dynamic>) f) {
       if (raw is! List) return const [];
-      return raw.whereType<Map>().map((e) => fromJson(Map<String, dynamic>.from(e))).toList();
+      return raw.whereType<Map>().map((e) => f(Map<String, dynamic>.from(e))).toList();
     }
 
     return AdminAnalytics(
       topRecipes: parseList(json['top_recipes'], AdminTopRecipe.fromJson),
-      popularLabels: parseList(json['popular_recipes'], AdminPopularLabel.fromJson),
+      popularLabels: parseList(json['popular_recipes'], AdminLabelCount.fromJson),
       dailySignups: parseList(json['daily_signups'], AdminDailySignup.fromJson),
+      topUsers: parseList(json['top_users'], AdminTopUser.fromJson),
+      aiUsage: parseList(json['ai_usage'], AdminAiUsage.fromJson),
+      dailyActiveUsers: parseList(json['daily_active_users'], AdminActivePoint.fromJson),
+      weeklyActiveUsers: parseList(json['weekly_active_users'], AdminActivePoint.fromJson),
+      dietaryDistribution: parseList(json['dietary_restriction_distribution'], AdminLabelCount.fromJson),
+      mealPlanAdoption: json['meal_plan_adoption'] is Map
+          ? AdminMealPlanAdoption.fromJson(
+              Map<String, dynamic>.from(json['meal_plan_adoption'] as Map))
+          : null,
     );
   }
 }

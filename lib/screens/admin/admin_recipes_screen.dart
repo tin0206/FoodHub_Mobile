@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/api_config.dart';
-import 'package:foodhub_mobile/l10n/app_strings.dart';
-import 'package:foodhub_mobile/models/aisle_mapping.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/screens/admin/admin_recipe_detail_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_recipe_form_screen.dart';
@@ -36,24 +34,14 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
   String? _visibilityFilter; // null = all, 'public', 'private'
   Timer? _debounce;
 
-  // Aisle mapping state
-  AisleMappingStatus? _aisles;
-  String? _aisleError;
-  bool _aisleLoading = true;
-  bool _aisleStarting = false;
-  bool _aisleStopping = false;
-  Timer? _aislePoll;
-
   @override
   void initState() {
     super.initState();
-    _loadAisles();
     _loadRecipes();
   }
 
   @override
   void dispose() {
-    _aislePoll?.cancel();
     _debounce?.cancel();
     _searchCtrl.dispose();
     super.dispose();
@@ -105,176 +93,12 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
     _loadRecipes();
   }
 
-  // ── Aisle mapping ─────────────────────────────────────────────────────────
-
-  void _syncAislePoll(AisleMappingStatus status) {
-    final running = status.isRunning;
-    if (running && _aislePoll == null) {
-      _aislePoll = Timer.periodic(
-        const Duration(seconds: 2),
-        (_) => _loadAisles(quiet: true),
-      );
-    } else if (!running && _aislePoll != null) {
-      _aislePoll?.cancel();
-      _aislePoll = null;
-    }
-  }
-
-  Future<void> _loadAisles({bool quiet = false}) async {
-    if (!quiet) {
-      setState(() {
-        _aisleLoading = true;
-        _aisleError = null;
-      });
-    }
-    try {
-      final status = await _admin.aisleStatus();
-      if (!mounted) return;
-      final wasRunning = _aisles?.isRunning ?? false;
-      setState(() {
-        _aisles = status;
-        _aisleLoading = false;
-        _aisleError = null;
-      });
-      _syncAislePoll(status);
-      if (quiet && wasRunning && !status.isRunning && mounted) {
-        final job = status.job;
-        final cancelled = job?.status == 'cancelled';
-        final failed = !cancelled &&
-            (job?.status == 'failed' || (job?.errorMessage ?? '').isNotEmpty);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              cancelled
-                  ? S.of(context).aislesStopped
-                  : failed
-                      ? (job?.errorMessage ?? S.of(context).unableToMapAisles)
-                      : S.of(context).aislesMapped,
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _aisleLoading = false;
-        _aisleError = e is ApiException ? e.message : '$e';
-      });
-    }
-  }
-
-  Future<void> _startMap({required bool force}) async {
-    if (_aisleStarting || (_aisles?.isRunning ?? false)) return;
-    setState(() => _aisleStarting = true);
-    try {
-      final status = await _admin.mapAisles(force: force);
-      if (!mounted) return;
-      setState(() {
-        _aisles = status;
-        _aisleStarting = false;
-        _aisleError = null;
-      });
-      _syncAislePoll(status);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _aisleStarting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e is ApiException ? e.message : S.of(context).unableToMapAisles,
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _stopMap() async {
-    if (_aisleStopping) return;
-    setState(() => _aisleStopping = true);
-    try {
-      final status = await _admin.stopMapAisles();
-      if (!mounted) return;
-      _aislePoll?.cancel();
-      _aislePoll = null;
-      setState(() {
-        _aisles = status;
-        _aisleStopping = false;
-        _aisleStarting = false;
-        _aisleLoading = false;
-        _aisleError = null;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(S.of(context).aislesStopped)),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _aisleStopping = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e is ApiException ? e.message : S.of(context).unableToMapAisles,
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _onMapPressed() async {
-    final s = S.of(context);
-    final status = _aisles;
-    if (status == null || status.isRunning) return;
-    if (status.missing > 0) {
-      await _startMap(force: false);
-      return;
-    }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) {
-        final isDark = widget.isDarkMode;
-        return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF141414) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(
-            s.remappingAisles,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827),
-            ),
-          ),
-          content: Text(
-            s.remapAislesConfirm,
-            style: TextStyle(
-              fontSize: 13,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(s.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(backgroundColor: kAdminAccent),
-              child: Text(s.remappingAisles),
-            ),
-          ],
-        );
-      },
-    );
-    if (confirmed == true) {
-      await _startMap(force: true);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDarkMode;
     final textPrimary = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
     final textSub = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
     final cardBg = isDark ? const Color(0xFF141414) : Colors.white;
-    final s = S.of(context);
 
     return Stack(
       children: [
@@ -321,24 +145,6 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
                               strokeWidth: 2, color: kAdminAccent),
                         ),
                     ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // ── Aisle map card ─────────────────────────────────────
-                  _AisleMapCard(
-                    isDark: isDark,
-                    cardBg: cardBg,
-                    textPrimary: textPrimary,
-                    textSub: textSub,
-                    strings: s,
-                    status: _aisles,
-                    error: _aisleError,
-                    loading: _aisleLoading,
-                    starting: _aisleStarting,
-                    stopping: _aisleStopping,
-                    onMap: _onMapPressed,
-                    onStop: _stopMap,
-                    onRetry: _loadAisles,
                   ),
                   const SizedBox(height: 10),
 
@@ -754,176 +560,6 @@ class _PaginationRow extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Aisle map card ────────────────────────────────────────────────────────────
-
-class _AisleMapCard extends StatelessWidget {
-  const _AisleMapCard({
-    required this.isDark,
-    required this.cardBg,
-    required this.textPrimary,
-    required this.textSub,
-    required this.strings,
-    required this.status,
-    required this.error,
-    required this.loading,
-    required this.starting,
-    required this.stopping,
-    required this.onMap,
-    required this.onStop,
-    required this.onRetry,
-  });
-
-  final bool isDark;
-  final Color cardBg;
-  final Color textPrimary;
-  final Color textSub;
-  final S strings;
-  final AisleMappingStatus? status;
-  final String? error;
-  final bool loading;
-  final bool starting;
-  final bool stopping;
-  final VoidCallback onMap;
-  final VoidCallback onStop;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final running = starting || (status?.isRunning ?? false);
-    final job = status?.job;
-    final missing = status?.missing ?? 0;
-    final mapped = status?.mapped ?? 0;
-    final total = status?.total ?? 0;
-    final progressTotal = (job != null && job.total > 0) ? job.total : total;
-    final progressDone = running && job != null ? job.processed : mapped;
-    final fraction = progressTotal <= 0
-        ? 0.0
-        : (progressDone / progressTotal).clamp(0.0, 1.0);
-    final buttonLabel = running
-        ? strings.mappingAisles
-        : (missing > 0 ? strings.mapAisles : strings.remappingAisles);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(13),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-            blurRadius: isDark ? 10 : 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: kAdminAccent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.storefront_rounded, size: 17, color: kAdminAccent),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  strings.mapAisles,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (loading && status == null)
-            Text(strings.loadingAisleStatus, style: TextStyle(fontSize: 12, color: textSub)),
-          if (error != null && status == null) ...[
-            Text(error!, style: const TextStyle(fontSize: 12, color: Color(0xFFF43F5E))),
-            TextButton(onPressed: onRetry, child: Text(strings.retry)),
-          ],
-          if (status != null) ...[
-            Text(
-              strings.aisleMappedCount(mapped, total),
-              style: TextStyle(fontSize: 12, color: textSub),
-            ),
-            if (job != null &&
-                (job.status == 'failed' || job.status == 'cancelled') &&
-                (job.errorMessage ?? '').isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                job.errorMessage!,
-                style: const TextStyle(fontSize: 12, color: Color(0xFFF43F5E)),
-              ),
-            ],
-            if (missing > 0) ...[
-              const SizedBox(height: 2),
-              Text(
-                strings.aisleMissingCount(missing),
-                style: TextStyle(fontSize: 12, color: textSub),
-              ),
-            ],
-            if (running) ...[
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  value: job != null && job.total > 0 ? fraction : null,
-                  minHeight: 6,
-                  color: kAdminAccent,
-                  backgroundColor: kAdminAccent.withValues(alpha: 0.15),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                strings.aisleJobProgress(progressDone, progressTotal),
-                style: TextStyle(fontSize: 11, color: textSub),
-              ),
-            ],
-          ],
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton(
-                  onPressed: running || stopping ? null : onMap,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: kAdminAccent,
-                    disabledBackgroundColor: kAdminAccent.withValues(alpha: 0.4),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: Text(buttonLabel),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: stopping ? null : onStop,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFF43F5E),
-                    side: const BorderSide(color: Color(0xFFF43F5E)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: Text(strings.stopMappingAisles),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );

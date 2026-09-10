@@ -763,6 +763,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         controller: _calorieTargetController,
                         keyboardType: TextInputType.number,
                         errorText: _calorieError,
+                        suffixText: 'cal/day',
                         secondaryText: _secondaryText,
                         fillColor: _fieldFill,
                         borderColor: _fieldBorder,
@@ -776,6 +777,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         controller: _proteinTargetController,
                         keyboardType: TextInputType.number,
                         errorText: _proteinError,
+                        suffixText: 'g/day',
                         secondaryText: _secondaryText,
                         fillColor: _fieldFill,
                         borderColor: _fieldBorder,
@@ -794,6 +796,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         controller: _carbTargetController,
                         keyboardType: TextInputType.number,
                         errorText: _carbError,
+                        suffixText: 'g/day',
                         secondaryText: _secondaryText,
                         fillColor: _fieldFill,
                         borderColor: _fieldBorder,
@@ -807,6 +810,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         controller: _fatTargetController,
                         keyboardType: TextInputType.number,
                         errorText: _fatError,
+                        suffixText: 'g/day',
                         secondaryText: _secondaryText,
                         fillColor: _fieldFill,
                         borderColor: _fieldBorder,
@@ -873,36 +877,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // ── Security ────────────────────────────────────────────────────
           _SectionCard(
             backgroundColor: _cardBackground,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _IconBadge(
-                      background: widget.isDarkMode
-                          ? const Color(0xFFEA580C).withValues(alpha: 0.18)
-                          : const Color(0xFFFFEDD5),
-                      icon: Icons.lock_outline_rounded,
-                      iconColor: widget.isDarkMode
-                          ? const Color(0xFFFB923C)
-                          : const Color(0xFFEA580C),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      s.securityLabel,
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _primaryText),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                _SecurityRow(
-                  icon: Icons.key_rounded,
-                  label: s.changePasswordLabel,
-                  onTap: _showChangePasswordSheet,
-                  primaryText: _primaryText,
-                  secondaryText: _secondaryText,
-                ),
-              ],
+            child: _SecurityRow(
+              icon: Icons.key_rounded,
+              label: widget.user.isGoogleOnly ? s.setPasswordLabel : s.changePasswordLabel,
+              onTap: _showChangePasswordSheet,
+              primaryText: _primaryText,
+              secondaryText: _secondaryText,
             ),
           ),
           const SizedBox(height: 10),
@@ -1117,6 +1097,7 @@ class _LabeledField extends StatelessWidget {
     this.keyboardType,
     this.hintText,
     this.errorText,
+    this.suffixText,
     this.readOnly = false,
   });
 
@@ -1129,6 +1110,7 @@ class _LabeledField extends StatelessWidget {
   final TextInputType? keyboardType;
   final String? hintText;
   final String? errorText;
+  final String? suffixText;
   final bool readOnly;
 
   @override
@@ -1163,6 +1145,8 @@ class _LabeledField extends StatelessWidget {
               fillColor: fillColor,
               hintText: hintText,
               hintStyle: TextStyle(color: secondaryText, fontSize: 13),
+              suffixText: suffixText,
+              suffixStyle: TextStyle(color: secondaryText, fontSize: 12),
               errorText: errorText,
               errorStyle: const TextStyle(fontSize: 10),
               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),

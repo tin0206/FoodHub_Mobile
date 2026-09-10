@@ -818,7 +818,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
         onRefresh: () => Future.wait([_loadRecipes(), _loadFavorites()]),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 90),
           children: [
             _CollectionTabSwitcher(
               index: _tabIndex,

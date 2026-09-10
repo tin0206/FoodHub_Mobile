@@ -60,11 +60,11 @@ class S {
       _vi ? 'Thêm công thức đầu tiên' : 'Add your first recipe';
   String get unableToLoadRecipes =>
       _vi ? 'Không thể tải công thức.' : 'Unable to load recipes.';
-  String get homeGreetingTitle => _vi
-      ? 'Bạn muốn nấu gì hôm nay?'
-      : 'What are we cooking today?';
+  String get homeGreetingTitle =>
+      _vi ? 'Bạn muốn nấu gì hôm nay?' : 'What are we cooking today?';
   String get topRecipes => _vi ? 'Công thức phổ biến' : 'Top Recipes';
-  String get recommendedRecipes => _vi ? 'Gợi ý cho bạn' : 'Recommended for you';
+  String get recommendedRecipes =>
+      _vi ? 'Gợi ý cho bạn' : 'Recommended for you';
   String get comingSoon => _vi ? 'Sắp ra mắt' : 'Coming soon';
   String get comingSoonDesc => _vi
       ? 'Chúng tôi đang xây dựng tính năng gợi ý cá nhân hóa.'
@@ -78,11 +78,11 @@ class S {
   String get lunch => _vi ? 'Bữa trưa' : 'Lunch';
   String get dinner => _vi ? 'Bữa tối' : 'Dinner';
   String get todaysMealPlan => _vi ? 'Thực đơn hôm nay' : "Today's meal plan";
-  String mealPlanPreview(int n) => _vi
-      ? '$n món đã chọn'
-      : '$n dish${n == 1 ? '' : 'es'} selected';
+  String mealPlanPreview(int n) =>
+      _vi ? '$n món đã chọn' : '$n dish${n == 1 ? '' : 'es'} selected';
   String get openMealPlan => _vi ? 'Mở thực đơn' : 'Open plan';
-  String get refreshSuggestions => _vi ? 'Làm mới gợi ý' : 'Refresh suggestions';
+  String get refreshSuggestions =>
+      _vi ? 'Làm mới gợi ý' : 'Refresh suggestions';
   String get suggestionsPending =>
       _vi ? 'Đang tạo gợi ý cho bạn…' : 'Generating suggestions for you…';
   String get suggestionsFailed =>
@@ -92,31 +92,38 @@ class S {
   String get addedToPlan => _vi ? 'Đã thêm vào thực đơn' : 'Added to meal plan';
   String get addDish => _vi ? 'Thêm món' : 'Add dish';
   String get addExtraMeal => _vi ? 'Thêm bữa phụ' : 'Add extra meal';
-  String get extraMealHint => _vi ? 'Tên bữa (vd. Bữa phụ)' : 'Meal name (e.g. Snack)';
+  String get extraMealHint =>
+      _vi ? 'Tên bữa (vd. Bữa phụ)' : 'Meal name (e.g. Snack)';
   String get emptyMealSlot => _vi ? 'Chưa có món nào' : 'No dishes yet';
   String get mealPlanHint => _vi
       ? 'Thêm món từ gợi ý hoặc tìm kiếm. Chi tiết nguyên liệu lấy từ từng công thức.'
       : 'Add dishes from suggestions or search. Ingredient details are pulled from each recipe’s ingredient lines.';
   String get unableToLoadMealPlan =>
       _vi ? 'Không thể tải thực đơn.' : 'Unable to load meal plan.';
-  String get shoppingList => _vi ? 'Chi tiết nguyên liệu' : 'Ingredient Details';
+  String get shoppingList =>
+      _vi ? 'Chi tiết nguyên liệu' : 'Ingredient Details';
   String get emptyShoppingList =>
       _vi ? 'Chưa có chi tiết nguyên liệu nào.' : 'No ingredient details yet.';
-  String get organizingShoppingList =>
-      _vi ? 'Đang tổng hợp nguyên liệu…' : 'Organizing your ingredient details…';
+  String get organizingShoppingList => _vi
+      ? 'Đang tổng hợp nguyên liệu…'
+      : 'Organizing your ingredient details…';
   String get purchasedItems => _vi ? 'Đã mua' : 'Purchased';
-  String get allDoneBanner => _vi ? 'Xong rồi — Chúc nấu ăn ngon!' : 'All done — happy cooking!';
+  String get allDoneBanner =>
+      _vi ? 'Xong rồi — Chúc nấu ăn ngon!' : 'All done — happy cooking!';
   String get clearPurchased => _vi ? 'Xoá đã mua' : 'Clear purchased';
   String plannedServings(double n) {
     final label = n % 1 == 0 ? n.toStringAsFixed(0) : n.toStringAsFixed(1);
     return _vi ? '$label khẩu phần' : '$label servings';
   }
+
   String get unmappedIngredients =>
       _vi ? 'Chưa ánh xạ' : 'Unmapped ingredients';
+
   /// Shown as the group header when an ingredient couldn't be categorized
   /// into a proper aisle (e.g. an unrecognized item like "kaffir lime
   /// leaves") — falls back to a clean label instead of a raw/blank key.
   String get otherAisleGroup => _vi ? 'Khác' : 'Other';
+
   /// Localizes the aisle group header when the server doesn't send a ready
   /// display name (only a raw key like "produce" / "dairy").
   String aisleGroupDisplay(String aisleKey) {
@@ -155,29 +162,10 @@ class S {
     }
     return aisleKey;
   }
-  String get unableToLoadShoppingList =>
-      _vi ? 'Không thể tải chi tiết nguyên liệu.' : 'Unable to load ingredient details.';
-  String get mapAisles => _vi ? 'Gán aisle' : 'Map aisles';
-  String get remappingAisles => _vi ? 'Gán lại aisle' : 'Remap aisles';
-  String get mappingAisles => _vi ? 'Đang gán aisle…' : 'Mapping aisles…';
-  String get loadingAisleStatus =>
-      _vi ? 'Đang tải trạng thái aisle…' : 'Loading aisle status…';
-  String get stopMappingAisles => _vi ? 'Dừng' : 'Stop';
-  String get aislesStopped => _vi ? 'Đã dừng gán aisle.' : 'Aisle mapping stopped.';
-  String aisleMappedCount(int mapped, int total) => _vi
-      ? '$mapped / $total công thức đã có aisle'
-      : '$mapped / $total recipes mapped';
-  String aisleMissingCount(int n) => _vi
-      ? '$n công thức chưa gán aisle'
-      : '$n recipe${n == 1 ? '' : 's'} still need aisles';
-  String get remapAislesConfirm => _vi
-      ? 'Gán lại aisle cho mọi công thức? Việc này gọi LLM lại toàn bộ catalog.'
-      : 'Remap aisles for every recipe? This runs the LLM on the full catalog again.';
-  String get aislesMapped => _vi ? 'Đã gán aisle xong.' : 'Aisle mapping finished.';
-  String get unableToMapAisles =>
-      _vi ? 'Không gán được aisle.' : 'Unable to map aisles.';
-  String aisleJobProgress(int processed, int total) =>
-      _vi ? 'Đã xử lý $processed / $total' : 'Processed $processed / $total';
+
+  String get unableToLoadShoppingList => _vi
+      ? 'Không thể tải chi tiết nguyên liệu.'
+      : 'Unable to load ingredient details.';
   String get addFromSearch => _vi ? 'Tìm món khác' : 'Search for a dish';
   String get pickARecipe => _vi ? 'Chọn một món' : 'Pick a recipe';
   String get fillAllFields => _vi
@@ -336,8 +324,7 @@ class S {
       _vi ? 'Giai đoạn: $phase' : 'Phase: $phase';
   String get startingSession =>
       _vi ? 'Đang khởi động phiên trợ lý...' : 'Starting companion session...';
-  String get aiThinking =>
-      _vi ? 'Đang suy nghĩ…' : 'Thinking…';
+  String get aiThinking => _vi ? 'Đang suy nghĩ…' : 'Thinking…';
   String get resetChatTitle => _vi ? 'Đặt lại cuộc trò chuyện?' : 'Reset chat?';
   String get resetChatDesc => _vi
       ? 'Thao tác này sẽ xóa cuộc trò chuyện và các dữ liệu đã nhận diện. Tùy chọn hồ sơ vẫn được giữ nguyên.'
@@ -418,18 +405,23 @@ class S {
   String get genderOther => _vi ? 'Khác' : 'Other';
   String genderDisplay(String value) {
     switch (value) {
-      case 'male': return genderMale;
-      case 'female': return genderFemale;
-      case 'other': return genderOther;
-      default: return value;
+      case 'male':
+        return genderMale;
+      case 'female':
+        return genderFemale;
+      case 'other':
+        return genderOther;
+      default:
+        return value;
     }
   }
+
   String get nutritionGoals => _vi ? 'Mục tiêu dinh dưỡng' : 'Nutrition Goals';
   String get setDietaryObjectives =>
       _vi ? 'Đặt mục tiêu dinh dưỡng' : 'Set your dietary objectives';
   String get primaryGoalLabel => _vi ? 'Mục tiêu chính' : 'Primary Goal';
   String get dailyCalorieTarget =>
-      _vi ? 'Mục tiêu calo hàng ngày' : 'Daily Calorie Target';
+      _vi ? 'Calories mục tiêu (kcal/ngày)' : 'Target Calories (kcal/day)';
   String get targetProtein =>
       _vi ? 'Protein mục tiêu (g/ngày)' : 'Target Protein (g/day)';
   String get targetCarb =>
@@ -440,8 +432,10 @@ class S {
       _vi ? 'Chế độ ăn đặc biệt' : 'Dietary Restrictions';
   String get securityLabel => _vi ? 'Bảo mật' : 'Security';
   String get changePasswordLabel => _vi ? 'Đổi mật khẩu' : 'Change password';
+  String get setPasswordLabel => _vi ? 'Đặt mật khẩu' : 'Set password';
   String get saveChanges => _vi ? 'Lưu thay đổi' : 'Save changes';
-  String get profileUpdated => _vi ? 'Đã cập nhật hồ sơ thành công' : 'Profile updated successfully';
+  String get profileUpdated =>
+      _vi ? 'Đã cập nhật hồ sơ thành công' : 'Profile updated successfully';
   String get logOut => _vi ? 'Đăng xuất' : 'Log out';
   String get mustBePositiveNumber =>
       _vi ? 'Phải là số dương' : 'Must be a positive number';

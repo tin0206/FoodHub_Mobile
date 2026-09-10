@@ -89,15 +89,24 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel',
-                style: TextStyle(
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280))),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: isDark
+                    ? const Color(0xFF94A3B8)
+                    : const Color(0xFF6B7280),
+              ),
+            ),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
-              backgroundColor: isActive ? const Color(0xFFF43F5E) : const Color(0xFF10B981),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              backgroundColor: isActive
+                  ? const Color(0xFFF43F5E)
+                  : const Color(0xFF10B981),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: Text(action),
           ),
@@ -107,7 +116,9 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
       if (confirmed != true || !mounted) return;
       setState(() => _toggling = true);
       try {
-        final updated = await _admin.updateUser(widget.userId, {'is_active': !isActive});
+        final updated = await _admin.updateUser(widget.userId, {
+          'is_active': !isActive,
+        });
         if (!mounted) return;
         setState(() {
           _detail = AdminUserDetail(
@@ -132,14 +143,19 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
     final isDark = widget.isDarkMode;
     final bg = isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF8FAFC);
     final cardBg = isDark ? const Color(0xFF141414) : Colors.white;
-    final textPrimary = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
+    final textPrimary = isDark
+        ? const Color(0xFFF8FAFC)
+        : const Color(0xFF111827);
     final textSub = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
 
     if (_loading) {
       return Scaffold(
         backgroundColor: bg,
         body: const Center(
-          child: CircularProgressIndicator(strokeWidth: 2.5, color: kAdminAccent),
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            color: kAdminAccent,
+          ),
         ),
       );
     }
@@ -151,7 +167,10 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error ?? 'User not found', style: TextStyle(color: textSub)),
+              Text(
+                _error ?? 'User not found',
+                style: TextStyle(color: textSub),
+              ),
               const SizedBox(height: 12),
               TextButton(onPressed: _load, child: const Text('Retry')),
             ],
@@ -189,8 +208,11 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                       child: Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                                size: 18, color: Colors.white),
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              size: 18,
+                              color: Colors.white,
+                            ),
                             onPressed: () => Navigator.pop(context),
                           ),
                           const Spacer(),
@@ -212,7 +234,11 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                                 color: Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(Icons.edit_rounded, size: 16, color: Colors.white),
+                              child: const Icon(
+                                Icons.edit_rounded,
+                                size: 16,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ],
@@ -230,7 +256,9 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                             ),
                             child: CircleAvatar(
                               radius: 27,
-                              backgroundColor: avatarColor.withValues(alpha: 0.25),
+                              backgroundColor: avatarColor.withValues(
+                                alpha: 0.25,
+                              ),
                               child: Text(
                                 adminAvatarInitials(name),
                                 style: TextStyle(
@@ -269,7 +297,9 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                                   children: [
                                     _GradientRoleBadge(role: user.role),
                                     const SizedBox(width: 6),
-                                    _GradientStatusBadge(isActive: user.isActive),
+                                    _GradientStatusBadge(
+                                      isActive: user.isActive,
+                                    ),
                                   ],
                                 ),
                               ],
@@ -280,14 +310,16 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               _CompactStat(
-                                  icon: Icons.menu_book_rounded,
-                                  value: '${detail.recipesCount}',
-                                  label: 'recipes'),
+                                icon: Icons.menu_book_rounded,
+                                value: '${detail.recipesCount}',
+                                label: 'recipes',
+                              ),
                               const SizedBox(height: 6),
                               _CompactStat(
-                                  icon: Icons.favorite_rounded,
-                                  value: '${detail.savedCount}',
-                                  label: 'saved'),
+                                icon: Icons.favorite_rounded,
+                                value: '${detail.savedCount}',
+                                label: 'saved',
+                              ),
                             ],
                           ),
                         ],
@@ -298,8 +330,14 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                       unselectedLabelColor: Colors.white.withValues(alpha: 0.5),
                       indicatorColor: Colors.white,
                       indicatorSize: TabBarIndicatorSize.label,
-                      labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                      unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                      labelStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      unselectedLabelStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                       dividerColor: Colors.white.withValues(alpha: 0.15),
                       tabs: [
                         const Tab(
@@ -390,7 +428,11 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
 // ── Header helpers ─────────────────────────────────────────────────────────────
 
 class _CompactStat extends StatelessWidget {
-  const _CompactStat({required this.icon, required this.value, required this.label});
+  const _CompactStat({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
 
   final IconData icon;
   final String value;
@@ -433,11 +475,19 @@ class _GradientRoleBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(isAdmin ? Icons.shield_rounded : Icons.person_rounded, size: 11, color: Colors.white),
+          Icon(
+            isAdmin ? Icons.shield_rounded : Icons.person_rounded,
+            size: 11,
+            color: Colors.white,
+          ),
           const SizedBox(width: 4),
           Text(
             isAdmin ? 'Admin' : 'User',
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
           ),
         ],
       ),
@@ -465,14 +515,20 @@ class _GradientStatusBadge extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: BoxDecoration(
-              color: isActive ? const Color(0xFF34D399) : const Color(0xFFF87171),
+              color: isActive
+                  ? const Color(0xFF34D399)
+                  : const Color(0xFFF87171),
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 5),
           Text(
             isActive ? 'Active' : 'Inactive',
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
           ),
         ],
       ),
@@ -494,7 +550,11 @@ class _TabCountBadge extends StatelessWidget {
       ),
       child: Text(
         '$count',
-        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white),
+        style: const TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
       ),
     );
   }
@@ -523,6 +583,19 @@ class _ProfileTab extends StatelessWidget {
   final bool toggling;
   final VoidCallback onToggleActive;
 
+  static String _genderLabel(String? gender) {
+    switch (gender) {
+      case 'male':
+        return 'Male';
+      case 'female':
+        return 'Female';
+      case 'other':
+        return 'Other';
+      default:
+        return '—';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
@@ -540,10 +613,41 @@ class _ProfileTab extends StatelessWidget {
                 textPrimary: textPrimary,
                 textSub: textSub,
                 rows: [
-                  _InfoRow(icon: Icons.tag_rounded, label: 'User ID', value: '#${user.id}'),
-                  _InfoRow(icon: Icons.alternate_email_rounded, label: 'Username', value: user.username),
-                  _InfoRow(icon: Icons.mail_outline_rounded, label: 'Email', value: user.email),
-                  _InfoRow(icon: Icons.person_outline_rounded, label: 'Full Name', value: user.fullName ?? '—'),
+                  _InfoRow(
+                    icon: Icons.tag_rounded,
+                    label: 'User ID',
+                    value: '#${user.id}',
+                  ),
+                  _InfoRow(
+                    icon: Icons.alternate_email_rounded,
+                    label: 'Username',
+                    value: user.username,
+                  ),
+                  _InfoRow(
+                    icon: Icons.mail_outline_rounded,
+                    label: 'Email',
+                    value: user.email,
+                  ),
+                  _InfoRow(
+                    icon: Icons.person_outline_rounded,
+                    label: 'Full Name',
+                    value: user.fullName ?? '—',
+                  ),
+                  _InfoRow(
+                    icon: Icons.cake_outlined,
+                    label: 'Age',
+                    value: user.age != null ? '${user.age} years' : '—',
+                  ),
+                  _InfoRow(
+                    icon: Icons.monitor_weight_outlined,
+                    label: 'Weight',
+                    value: user.weight != null ? '${user.weight} kg' : '—',
+                  ),
+                  _InfoRow(
+                    icon: Icons.wc_rounded,
+                    label: 'Gender',
+                    value: _genderLabel(user.gender),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -555,13 +659,39 @@ class _ProfileTab extends StatelessWidget {
                 textPrimary: textPrimary,
                 textSub: textSub,
                 rows: [
-                  _InfoRow(icon: Icons.cake_outlined, label: 'Age', value: user.age != null ? '${user.age} years' : '—'),
-                  _InfoRow(icon: Icons.monitor_weight_outlined, label: 'Weight', value: user.weight != null ? '${user.weight} kg' : '—'),
-                  _InfoRow(icon: Icons.local_fire_department_outlined, label: 'Calories', value: user.calorieTarget != null ? '${user.calorieTarget} kcal/day' : '—'),
-                  _InfoRow(icon: Icons.egg_outlined, label: 'Protein', value: user.proteinTarget != null ? '${user.proteinTarget} g/day' : '—'),
-                  _InfoRow(icon: Icons.grain_outlined, label: 'Carbs', value: user.carbTarget != null ? '${user.carbTarget} g/day' : '—'),
-                  _InfoRow(icon: Icons.water_drop_outlined, label: 'Fat', value: user.fatTarget != null ? '${user.fatTarget} g/day' : '—'),
-                  _InfoRow(icon: Icons.flag_outlined, label: 'Primary Goal', value: user.primaryGoal ?? '—'),
+                  _InfoRow(
+                    icon: Icons.local_fire_department_outlined,
+                    label: 'Calories (kcal/day)',
+                    value: user.calorieTarget != null
+                        ? '${user.calorieTarget} kcal/day'
+                        : '—',
+                  ),
+                  _InfoRow(
+                    icon: Icons.egg_outlined,
+                    label: 'Protein (g/day)',
+                    value: user.proteinTarget != null
+                        ? '${user.proteinTarget} g/day'
+                        : '—',
+                  ),
+                  _InfoRow(
+                    icon: Icons.grain_outlined,
+                    label: 'Carbs (g/day)',
+                    value: user.carbTarget != null
+                        ? '${user.carbTarget} g/day'
+                        : '—',
+                  ),
+                  _InfoRow(
+                    icon: Icons.water_drop_outlined,
+                    label: 'Fat (g/day)',
+                    value: user.fatTarget != null
+                        ? '${user.fatTarget} g/day'
+                        : '—',
+                  ),
+                  _InfoRow(
+                    icon: Icons.flag_outlined,
+                    label: 'Primary Goal',
+                    value: user.primaryGoal ?? '—',
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -576,21 +706,32 @@ class _ProfileTab extends StatelessWidget {
                 customChild: user.dietaryRestrictions.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Text('None specified', style: TextStyle(fontSize: 13, color: textSub)),
+                        child: Text(
+                          'None specified',
+                          style: TextStyle(fontSize: 13, color: textSub),
+                        ),
                       )
                     : Wrap(
                         spacing: 6,
                         runSpacing: 6,
                         children: user.dietaryRestrictions.map((tag) {
                           return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: kAdminAccent.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(999),
                             ),
-                            child: Text(tag,
-                                style: const TextStyle(
-                                    fontSize: 11.5, fontWeight: FontWeight.w600, color: kAdminAccent)),
+                            child: Text(
+                              tag,
+                              style: const TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: kAdminAccent,
+                              ),
+                            ),
                           );
                         }).toList(),
                       ),
@@ -602,18 +743,33 @@ class _ProfileTab extends StatelessWidget {
                     ? const SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFF43F5E)),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFFF43F5E),
+                        ),
                       )
                     : Icon(
-                        isActive ? Icons.block_rounded : Icons.check_circle_outline_rounded,
+                        isActive
+                            ? Icons.block_rounded
+                            : Icons.check_circle_outline_rounded,
                         size: 16,
                       ),
-                label: Text(isActive ? 'Deactivate Account' : 'Activate Account'),
+                label: Text(
+                  isActive ? 'Deactivate Account' : 'Activate Account',
+                ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: isActive ? const Color(0xFFF43F5E) : const Color(0xFF10B981),
-                  side: BorderSide(color: isActive ? const Color(0xFFF43F5E) : const Color(0xFF10B981)),
+                  foregroundColor: isActive
+                      ? const Color(0xFFF43F5E)
+                      : const Color(0xFF10B981),
+                  side: BorderSide(
+                    color: isActive
+                        ? const Color(0xFFF43F5E)
+                        : const Color(0xFF10B981),
+                  ),
                   minimumSize: const Size.fromHeight(44),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ]),
@@ -715,9 +871,16 @@ class _LazyRecipeListTabState extends State<_LazyRecipeListTab> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(widget.emptyIcon, size: 42, color: textSub.withValues(alpha: 0.35)),
+            Icon(
+              widget.emptyIcon,
+              size: 42,
+              color: textSub.withValues(alpha: 0.35),
+            ),
             const SizedBox(height: 10),
-            Text(widget.emptyMessage, style: TextStyle(fontSize: 13, color: textSub)),
+            Text(
+              widget.emptyMessage,
+              style: TextStyle(fontSize: 13, color: textSub),
+            ),
           ],
         ),
       );
@@ -733,7 +896,8 @@ class _LazyRecipeListTabState extends State<_LazyRecipeListTab> {
         return GestureDetector(
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => AdminRecipeDetailScreen(recipeId: r.id, isDarkMode: isDark),
+              builder: (_) =>
+                  AdminRecipeDetailScreen(recipeId: r.id, isDarkMode: isDark),
             ),
           ),
           child: Container(
@@ -759,7 +923,8 @@ class _LazyRecipeListTabState extends State<_LazyRecipeListTab> {
                           width: 42,
                           height: 42,
                           fit: BoxFit.cover,
-                          errorWidget: (ctx, err, st) => _RecipeThumbPlaceholder(recipeId: r.id),
+                          errorWidget: (ctx, err, st) =>
+                              _RecipeThumbPlaceholder(recipeId: r.id),
                         )
                       : _RecipeThumbPlaceholder(recipeId: r.id),
                 ),
@@ -770,7 +935,11 @@ class _LazyRecipeListTabState extends State<_LazyRecipeListTab> {
                     children: [
                       Text(
                         r.title,
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textPrimary),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: textPrimary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -778,7 +947,9 @@ class _LazyRecipeListTabState extends State<_LazyRecipeListTab> {
                       Row(
                         children: [
                           Icon(
-                            r.isPrivate ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            r.isPrivate
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
                             size: 11,
                             color: textSub,
                           ),
@@ -788,7 +959,10 @@ class _LazyRecipeListTabState extends State<_LazyRecipeListTab> {
                             style: TextStyle(fontSize: 11, color: textSub),
                           ),
                           const SizedBox(width: 10),
-                          Text('#${r.id}', style: TextStyle(fontSize: 11, color: textSub)),
+                          Text(
+                            '#${r.id}',
+                            style: TextStyle(fontSize: 11, color: textSub),
+                          ),
                         ],
                       ),
                     ],
@@ -861,7 +1035,11 @@ class _InfoCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textPrimary),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: textPrimary,
+                ),
               ),
             ],
           ),
@@ -879,9 +1057,16 @@ class _InfoCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 9),
                       child: Row(
                         children: [
-                          Icon(row.icon, size: 14, color: kAdminAccent.withValues(alpha: 0.7)),
+                          Icon(
+                            row.icon,
+                            size: 14,
+                            color: kAdminAccent.withValues(alpha: 0.7),
+                          ),
                           const SizedBox(width: 9),
-                          Text(row.label, style: TextStyle(fontSize: 12.5, color: textSub)),
+                          Text(
+                            row.label,
+                            style: TextStyle(fontSize: 12.5, color: textSub),
+                          ),
                           const Spacer(),
                           Flexible(
                             child: Text(
@@ -909,7 +1094,11 @@ class _InfoCard extends StatelessWidget {
 }
 
 class _InfoRow {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
   final String label;
