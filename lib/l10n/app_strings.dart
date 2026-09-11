@@ -501,6 +501,66 @@ class S {
   String get unableToUpdatePassword =>
       _vi ? 'Không thể cập nhật mật khẩu.' : 'Unable to update password.';
 
+  // Feedback
+  String get sendFeedbackLabel => _vi ? 'Gửi phản hồi' : 'Send Feedback';
+  String get feedbackPageTitle => _vi ? 'Gửi phản hồi' : 'Send Feedback';
+  String get feedbackCategoryLabel => _vi ? 'Danh mục' : 'Category';
+  String feedbackCategoryDisplay(String cat) {
+    if (!_vi) {
+      switch (cat) {
+        case 'bug': return 'Bug';
+        case 'feature': return 'Feature Request';
+        case 'general': return 'General';
+        case 'complaint': return 'Complaint';
+        default: return cat;
+      }
+    }
+    switch (cat) {
+      case 'bug': return 'Lỗi';
+      case 'feature': return 'Tính năng';
+      case 'general': return 'Chung';
+      case 'complaint': return 'Khiếu nại';
+      default: return cat;
+    }
+  }
+  String get feedbackRatingLabel => _vi ? 'Đánh giá (tùy chọn)' : 'Rating (optional)';
+  String get feedbackMessageLabel => _vi ? 'Nội dung' : 'Message';
+  String get feedbackMessagePlaceholder =>
+      _vi ? 'Mô tả vấn đề hoặc ý kiến của bạn…' : 'Describe your issue or suggestion…';
+  String get feedbackSubmitCta => _vi ? 'Gửi phản hồi' : 'Submit';
+  String get feedbackSubmitSuccess => _vi ? 'Đã gửi phản hồi!' : 'Feedback submitted!';
+  String get feedbackHistoryTitle => _vi ? 'Lịch sử phản hồi' : 'My Feedback';
+  String get feedbackNoneYet => _vi ? 'Chưa có phản hồi nào' : 'No feedback yet';
+  String get feedbackAdminReplyLabel => _vi ? 'Phản hồi từ admin' : 'Admin reply';
+  String feedbackStatusDisplay(String status) {
+    if (!_vi) {
+      switch (status) {
+        case 'open': return 'Open';
+        case 'in_progress': return 'In Progress';
+        case 'resolved': return 'Resolved';
+        default: return status;
+      }
+    }
+    switch (status) {
+      case 'open': return 'Mở';
+      case 'in_progress': return 'Đang xử lý';
+      case 'resolved': return 'Đã giải quyết';
+      default: return status;
+    }
+  }
+  String get chatLikeAction => _vi ? 'Thích' : 'Like';
+  String get chatReportAction => _vi ? 'Báo cáo' : 'Report';
+  String get chatReportTitle => _vi ? 'Báo cáo nội dung' : 'Report content';
+  String get chatReportSubmit => _vi ? 'Gửi báo cáo' : 'Submit report';
+  String get adminFeedbackTitle => _vi ? 'Phản hồi' : 'Feedback';
+  String get adminFeedbackStatusFieldLabel => _vi ? 'Trạng thái' : 'Status';
+  String get adminFeedbackReplyFieldLabel => _vi ? 'Phản hồi admin' : 'Admin reply';
+  String get adminFeedbackSaveCta => _vi ? 'Lưu thay đổi' : 'Save changes';
+  String get adminFeedbackSaveSuccess => _vi ? 'Đã lưu phản hồi!' : 'Feedback saved!';
+  String get addToPersonalRecipeButton => _vi ? 'Thêm vào công thức cá nhân' : 'Add to personal recipe';
+  String get savingRecipeLabel => _vi ? 'Đang lưu…' : 'Saving…';
+  String get savedToRecipesLabel => _vi ? 'Đã lưu vào công thức' : 'Saved to my recipes';
+
   // Primary goals display
   String goalDisplay(String goal) {
     if (!_vi) return goal;

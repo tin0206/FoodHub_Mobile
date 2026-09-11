@@ -1,4 +1,5 @@
 import 'package:foodhub_mobile/models/admin.dart';
+import 'package:foodhub_mobile/models/feedback.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/services/api_client.dart';
@@ -207,5 +208,36 @@ class AdminService {
   Future<UserModel> createUser(Map<String, dynamic> fields) async {
     final data = await _api.post('/admin/users', body: fields);
     return UserModel.fromJson(data as Map<String, dynamic>);
+  }
+
+  // ── Feedback ──────────────────────────────────────────────────────────────
+
+  Future<List<AdminFeedbackModel>> listFeedback({
+    int skip = 0,
+    int limit = 21,
+    String? status,
+    String? category,
+  }) async {
+    final query = <String, String>{
+      'skip': '$skip',
+      'limit': '$limit',
+      if (status != null && status.isNotEmpty) 'status': status,
+      if (category != null && category.isNotEmpty) 'category': category,
+    };
+    final data = await _api.get('/admin/feedback', query: query);
+    return (data as List)
+        .map((e) => AdminFeedbackModel.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  Future<AdminFeedbackModel> getFeedback(int id) async {
+    final data = await _api.get('/admin/feedback/$id');
+    return AdminFeedbackModel.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<AdminFeedbackModel> updateFeedback(
+      int id, Map<String, dynamic> fields) async {
+    final data = await _api.patch('/admin/feedback/$id', body: fields);
+    return AdminFeedbackModel.fromJson(data as Map<String, dynamic>);
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/user.dart';
+import 'package:foodhub_mobile/screens/feedback_screen.dart';
 import 'package:foodhub_mobile/screens/reset_password_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
@@ -883,6 +884,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.key_rounded,
               label: widget.user.isGoogleOnly ? s.setPasswordLabel : s.changePasswordLabel,
               onTap: _showChangePasswordSheet,
+              primaryText: _primaryText,
+              secondaryText: _secondaryText,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _SectionCard(
+            backgroundColor: _cardBackground,
+            child: _SecurityRow(
+              icon: Icons.forum_rounded,
+              label: s.sendFeedbackLabel,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const FeedbackScreen()),
+              ),
               primaryText: _primaryText,
               secondaryText: _secondaryText,
             ),

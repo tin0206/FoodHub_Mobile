@@ -3,6 +3,7 @@ import 'package:foodhub_mobile/config/app_theme.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/screens/admin/admin_analytics_screen.dart';
+import 'package:foodhub_mobile/screens/admin/admin_feedback_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_overview_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_recipes_screen.dart';
 import 'package:foodhub_mobile/screens/admin/admin_users_screen.dart';
@@ -85,6 +86,7 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
       AdminAnalyticsScreen(isDarkMode: isDark),
       AdminRecipesScreen(isDarkMode: isDark),
       AdminUsersScreen(isDarkMode: isDark),
+      AdminFeedbackScreen(isDarkMode: isDark),
       ProfileScreen(
         user: widget.user,
         isDarkMode: isDark,
@@ -113,6 +115,7 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
       (Icons.bar_chart_rounded, Icons.bar_chart_outlined, 'Analytics'),
       (Icons.menu_book_rounded, Icons.menu_book_outlined, 'Recipes'),
       (Icons.people_rounded, Icons.people_outline_rounded, 'Users'),
+      (Icons.forum_rounded, Icons.forum_outlined, 'Feedback'),
     ];
 
     return Theme(
@@ -124,7 +127,7 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
               user: widget.user,
               isDarkMode: isDark,
               onSwitchToApp: _switchToApp,
-              onOpenProfile: () => setState(() => _tab = 4),
+              onOpenProfile: () => setState(() => _tab = 5),
             ),
             Expanded(
               child: IndexedStack(index: _tab, children: screens),

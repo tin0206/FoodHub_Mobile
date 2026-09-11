@@ -7,6 +7,7 @@ import 'package:foodhub_mobile/models/ai.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/ai_service.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
+import 'package:foodhub_mobile/services/feedback_service.dart';
 import 'package:foodhub_mobile/services/favorite_service.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/ai_capture_overlay.dart';
@@ -115,6 +116,7 @@ class _RecsScreenState extends State<RecsScreen> {
             isUser: false,
             recipes: response.recipes,
             options: response.options,
+            isWelcome: true,
           ),
         );
         if (response.reply.isNotEmpty) {
@@ -132,7 +134,10 @@ class _RecsScreenState extends State<RecsScreen> {
       setState(() {
         _sessionId = sessionId;
         _messages.add(
-          _ChatMessage(text: S.of(context).unableToReachAi, isUser: false),
+          _ChatMessage(
+              text: S.of(context).unableToReachAi,
+              isUser: false,
+              isWelcome: true),
         );
         _isBootstrapping = false;
       });
@@ -1327,12 +1332,14 @@ class _ChatMessage {
     required this.isUser,
     this.recipes = const [],
     this.options = const [],
+    this.isWelcome = false,
   });
 
   final String text;
   final bool isUser;
   final List<RagRecipeModel> recipes;
   final List<ChatOptionModel> options;
+  final bool isWelcome;
   int? savedRecipeId;
 }
 
@@ -1592,6 +1599,14 @@ class _ChatBubble extends StatelessWidget {
               onAdd: onAddRecipe,
             ),
           ),
+        if (!message.isUser && !message.isWelcome)
+          Padding(
+            padding: const EdgeInsets.only(left: 38, top: 6),
+            child: _MessageActionsRow(
+              text: message.text,
+              isDarkMode: isDarkMode,
+            ),
+          ),
       ],
     );
   }
@@ -1648,10 +1663,10 @@ class _AddRecipeFromChatButton extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               isSaving
-                  ? 'Saving…'
+                  ? S.of(context).savingRecipeLabel
                   : isSaved
-                      ? 'Saved to my recipes'
-                      : 'Add to my recipes',
+                      ? S.of(context).savedToRecipesLabel
+                      : S.of(context).addToPersonalRecipeButton,
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
@@ -2255,5 +2270,296 @@ class _SessionTile extends StatelessWidget {
     if (diff.inDays == 1) return 'Yesterday';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return '${date.day}/${date.month}';
+  }
+}
+
+// ── Like / Report actions row ──────────────────────────────────────────────
+
+class _MessageActionsRow extends StatefulWidget {
+  const _MessageActionsRow({
+    required this.text,
+    required this.isDarkMode,
+  });
+
+  final String text;
+  final bool isDarkMode;
+
+  @override
+  State<_MessageActionsRow> createState() => _MessageActionsRowState();
+}
+
+class _MessageActionsRowState extends State<_MessageActionsRow> {
+  final _service = FeedbackService();
+
+  bool _liked = false;
+  bool _likeSending = false;
+
+  bool _reportOpen = false;
+  String _reportCategory = 'complaint';
+  final _reportCtrl = TextEditingController();
+  bool _reportSending = false;
+  bool _reportDone = false;
+
+  @override
+  void dispose() {
+    _reportCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onLike() async {
+    if (_liked || _likeSending) return;
+    setState(() => _likeSending = true);
+    try {
+      await _service.submitFeedback(
+        category: 'general',
+        message: 'Liked AI response: ${widget.text.substring(0, widget.text.length.clamp(0, 200))}',
+        rating: 5,
+      );
+      if (!mounted) return;
+      setState(() { _liked = true; _likeSending = false; });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _likeSending = false);
+    }
+  }
+
+  Future<void> _onReportSubmit() async {
+    if (_reportSending) return;
+    setState(() => _reportSending = true);
+    try {
+      await _service.submitFeedback(
+        category: _reportCategory,
+        message: _reportCtrl.text.trim().isNotEmpty
+            ? _reportCtrl.text.trim()
+            : 'Reported AI response: ${widget.text.substring(0, widget.text.length.clamp(0, 200))}',
+      );
+      if (!mounted) return;
+      setState(() { _reportSending = false; _reportDone = true; _reportOpen = false; });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _reportSending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDarkMode;
+    final textSub = isDark ? const Color(0xFF64748B) : const Color(0xFF9CA3AF);
+    final chipBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
+    final s = S.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Action row
+        Row(
+          children: [
+            _ActionBtn(
+              icon: _liked ? Icons.thumb_up_rounded : Icons.thumb_up_outlined,
+              label: s.chatLikeAction,
+              active: _liked,
+              loading: _likeSending,
+              color: const Color(0xFF059669),
+              isDark: isDark,
+              onTap: _onLike,
+            ),
+            const SizedBox(width: 6),
+            if (!_reportDone)
+              _ActionBtn(
+                icon: _reportOpen
+                    ? Icons.flag_rounded
+                    : Icons.flag_outlined,
+                label: s.chatReportAction,
+                active: _reportOpen,
+                loading: false,
+                color: const Color(0xFFF43F5E),
+                isDark: isDark,
+                onTap: () => setState(() => _reportOpen = !_reportOpen),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text('Report sent', style: TextStyle(fontSize: 11, color: textSub)),
+              ),
+          ],
+        ),
+
+        // Inline report panel
+        if (_reportOpen) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: chipBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s.chatReportTitle,
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827))),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: ['complaint', 'bug'].map((cat) {
+                    final sel = _reportCategory == cat;
+                    return GestureDetector(
+                      onTap: () => setState(() => _reportCategory = cat),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: sel
+                              ? const Color(0xFFF43F5E).withValues(alpha: isDark ? 0.22 : 0.12)
+                              : (isDark ? const Color(0xFF2A2A2A) : Colors.white),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: sel
+                                ? const Color(0xFFF43F5E).withValues(alpha: 0.7)
+                                : Colors.transparent,
+                            width: 1.3,
+                          ),
+                        ),
+                        child: Text(
+                          s.feedbackCategoryDisplay(cat),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: sel
+                                ? const Color(0xFFF43F5E)
+                                : textSub,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _reportCtrl,
+                  minLines: 2,
+                  maxLines: 3,
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827)),
+                  decoration: InputDecoration(
+                    hintText: 'Optional note…',
+                    hintStyle: TextStyle(fontSize: 12, color: textSub),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF141414) : Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => setState(() => _reportOpen = false),
+                      style: TextButton.styleFrom(
+                        foregroundColor: textSub,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        minimumSize: Size.zero,
+                      ),
+                      child: const Text('Cancel', style: TextStyle(fontSize: 12)),
+                    ),
+                    const SizedBox(width: 6),
+                    FilledButton(
+                      onPressed: _reportSending ? null : _onReportSubmit,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFF43F5E),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        minimumSize: Size.zero,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: _reportSending
+                          ? const SizedBox(
+                              width: 12, height: 12,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : Text(s.chatReportSubmit,
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ActionBtn extends StatelessWidget {
+  const _ActionBtn({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.loading,
+    required this.color,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final bool loading;
+  final Color color;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textSub = isDark ? const Color(0xFF64748B) : const Color(0xFF9CA3AF);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: active
+              ? color.withValues(alpha: isDark ? 0.18 : 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (loading)
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                    strokeWidth: 1.5, color: active ? color : textSub),
+              )
+            else
+              Icon(icon, size: 14, color: active ? color : textSub),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: active ? color : textSub,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
