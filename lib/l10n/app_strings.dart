@@ -429,7 +429,7 @@ class S {
       _vi ? 'Đặt mục tiêu dinh dưỡng' : 'Set your dietary objectives';
   String get primaryGoalLabel => _vi ? 'Mục tiêu chính' : 'Primary Goal';
   String get dailyCalorieTarget =>
-      _vi ? 'Calories mục tiêu (kcal/ngày)' : 'Target Calories (kcal/day)';
+      _vi ? 'Calories mục tiêu (cal/ngày)' : 'Target Calories (cal/day)';
   String get targetProtein =>
       _vi ? 'Protein mục tiêu (g/ngày)' : 'Target Protein (g/day)';
   String get targetCarb =>
@@ -508,58 +508,87 @@ class S {
   String feedbackCategoryDisplay(String cat) {
     if (!_vi) {
       switch (cat) {
-        case 'bug': return 'Bug';
-        case 'feature': return 'Feature Request';
-        case 'general': return 'General';
-        case 'complaint': return 'Complaint';
-        default: return cat;
+        case 'bug':
+          return 'Bug';
+        case 'feature':
+          return 'Feature Request';
+        case 'general':
+          return 'General';
+        case 'complaint':
+          return 'Complaint';
+        default:
+          return cat;
       }
     }
     switch (cat) {
-      case 'bug': return 'Lỗi';
-      case 'feature': return 'Tính năng';
-      case 'general': return 'Chung';
-      case 'complaint': return 'Khiếu nại';
-      default: return cat;
+      case 'bug':
+        return 'Lỗi';
+      case 'feature':
+        return 'Tính năng';
+      case 'general':
+        return 'Chung';
+      case 'complaint':
+        return 'Khiếu nại';
+      default:
+        return cat;
     }
   }
-  String get feedbackRatingLabel => _vi ? 'Đánh giá (tùy chọn)' : 'Rating (optional)';
+
+  String get feedbackRatingLabel =>
+      _vi ? 'Đánh giá (tùy chọn)' : 'Rating (optional)';
   String get feedbackMessageLabel => _vi ? 'Nội dung' : 'Message';
-  String get feedbackMessagePlaceholder =>
-      _vi ? 'Mô tả vấn đề hoặc ý kiến của bạn…' : 'Describe your issue or suggestion…';
+  String get feedbackMessagePlaceholder => _vi
+      ? 'Mô tả vấn đề hoặc ý kiến của bạn…'
+      : 'Describe your issue or suggestion…';
   String get feedbackSubmitCta => _vi ? 'Gửi phản hồi' : 'Submit';
-  String get feedbackSubmitSuccess => _vi ? 'Đã gửi phản hồi!' : 'Feedback submitted!';
+  String get feedbackSubmitSuccess =>
+      _vi ? 'Đã gửi phản hồi!' : 'Feedback submitted!';
   String get feedbackHistoryTitle => _vi ? 'Lịch sử phản hồi' : 'My Feedback';
-  String get feedbackNoneYet => _vi ? 'Chưa có phản hồi nào' : 'No feedback yet';
-  String get feedbackAdminReplyLabel => _vi ? 'Phản hồi từ admin' : 'Admin reply';
+  String get feedbackNoneYet =>
+      _vi ? 'Chưa có phản hồi nào' : 'No feedback yet';
+  String get feedbackAdminReplyLabel =>
+      _vi ? 'Phản hồi từ admin' : 'Admin reply';
   String feedbackStatusDisplay(String status) {
     if (!_vi) {
       switch (status) {
-        case 'open': return 'Open';
-        case 'in_progress': return 'In Progress';
-        case 'resolved': return 'Resolved';
-        default: return status;
+        case 'open':
+          return 'Open';
+        case 'in_progress':
+          return 'In Progress';
+        case 'resolved':
+          return 'Resolved';
+        default:
+          return status;
       }
     }
     switch (status) {
-      case 'open': return 'Mở';
-      case 'in_progress': return 'Đang xử lý';
-      case 'resolved': return 'Đã giải quyết';
-      default: return status;
+      case 'open':
+        return 'Mở';
+      case 'in_progress':
+        return 'Đang xử lý';
+      case 'resolved':
+        return 'Đã giải quyết';
+      default:
+        return status;
     }
   }
+
   String get chatLikeAction => _vi ? 'Thích' : 'Like';
   String get chatReportAction => _vi ? 'Báo cáo' : 'Report';
   String get chatReportTitle => _vi ? 'Báo cáo nội dung' : 'Report content';
   String get chatReportSubmit => _vi ? 'Gửi báo cáo' : 'Submit report';
   String get adminFeedbackTitle => _vi ? 'Phản hồi' : 'Feedback';
   String get adminFeedbackStatusFieldLabel => _vi ? 'Trạng thái' : 'Status';
-  String get adminFeedbackReplyFieldLabel => _vi ? 'Phản hồi admin' : 'Admin reply';
+  String get adminFeedbackReplyFieldLabel =>
+      _vi ? 'Phản hồi admin' : 'Admin reply';
   String get adminFeedbackSaveCta => _vi ? 'Lưu thay đổi' : 'Save changes';
-  String get adminFeedbackSaveSuccess => _vi ? 'Đã lưu phản hồi!' : 'Feedback saved!';
-  String get addToPersonalRecipeButton => _vi ? 'Thêm vào công thức cá nhân' : 'Add to personal recipe';
+  String get adminFeedbackSaveSuccess =>
+      _vi ? 'Đã lưu phản hồi!' : 'Feedback saved!';
+  String get addToPersonalRecipeButton =>
+      _vi ? 'Thêm vào công thức cá nhân' : 'Add to personal recipe';
   String get savingRecipeLabel => _vi ? 'Đang lưu…' : 'Saving…';
-  String get savedToRecipesLabel => _vi ? 'Đã lưu vào công thức' : 'Saved to my recipes';
+  String get savedToRecipesLabel =>
+      _vi ? 'Đã lưu vào công thức' : 'Saved to my recipes';
 
   // Primary goals display
   String goalDisplay(String goal) {

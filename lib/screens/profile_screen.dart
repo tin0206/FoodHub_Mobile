@@ -95,7 +95,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _fatError;
 
   final _scrollController = ScrollController();
-  void _onFieldChanged() { if (mounted) setState(() {}); }
+  void _onFieldChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void initState() {
@@ -104,14 +106,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _pendingDarkMode = widget.isDarkMode;
     _pendingLanguage = widget.language;
     _pendingGender = _snapGender;
-    _fullNameController = TextEditingController(text: _snapFullName)..addListener(_onFieldChanged);
+    _fullNameController = TextEditingController(text: _snapFullName)
+      ..addListener(_onFieldChanged);
     _emailController = TextEditingController(text: _snapEmail);
-    _ageController = TextEditingController(text: _snapAge)..addListener(_onFieldChanged);
-    _weightController = TextEditingController(text: _snapWeight)..addListener(_onFieldChanged);
-    _calorieTargetController = TextEditingController(text: _snapCalorie)..addListener(_onFieldChanged);
-    _proteinTargetController = TextEditingController(text: _snapProtein)..addListener(_onFieldChanged);
-    _carbTargetController = TextEditingController(text: _snapCarb)..addListener(_onFieldChanged);
-    _fatTargetController = TextEditingController(text: _snapFat)..addListener(_onFieldChanged);
+    _ageController = TextEditingController(text: _snapAge)
+      ..addListener(_onFieldChanged);
+    _weightController = TextEditingController(text: _snapWeight)
+      ..addListener(_onFieldChanged);
+    _calorieTargetController = TextEditingController(text: _snapCalorie)
+      ..addListener(_onFieldChanged);
+    _proteinTargetController = TextEditingController(text: _snapProtein)
+      ..addListener(_onFieldChanged);
+    _carbTargetController = TextEditingController(text: _snapCarb)
+      ..addListener(_onFieldChanged);
+    _fatTargetController = TextEditingController(text: _snapFat)
+      ..addListener(_onFieldChanged);
   }
 
   @override
@@ -160,7 +169,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_pendingDarkMode != (_snapTheme == 'dark')) return true;
     final userDiet = widget.user.dietaryRestrictions.toSet();
     if (widget.selectedDietaryRestrictions.length != userDiet.length ||
-        !widget.selectedDietaryRestrictions.containsAll(userDiet)) return true;
+        !widget.selectedDietaryRestrictions.containsAll(userDiet))
+      return true;
     if (widget.primaryGoal != (widget.user.primaryGoal ?? '')) return true;
     return false;
   }
@@ -243,8 +253,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _fatError = fatErr;
     });
 
-    if (ageErr != null || weightErr != null || calorieErr != null ||
-        proteinErr != null || carbErr != null || fatErr != null) {
+    if (ageErr != null ||
+        weightErr != null ||
+        calorieErr != null ||
+        proteinErr != null ||
+        carbErr != null ||
+        fatErr != null) {
       return;
     }
 
@@ -347,10 +361,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _cancelChanges() {
     // Reset dietary restrictions to original
     final originalDiet = widget.user.dietaryRestrictions.toSet();
-    for (final tag in widget.selectedDietaryRestrictions.difference(originalDiet)) {
+    for (final tag in widget.selectedDietaryRestrictions.difference(
+      originalDiet,
+    )) {
       widget.onDietaryRestrictionToggled(tag, false);
     }
-    for (final tag in originalDiet.difference(widget.selectedDietaryRestrictions)) {
+    for (final tag in originalDiet.difference(
+      widget.selectedDietaryRestrictions,
+    )) {
       widget.onDietaryRestrictionToggled(tag, true);
     }
 
@@ -413,519 +431,602 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: ListView(
             controller: _scrollController,
             padding: EdgeInsets.fromLTRB(8, 8, 8, _hasChanges ? 90 : 14),
-        children: [
-          // ── Avatar card ─────────────────────────────────────────────────
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            decoration: BoxDecoration(
-              color: _cardBackground,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.4 : 0.06),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 68,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF059669), Color(0xFF047857)],
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF059669).withValues(alpha: 0.35),
-                        blurRadius: 14,
-                        offset: const Offset(0, 4),
+            children: [
+              // ── Avatar card ─────────────────────────────────────────────────
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                decoration: BoxDecoration(
+                  color: _cardBackground,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: widget.isDarkMode ? 0.4 : 0.06,
                       ),
-                    ],
-                  ),
-                  child: const Icon(Icons.person_rounded, color: Colors.white, size: 32),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  _fullNameController.text.isNotEmpty
-                      ? _fullNameController.text
-                      : s.yourProfile,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: _primaryText,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _emailController.text.isNotEmpty
-                      ? _emailController.text
-                      : s.settingsPreferences,
-                  style: TextStyle(color: _secondaryText, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // ── Appearance ──────────────────────────────────────────────────
-          _SectionCard(
-            backgroundColor: _cardBackground,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  s.appearance,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _primaryText),
-                ),
-                const SizedBox(height: 6),
-                // Theme toggle
-                Row(
+                child: Column(
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(s.themeLabel, style: TextStyle(fontSize: 13, color: _primaryText)),
-                          const SizedBox(height: 1),
-                          Text(
-                            _pendingDarkMode ? s.darkMode : s.lightMode,
-                            style: TextStyle(fontSize: 11, color: _secondaryText),
+                    Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF059669), Color(0xFF047857)],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF059669,
+                            ).withValues(alpha: 0.35),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                    ),
-                    Transform.scale(
-                      scale: 0.9,
-                      child: Switch(
-                        value: _pendingDarkMode,
-                        onChanged: (v) => setState(() => _pendingDarkMode = v),
-                        activeThumbColor: const Color(0xFFF59E0B),
-                        activeTrackColor: const Color(0xFF10B981),
-                        inactiveThumbColor: const Color(0xFFE5E7EB),
-                        inactiveTrackColor: widget.isDarkMode
-                            ? const Color(0xFF2A2A2A)
-                            : const Color(0xFFF3F4F6),
-                        trackOutlineColor: WidgetStatePropertyAll(
-                          widget.isDarkMode
-                              ? const Color(0xFF3A3A3A)
-                              : const Color(0xFFD1D5DB),
-                        ),
+                      child: const Icon(
+                        Icons.person_rounded,
+                        color: Colors.white,
+                        size: 32,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Divider(height: 1, color: _fieldBorder),
-                const SizedBox(height: 10),
-                // Language selector
-                Text(s.languageLabel, style: TextStyle(fontSize: 13, color: _primaryText)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _LangOption(
-                      label: s.langVietnamese,
-                      flag: '🇻🇳',
-                      isSelected: _pendingLanguage == 'vi',
-                      isDarkMode: widget.isDarkMode,
-                      onTap: () => _selectLanguage('vi'),
+                    const SizedBox(height: 10),
+                    Text(
+                      _fullNameController.text.isNotEmpty
+                          ? _fullNameController.text
+                          : s.yourProfile,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: _primaryText,
+                        letterSpacing: -0.2,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    _LangOption(
-                      label: s.langEnglish,
-                      flag: '🇺🇸',
-                      isSelected: _pendingLanguage == 'en',
-                      isDarkMode: widget.isDarkMode,
-                      onTap: () => _selectLanguage('en'),
+                    const SizedBox(height: 2),
+                    Text(
+                      _emailController.text.isNotEmpty
+                          ? _emailController.text
+                          : s.settingsPreferences,
+                      style: TextStyle(color: _secondaryText, fontSize: 12),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
+              ),
+              const SizedBox(height: 10),
 
-          // ── Personal Information ────────────────────────────────────────
-          _SectionCard(
-            backgroundColor: _cardBackground,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _SectionHeader(
-                  badgeBackground: widget.isDarkMode
-                      ? const Color(0xFF16A34A).withValues(alpha: 0.18)
-                      : const Color(0xFFDCFCE7),
-                  icon: Icons.person_outline,
-                  iconColor: widget.isDarkMode
-                      ? const Color(0xFF4ADE80)
-                      : const Color(0xFF16A34A),
-                  title: s.personalInformation,
-                  subtitle: s.updateProfileDetails,
-                  primaryText: _primaryText,
-                  secondaryText: _secondaryText,
-                ),
-                const SizedBox(height: 10),
-                Row(
+              // ── Appearance ──────────────────────────────────────────────────
+              _SectionCard(
+                backgroundColor: _cardBackground,
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: _LabeledField(
-                        label: s.fullNameLabel,
-                        controller: _fullNameController,
-                        secondaryText: _secondaryText,
-                        fillColor: _fieldFill,
-                        borderColor: _fieldBorder,
-                        isDarkMode: widget.isDarkMode,
+                    Text(
+                      s.appearance,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: _primaryText,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _LabeledField(
-                        label: s.emailLabel,
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        readOnly: true,
-                        secondaryText: _secondaryText,
-                        fillColor: _fieldFill,
-                        borderColor: _fieldBorder,
-                        isDarkMode: widget.isDarkMode,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _LabeledField(
-                        label: s.ageLabel,
-                        controller: _ageController,
-                        keyboardType: TextInputType.number,
-                        hintText: 'e.g. 28',
-                        errorText: _ageError,
-                        secondaryText: _secondaryText,
-                        fillColor: _fieldFill,
-                        borderColor: _fieldBorder,
-                        isDarkMode: widget.isDarkMode,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _LabeledField(
-                        label: s.weightLabel,
-                        controller: _weightController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        hintText: 'e.g. 75',
-                        errorText: _weightError,
-                        secondaryText: _secondaryText,
-                        fillColor: _fieldFill,
-                        borderColor: _fieldBorder,
-                        isDarkMode: widget.isDarkMode,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(s.genderLabel, style: TextStyle(fontSize: 11, color: _secondaryText)),
-                const SizedBox(height: 6),
-                Row(
-                  children: ['male', 'female', 'other'].asMap().entries.map((e) {
-                    final g = e.value;
-                    final isSelected = _pendingGender == g;
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: e.key < 2 ? 7 : 0),
-                        child: GestureDetector(
-                          onTap: () => setState(
-                            () => _pendingGender = isSelected ? '' : g,
+                    const SizedBox(height: 6),
+                    // Theme toggle
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                s.themeLabel,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: _primaryText,
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                _pendingDarkMode ? s.darkMode : s.lightMode,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: _secondaryText,
+                                ),
+                              ),
+                            ],
                           ),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(vertical: 9),
+                        ),
+                        Transform.scale(
+                          scale: 0.9,
+                          child: Switch(
+                            value: _pendingDarkMode,
+                            onChanged: (v) =>
+                                setState(() => _pendingDarkMode = v),
+                            activeThumbColor: const Color(0xFFF59E0B),
+                            activeTrackColor: const Color(0xFF10B981),
+                            inactiveThumbColor: const Color(0xFFE5E7EB),
+                            inactiveTrackColor: widget.isDarkMode
+                                ? const Color(0xFF2A2A2A)
+                                : const Color(0xFFF3F4F6),
+                            trackOutlineColor: WidgetStatePropertyAll(
+                              widget.isDarkMode
+                                  ? const Color(0xFF3A3A3A)
+                                  : const Color(0xFFD1D5DB),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Divider(height: 1, color: _fieldBorder),
+                    const SizedBox(height: 10),
+                    // Language selector
+                    Text(
+                      s.languageLabel,
+                      style: TextStyle(fontSize: 13, color: _primaryText),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _LangOption(
+                          label: s.langVietnamese,
+                          flag: '🇻🇳',
+                          isSelected: _pendingLanguage == 'vi',
+                          isDarkMode: widget.isDarkMode,
+                          onTap: () => _selectLanguage('vi'),
+                        ),
+                        const SizedBox(width: 8),
+                        _LangOption(
+                          label: s.langEnglish,
+                          flag: '🇺🇸',
+                          isSelected: _pendingLanguage == 'en',
+                          isDarkMode: widget.isDarkMode,
+                          onTap: () => _selectLanguage('en'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // ── Personal Information ────────────────────────────────────────
+              _SectionCard(
+                backgroundColor: _cardBackground,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SectionHeader(
+                      badgeBackground: widget.isDarkMode
+                          ? const Color(0xFF16A34A).withValues(alpha: 0.18)
+                          : const Color(0xFFDCFCE7),
+                      icon: Icons.person_outline,
+                      iconColor: widget.isDarkMode
+                          ? const Color(0xFF4ADE80)
+                          : const Color(0xFF16A34A),
+                      title: s.personalInformation,
+                      subtitle: s.updateProfileDetails,
+                      primaryText: _primaryText,
+                      secondaryText: _secondaryText,
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _LabeledField(
+                            label: s.fullNameLabel,
+                            controller: _fullNameController,
+                            secondaryText: _secondaryText,
+                            fillColor: _fieldFill,
+                            borderColor: _fieldBorder,
+                            isDarkMode: widget.isDarkMode,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _LabeledField(
+                            label: s.emailLabel,
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            readOnly: true,
+                            secondaryText: _secondaryText,
+                            fillColor: _fieldFill,
+                            borderColor: _fieldBorder,
+                            isDarkMode: widget.isDarkMode,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _LabeledField(
+                            label: s.ageLabel,
+                            controller: _ageController,
+                            keyboardType: TextInputType.number,
+                            hintText: 'e.g. 28',
+                            errorText: _ageError,
+                            secondaryText: _secondaryText,
+                            fillColor: _fieldFill,
+                            borderColor: _fieldBorder,
+                            isDarkMode: widget.isDarkMode,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _LabeledField(
+                            label: s.weightLabel,
+                            controller: _weightController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            hintText: 'e.g. 75',
+                            errorText: _weightError,
+                            secondaryText: _secondaryText,
+                            fillColor: _fieldFill,
+                            borderColor: _fieldBorder,
+                            isDarkMode: widget.isDarkMode,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      s.genderLabel,
+                      style: TextStyle(fontSize: 11, color: _secondaryText),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: ['male', 'female', 'other'].asMap().entries.map(
+                        (e) {
+                          final g = e.value;
+                          final isSelected = _pendingGender == g;
+                          return Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                right: e.key < 2 ? 7 : 0,
+                              ),
+                              child: GestureDetector(
+                                onTap: () => setState(
+                                  () => _pendingGender = isSelected ? '' : g,
+                                ),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 9,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? (widget.isDarkMode
+                                              ? const Color(
+                                                  0xFF059669,
+                                                ).withValues(alpha: 0.22)
+                                              : const Color(0xFFDCFCE7))
+                                        : _fieldFill,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: isSelected
+                                        ? Border.all(
+                                            color: const Color(
+                                              0xFF059669,
+                                            ).withValues(alpha: 0.6),
+                                          )
+                                        : Border.all(color: _fieldBorder),
+                                  ),
+                                  child: Text(
+                                    s.genderDisplay(g),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: isSelected
+                                          ? (widget.isDarkMode
+                                                ? const Color(0xFF4ADE80)
+                                                : const Color(0xFF16A34A))
+                                          : _secondaryText,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // ── Nutrition Goals ─────────────────────────────────────────────
+              _SectionCard(
+                backgroundColor: _cardBackground,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SectionHeader(
+                      badgeBackground: widget.isDarkMode
+                          ? const Color(0xFFA855F7).withValues(alpha: 0.18)
+                          : const Color(0xFFF3E8FF),
+                      icon: Icons.adjust,
+                      iconColor: widget.isDarkMode
+                          ? const Color(0xFFC084FC)
+                          : const Color(0xFFA855F7),
+                      title: s.nutritionGoals,
+                      subtitle: s.setDietaryObjectives,
+                      primaryText: _primaryText,
+                      secondaryText: _secondaryText,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      s.primaryGoalLabel,
+                      style: TextStyle(fontSize: 11, color: _secondaryText),
+                    ),
+                    const SizedBox(height: 6),
+                    GridView.count(
+                      padding: EdgeInsets.zero,
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                      childAspectRatio: 4,
+                      children: kPrimaryGoals.map((goal) {
+                        final isSelected = widget.primaryGoal == goal;
+                        return GestureDetector(
+                          onTap: () => widget.onPrimaryGoalChanged(
+                            isSelected ? '' : goal,
+                          ),
+                          child: Container(
+                            alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? (widget.isDarkMode
-                                      ? const Color(0xFF059669).withValues(alpha: 0.22)
-                                      : const Color(0xFFDCFCE7))
-                                  : _fieldFill,
+                                        ? const Color(
+                                            0xFF059669,
+                                          ).withValues(alpha: 0.22)
+                                        : const Color(0xFFD1FAE5))
+                                  : (widget.isDarkMode
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.white),
                               borderRadius: BorderRadius.circular(8),
                               border: isSelected
-                                  ? Border.all(color: const Color(0xFF059669).withValues(alpha: 0.6))
-                                  : Border.all(color: _fieldBorder),
+                                  ? Border.all(
+                                      color: const Color(0xFF059669),
+                                      width: 1.5,
+                                    )
+                                  : null,
+                              boxShadow: isSelected
+                                  ? null
+                                  : [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: widget.isDarkMode ? 0.3 : 0.06,
+                                        ),
+                                        blurRadius: widget.isDarkMode ? 8 : 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                             ),
                             child: Text(
-                              s.genderDisplay(g),
+                              s.goalDisplay(goal),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 12,
-                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                fontWeight: FontWeight.w600,
                                 color: isSelected
-                                    ? (widget.isDarkMode ? const Color(0xFF4ADE80) : const Color(0xFF16A34A))
+                                    ? (widget.isDarkMode
+                                          ? const Color(0xFF4ADE80)
+                                          : const Color(0xFF065F46))
+                                    : _primaryText,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _LabeledField(
+                            label: s.dailyCalorieTarget,
+                            controller: _calorieTargetController,
+                            keyboardType: TextInputType.number,
+                            errorText: _calorieError,
+                            suffixText: 'cal/day',
+                            secondaryText: _secondaryText,
+                            fillColor: _fieldFill,
+                            borderColor: _fieldBorder,
+                            isDarkMode: widget.isDarkMode,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _LabeledField(
+                            label: s.targetProtein,
+                            controller: _proteinTargetController,
+                            keyboardType: TextInputType.number,
+                            errorText: _proteinError,
+                            suffixText: 'g/day',
+                            secondaryText: _secondaryText,
+                            fillColor: _fieldFill,
+                            borderColor: _fieldBorder,
+                            isDarkMode: widget.isDarkMode,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _LabeledField(
+                            label: s.targetCarb,
+                            controller: _carbTargetController,
+                            keyboardType: TextInputType.number,
+                            errorText: _carbError,
+                            suffixText: 'g/day',
+                            secondaryText: _secondaryText,
+                            fillColor: _fieldFill,
+                            borderColor: _fieldBorder,
+                            isDarkMode: widget.isDarkMode,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _LabeledField(
+                            label: s.targetFat,
+                            controller: _fatTargetController,
+                            keyboardType: TextInputType.number,
+                            errorText: _fatError,
+                            suffixText: 'g/day',
+                            secondaryText: _secondaryText,
+                            fillColor: _fieldFill,
+                            borderColor: _fieldBorder,
+                            isDarkMode: widget.isDarkMode,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      s.dietaryRestrictionsLabel,
+                      style: TextStyle(fontSize: 10.5, color: _secondaryText),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: kDietaryTags.map((tag) {
+                        final isSelected = widget.selectedDietaryRestrictions
+                            .contains(tag);
+                        return GestureDetector(
+                          onTap: () => widget.onDietaryRestrictionToggled(
+                            tag,
+                            !isSelected,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? (widget.isDarkMode
+                                        ? const Color(
+                                            0xFF10B981,
+                                          ).withValues(alpha: 0.22)
+                                        : const Color(0xFFD1FAE5))
+                                  : (widget.isDarkMode
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.white),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFF10B981)
+                                    : Colors.transparent,
+                                width: 1.5,
+                              ),
+                              boxShadow: isSelected
+                                  ? null
+                                  : [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: widget.isDarkMode ? 0.3 : 0.06,
+                                        ),
+                                        blurRadius: widget.isDarkMode ? 8 : 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                            ),
+                            child: Text(
+                              s.dietaryTagDisplay(tag),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isSelected
+                                    ? (widget.isDarkMode
+                                          ? const Color(0xFF4ADE80)
+                                          : const Color(0xFF065F46))
                                     : _secondaryText,
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
+              ),
+              const SizedBox(height: 10),
 
-          // ── Nutrition Goals ─────────────────────────────────────────────
-          _SectionCard(
-            backgroundColor: _cardBackground,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _SectionHeader(
-                  badgeBackground: widget.isDarkMode
-                      ? const Color(0xFFA855F7).withValues(alpha: 0.18)
-                      : const Color(0xFFF3E8FF),
-                  icon: Icons.adjust,
-                  iconColor: widget.isDarkMode
-                      ? const Color(0xFFC084FC)
-                      : const Color(0xFFA855F7),
-                  title: s.nutritionGoals,
-                  subtitle: s.setDietaryObjectives,
+              // ── Security ────────────────────────────────────────────────────
+              _SectionCard(
+                backgroundColor: _cardBackground,
+                child: _SecurityRow(
+                  icon: Icons.key_rounded,
+                  label: widget.user.isGoogleOnly
+                      ? s.setPasswordLabel
+                      : s.changePasswordLabel,
+                  onTap: _showChangePasswordSheet,
                   primaryText: _primaryText,
                   secondaryText: _secondaryText,
                 ),
-                const SizedBox(height: 10),
-                Text(s.primaryGoalLabel, style: TextStyle(fontSize: 11, color: _secondaryText)),
-                const SizedBox(height: 6),
-                GridView.count(
-                  padding: EdgeInsets.zero,
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                  childAspectRatio: 4,
-                  children: kPrimaryGoals.map((goal) {
-                    final isSelected = widget.primaryGoal == goal;
-                    return GestureDetector(
-                      onTap: () => widget.onPrimaryGoalChanged(isSelected ? '' : goal),
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? (widget.isDarkMode
-                                  ? const Color(0xFF059669).withValues(alpha: 0.22)
-                                  : const Color(0xFFD1FAE5))
-                              : (widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white),
-                          borderRadius: BorderRadius.circular(8),
-                          border: isSelected
-                              ? Border.all(color: const Color(0xFF059669), width: 1.5)
-                              : null,
-                          boxShadow: isSelected
-                              ? null
-                              : [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.06),
-                                    blurRadius: widget.isDarkMode ? 8 : 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                        ),
-                        child: Text(
-                          s.goalDisplay(goal),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isSelected
-                                ? (widget.isDarkMode
-                                    ? const Color(0xFF4ADE80)
-                                    : const Color(0xFF065F46))
-                                : _primaryText,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _LabeledField(
-                        label: s.dailyCalorieTarget,
-                        controller: _calorieTargetController,
-                        keyboardType: TextInputType.number,
-                        errorText: _calorieError,
-                        suffixText: 'cal/day',
-                        secondaryText: _secondaryText,
-                        fillColor: _fieldFill,
-                        borderColor: _fieldBorder,
-                        isDarkMode: widget.isDarkMode,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _LabeledField(
-                        label: s.targetProtein,
-                        controller: _proteinTargetController,
-                        keyboardType: TextInputType.number,
-                        errorText: _proteinError,
-                        suffixText: 'g/day',
-                        secondaryText: _secondaryText,
-                        fillColor: _fieldFill,
-                        borderColor: _fieldBorder,
-                        isDarkMode: widget.isDarkMode,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _LabeledField(
-                        label: s.targetCarb,
-                        controller: _carbTargetController,
-                        keyboardType: TextInputType.number,
-                        errorText: _carbError,
-                        suffixText: 'g/day',
-                        secondaryText: _secondaryText,
-                        fillColor: _fieldFill,
-                        borderColor: _fieldBorder,
-                        isDarkMode: widget.isDarkMode,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _LabeledField(
-                        label: s.targetFat,
-                        controller: _fatTargetController,
-                        keyboardType: TextInputType.number,
-                        errorText: _fatError,
-                        suffixText: 'g/day',
-                        secondaryText: _secondaryText,
-                        fillColor: _fieldFill,
-                        borderColor: _fieldBorder,
-                        isDarkMode: widget.isDarkMode,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(s.dietaryRestrictionsLabel, style: TextStyle(fontSize: 10.5, color: _secondaryText)),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: kDietaryTags.map((tag) {
-                    final isSelected = widget.selectedDietaryRestrictions.contains(tag);
-                    return GestureDetector(
-                      onTap: () => widget.onDietaryRestrictionToggled(tag, !isSelected),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? (widget.isDarkMode
-                                  ? const Color(0xFF10B981).withValues(alpha: 0.22)
-                                  : const Color(0xFFD1FAE5))
-                              : (widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: isSelected ? const Color(0xFF10B981) : Colors.transparent,
-                            width: 1.5,
-                          ),
-                          boxShadow: isSelected
-                              ? null
-                              : [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.06),
-                                    blurRadius: widget.isDarkMode ? 8 : 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                        ),
-                        child: Text(
-                          s.dietaryTagDisplay(tag),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isSelected
-                                ? (widget.isDarkMode
-                                    ? const Color(0xFF4ADE80)
-                                    : const Color(0xFF065F46))
-                                : _secondaryText,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // ── Security ────────────────────────────────────────────────────
-          _SectionCard(
-            backgroundColor: _cardBackground,
-            child: _SecurityRow(
-              icon: Icons.key_rounded,
-              label: widget.user.isGoogleOnly ? s.setPasswordLabel : s.changePasswordLabel,
-              onTap: _showChangePasswordSheet,
-              primaryText: _primaryText,
-              secondaryText: _secondaryText,
-            ),
-          ),
-          const SizedBox(height: 10),
-          _SectionCard(
-            backgroundColor: _cardBackground,
-            child: _SecurityRow(
-              icon: Icons.forum_rounded,
-              label: s.sendFeedbackLabel,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const FeedbackScreen()),
               ),
-              primaryText: _primaryText,
-              secondaryText: _secondaryText,
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 44,
-            child: OutlinedButton.icon(
-              onPressed: widget.onLogout,
-              icon: const Icon(Icons.logout, size: 16),
-              label: Text(
-                s.logOut,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: widget.isDarkMode
-                    ? const Color(0xFFF87171)
-                    : const Color(0xFFDC2626),
-                side: BorderSide.none,
-                backgroundColor: widget.isDarkMode
-                    ? const Color(0xFFDC2626).withValues(alpha: 0.15)
-                    : const Color(0xFFFFF1F2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(999),
+              const SizedBox(height: 10),
+              _SectionCard(
+                backgroundColor: _cardBackground,
+                child: _SecurityRow(
+                  icon: Icons.forum_rounded,
+                  label: s.sendFeedbackLabel,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const FeedbackScreen()),
+                  ),
+                  primaryText: _primaryText,
+                  secondaryText: _secondaryText,
                 ),
               ),
-            ),
-          ),
-          ],
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 44,
+                child: OutlinedButton.icon(
+                  onPressed: widget.onLogout,
+                  icon: const Icon(Icons.logout, size: 16),
+                  label: Text(
+                    s.logOut,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: widget.isDarkMode
+                        ? const Color(0xFFF87171)
+                        : const Color(0xFFDC2626),
+                    side: BorderSide.none,
+                    backgroundColor: widget.isDarkMode
+                        ? const Color(0xFFDC2626).withValues(alpha: 0.15)
+                        : const Color(0xFFFFF1F2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         if (_hasChanges)
@@ -942,7 +1043,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   border: Border.all(color: _cardBorder),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.45 : 0.18),
+                      color: Colors.black.withValues(
+                        alpha: widget.isDarkMode ? 0.45 : 0.18,
+                      ),
                       blurRadius: 30,
                       offset: const Offset(0, 10),
                     ),
@@ -955,18 +1058,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: _isSaving ? null : _cancelChanges,
                       style: TextButton.styleFrom(
                         foregroundColor: _secondaryText,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
                         minimumSize: const Size(90, 46),
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                       ),
-                      child: Text(s.cancel, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      child: Text(
+                        s.cancel,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     FilledButton(
                       onPressed: _isSaving ? null : _saveChanges,
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFF059669),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
                         minimumSize: const Size(130, 46),
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                       ),
@@ -974,9 +1087,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
                             )
-                          : Text(s.saveChanges, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                          : Text(
+                              s.saveChanges,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                     ),
                   ],
                 ),
@@ -1016,9 +1138,11 @@ class _LangOption extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSelected
                 ? (isDarkMode
-                    ? const Color(0xFF059669).withValues(alpha: 0.2)
-                    : const Color(0xFFD1FAE5))
-                : (isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6)),
+                      ? const Color(0xFF059669).withValues(alpha: 0.2)
+                      : const Color(0xFFD1FAE5))
+                : (isDarkMode
+                      ? const Color(0xFF1E1E1E)
+                      : const Color(0xFFF3F4F6)),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isSelected ? const Color(0xFF059669) : Colors.transparent,
@@ -1036,8 +1160,12 @@ class _LangOption extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   color: isSelected
-                      ? (isDarkMode ? const Color(0xFF4ADE80) : const Color(0xFF065F46))
-                      : (isDarkMode ? const Color(0xFFCBD5E1) : const Color(0xFF374151)),
+                      ? (isDarkMode
+                            ? const Color(0xFF4ADE80)
+                            : const Color(0xFF065F46))
+                      : (isDarkMode
+                            ? const Color(0xFFCBD5E1)
+                            : const Color(0xFF374151)),
                 ),
               ),
             ],
@@ -1074,7 +1202,11 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _IconBadge(background: badgeBackground, icon: icon, iconColor: iconColor),
+        _IconBadge(
+          background: badgeBackground,
+          icon: icon,
+          iconColor: iconColor,
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -1084,7 +1216,11 @@ class _SectionHeader extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: primaryText),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: primaryText,
+                ),
               ),
               Text(
                 subtitle,
@@ -1153,7 +1289,9 @@ class _LabeledField extends StatelessWidget {
             readOnly: readOnly,
             style: TextStyle(
               fontSize: 13,
-              color: isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF374151),
+              color: isDarkMode
+                  ? const Color(0xFFE2E8F0)
+                  : const Color(0xFF374151),
             ),
             decoration: InputDecoration(
               isDense: true,
@@ -1165,7 +1303,10 @@ class _LabeledField extends StatelessWidget {
               suffixStyle: TextStyle(color: secondaryText, fontSize: 12),
               errorText: errorText,
               errorStyle: const TextStyle(fontSize: 10),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 9,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
@@ -1232,7 +1373,10 @@ class _IconBadge extends StatelessWidget {
     return Container(
       width: 22,
       height: 22,
-      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Icon(icon, size: 13, color: iconColor),
     );
   }
@@ -1265,7 +1409,10 @@ class _SecurityRow extends StatelessWidget {
             Icon(icon, size: 16, color: secondaryText),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(label, style: TextStyle(fontSize: 13, color: primaryText)),
+              child: Text(
+                label,
+                style: TextStyle(fontSize: 13, color: primaryText),
+              ),
             ),
             Icon(Icons.chevron_right_rounded, size: 18, color: secondaryText),
           ],
@@ -1384,7 +1531,11 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
           ),
           Text(
             s.changePasswordTitle,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: widget.primaryText),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: widget.primaryText,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -1442,7 +1593,9 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                  onPressed: _isSaving
+                      ? null
+                      : () => Navigator.of(context).pop(),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(46),
                     foregroundColor: widget.primaryText,
@@ -1450,9 +1603,14 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                     backgroundColor: widget.isDarkMode
                         ? const Color(0xFF1E1E1E)
                         : const Color(0xFFF3F4F6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: Text(s.cancel, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  child: Text(
+                    s.cancel,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -1463,9 +1621,14 @@ class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
                     minimumSize: const Size.fromHeight(46),
                     backgroundColor: const Color(0xFF059669),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: Text(s.updateLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  child: Text(
+                    s.updateLabel,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ],
@@ -1506,13 +1669,15 @@ class _SetFirstPasswordSheetState extends State<_SetFirstPasswordSheet> {
       final result = await AuthService().forgotPassword(email: widget.email);
       if (!mounted) return;
       Navigator.of(context).pop();
-      Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ResetPasswordScreen(
-          email: widget.email,
-          prefillOtp: result.otp ?? '',
-          popOnSuccess: true,
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ResetPasswordScreen(
+            email: widget.email,
+            prefillOtp: result.otp ?? '',
+            popOnSuccess: true,
+          ),
         ),
-      ));
+      );
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -1547,7 +1712,11 @@ class _SetFirstPasswordSheetState extends State<_SetFirstPasswordSheet> {
               ),
             ),
           ),
-          Icon(Icons.lock_person_outlined, size: 36, color: const Color(0xFF059669)),
+          Icon(
+            Icons.lock_person_outlined,
+            size: 36,
+            color: const Color(0xFF059669),
+          ),
           const SizedBox(height: 12),
           Text(
             'Set a password',
@@ -1576,7 +1745,9 @@ class _SetFirstPasswordSheetState extends State<_SetFirstPasswordSheet> {
                 minimumSize: const Size.fromHeight(46),
                 backgroundColor: const Color(0xFF059669),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: Text(
                 _isLoading ? 'Sending...' : 'Send reset code',
@@ -1622,7 +1793,11 @@ class _PwField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: secondaryText),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: secondaryText,
+          ),
         ),
         const SizedBox(height: 5),
         DecoratedBox(
@@ -1642,7 +1817,9 @@ class _PwField extends StatelessWidget {
             onChanged: onChanged,
             style: TextStyle(
               fontSize: 13,
-              color: isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF374151),
+              color: isDarkMode
+                  ? const Color(0xFFE2E8F0)
+                  : const Color(0xFF374151),
             ),
             decoration: InputDecoration(
               isDense: true,
@@ -1650,10 +1827,15 @@ class _PwField extends StatelessWidget {
               fillColor: fillColor,
               errorText: errorText,
               errorStyle: const TextStyle(fontSize: 10),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 11,
+              ),
               suffixIcon: IconButton(
                 icon: Icon(
-                  obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   size: 17,
                   color: secondaryText,
                 ),
