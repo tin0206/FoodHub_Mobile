@@ -844,7 +844,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             controller: _calorieTargetController,
                             keyboardType: TextInputType.number,
                             errorText: _calorieError,
-                            suffixText: 'cal/day',
+                            suffixText: 'kcal/day',
                             secondaryText: _secondaryText,
                             fillColor: _fieldFill,
                             borderColor: _fieldBorder,

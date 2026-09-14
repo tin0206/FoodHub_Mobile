@@ -661,9 +661,9 @@ class _ProfileTab extends StatelessWidget {
                 rows: [
                   _InfoRow(
                     icon: Icons.local_fire_department_outlined,
-                    label: 'Calories (cal/day)',
+                    label: 'Calories (kcal/day)',
                     value: user.calorieTarget != null
-                        ? '${user.calorieTarget} cal/day'
+                        ? '${user.calorieTarget} kcal/day'
                         : '—',
                   ),
                   _InfoRow(
