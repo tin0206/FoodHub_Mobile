@@ -49,10 +49,10 @@ class IngredientItemInput {
   final String unit;
 
   Map<String, dynamic> toJson() => {
-        'mapped_id': mappedId,
-        'amount': amount,
-        'unit': unit,
-      };
+    'mapped_id': mappedId,
+    'amount': amount,
+    'unit': unit,
+  };
 }
 
 class MappedIngredient {
@@ -164,11 +164,8 @@ class SelectedCatalogIngredient {
 
   String get displayName => naturalName.isNotEmpty ? naturalName : name;
 
-  IngredientItemInput toInput() => IngredientItemInput(
-        mappedId: id,
-        amount: amount,
-        unit: unit,
-      );
+  IngredientItemInput toInput() =>
+      IngredientItemInput(mappedId: id, amount: amount, unit: unit);
 
   SelectedCatalogIngredient copyWith({
     double? amount,
@@ -200,7 +197,9 @@ class SelectedCatalogIngredient {
   }
 
   factory SelectedCatalogIngredient.fromMapped(MappedIngredient item) {
-    final unit = (item.unit != null && item.unit!.isNotEmpty) ? item.unit! : 'g';
+    final unit = (item.unit != null && item.unit!.isNotEmpty)
+        ? item.unit!
+        : 'g';
     return SelectedCatalogIngredient(
       id: item.mappedId,
       name: item.mappedName,
