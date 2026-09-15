@@ -584,6 +584,122 @@ class S {
   String get adminFeedbackSaveCta => _vi ? 'Lưu thay đổi' : 'Save changes';
   String get adminFeedbackSaveSuccess =>
       _vi ? 'Đã lưu phản hồi!' : 'Feedback saved!';
+
+  // Admin analytics — response time & AI requests
+  String get adminResponseTimeHeading =>
+      _vi ? 'Thời gian phản hồi — 14 ngày qua' : 'Response time — last 14 days';
+  String adminResponseTimeTooltip(int ms, int count) => _vi
+      ? '$ms ms trung bình · $count yêu cầu'
+      : '$ms ms avg · $count request${count == 1 ? '' : 's'}';
+  String adminAiUsageTooltip(int total, double? failRate) {
+    final pct = failRate != null && failRate > 0
+        ? '${(failRate * 100).toStringAsFixed(1)}%'
+        : null;
+    if (_vi) {
+      return pct != null ? '$total yêu cầu · $pct lỗi' : '$total yêu cầu';
+    }
+    final unit = total == 1 ? 'request' : 'requests';
+    return pct != null ? '$total $unit · $pct fail' : '$total $unit';
+  }
+
+  String get adminViewAllAiRequests =>
+      _vi ? 'Xem tất cả yêu cầu AI' : 'View all AI requests';
+  String get adminAdoptionRateDescription => _vi
+      ? 'Phần trăm người dùng đã tạo ít nhất một kế hoạch bữa ăn (người dùng có kế hoạch / tổng người dùng).'
+      : 'Share of all users who have created at least one meal plan (users with a plan / total users).';
+  String get adminAiRequestsPageTitle => _vi ? 'Yêu cầu AI' : 'AI Requests';
+  String get adminBackToAnalytics =>
+      _vi ? 'Về trang phân tích' : 'Back to analytics';
+  String get adminAiRequestsEmpty =>
+      _vi ? 'Không có yêu cầu nào' : 'No requests found';
+  String get adminAiRequestsLoadError =>
+      _vi ? 'Không thể tải yêu cầu AI' : 'Failed to load AI requests';
+  String adminAiRequestsPagination(int a, int b, bool hasMore) {
+    final suffix = hasMore ? '+' : '';
+    return _vi
+        ? 'Hiện $a–$b trong $b$suffix yêu cầu'
+        : 'Showing $a–$b of $b$suffix requests';
+  }
+
+  String get adminAiRequestDurationLabel => _vi ? 'Thời gian' : 'Duration';
+  String get adminAiRequestTokensLabel => _vi ? 'Token' : 'Tokens';
+  String get adminAiRequestProviderLabel => _vi ? 'Nhà cung cấp' : 'Provider';
+  String get adminNotTrackedYet => _vi ? 'Chưa theo dõi' : 'Not tracked yet';
+  String get adminErrorLabel => _vi ? 'Lỗi' : 'Error';
+  String get adminUserLabel => _vi ? 'Người dùng' : 'User';
+  String get adminRequestTypeFilterLabel =>
+      _vi ? 'Loại yêu cầu' : 'Request type';
+
+  String adminAiRequestStatusDisplay(String status) {
+    if (!_vi) {
+      switch (status) {
+        case 'pending':
+          return 'Pending';
+        case 'processing':
+          return 'Processing';
+        case 'completed':
+          return 'Completed';
+        case 'failed':
+          return 'Failed';
+        case 'cancelled':
+          return 'Cancelled';
+        default:
+          return status;
+      }
+    }
+    switch (status) {
+      case 'pending':
+        return 'Đang chờ';
+      case 'processing':
+        return 'Đang xử lý';
+      case 'completed':
+        return 'Hoàn tất';
+      case 'failed':
+        return 'Thất bại';
+      case 'cancelled':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
+  }
+
+  String adminAiRequestTypeDisplay(String type) {
+    if (!_vi) {
+      switch (type) {
+        case 'chat':
+          return 'AI Chat';
+        case 'dish':
+          return 'Dish Recognition';
+        case 'ingredients':
+          return 'Ingredient Detection';
+        case 'meal_suggest':
+          return 'Meal Suggestion';
+        case 'shopping_list':
+          return 'Shopping List';
+        case 'map_aisles':
+          return 'Aisle Mapping';
+        default:
+          return type.replaceAll('_', ' ');
+      }
+    }
+    switch (type) {
+      case 'chat':
+        return 'Trò chuyện AI';
+      case 'dish':
+        return 'Nhận diện món ăn';
+      case 'ingredients':
+        return 'Nhận diện nguyên liệu';
+      case 'meal_suggest':
+        return 'Gợi ý bữa ăn';
+      case 'shopping_list':
+        return 'Danh sách mua sắm';
+      case 'map_aisles':
+        return 'Sắp xếp lối đi';
+      default:
+        return type.replaceAll('_', ' ');
+    }
+  }
+
   String get addToPersonalRecipeButton =>
       _vi ? 'Thêm vào công thức cá nhân' : 'Add to personal recipe';
   String get savingRecipeLabel => _vi ? 'Đang lưu…' : 'Saving…';

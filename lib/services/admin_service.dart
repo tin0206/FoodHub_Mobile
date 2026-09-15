@@ -65,7 +65,8 @@ class AdminService {
       'title': title,
       'ingredients': ingredients,
       'directions': directions,
-      if (dietaryRestrictions != null) 'dietary_restrictions': dietaryRestrictions,
+      if (dietaryRestrictions != null)
+        'dietary_restrictions': dietaryRestrictions,
       if (estimatedServings != null) 'estimated_servings': estimatedServings,
       if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
     };
@@ -86,7 +87,8 @@ class AdminService {
       if (title != null) 'title': title,
       if (ingredients != null) 'ingredients': ingredients,
       if (directions != null) 'directions': directions,
-      if (dietaryRestrictions != null) 'dietary_restrictions': dietaryRestrictions,
+      if (dietaryRestrictions != null)
+        'dietary_restrictions': dietaryRestrictions,
       if (estimatedServings != null) 'estimated_servings': estimatedServings,
       if (imageUrl != null) 'image_url': imageUrl,
     };
@@ -98,7 +100,11 @@ class AdminService {
     await _api.delete('/recipes/$id');
   }
 
-  Future<String?> uploadRecipeImage(int id, List<int> bytes, String filename) async {
+  Future<String?> uploadRecipeImage(
+    int id,
+    List<int> bytes,
+    String filename,
+  ) async {
     final data = await _api.postMultipart(
       '/recipes/$id/image',
       fieldName: 'file',
@@ -226,7 +232,10 @@ class AdminService {
     };
     final data = await _api.get('/admin/feedback', query: query);
     return (data as List)
-        .map((e) => AdminFeedbackModel.fromJson(Map<String, dynamic>.from(e as Map)))
+        .map(
+          (e) =>
+              AdminFeedbackModel.fromJson(Map<String, dynamic>.from(e as Map)),
+        )
         .toList();
   }
 
@@ -236,8 +245,35 @@ class AdminService {
   }
 
   Future<AdminFeedbackModel> updateFeedback(
-      int id, Map<String, dynamic> fields) async {
+    int id,
+    Map<String, dynamic> fields,
+  ) async {
     final data = await _api.patch('/admin/feedback/$id', body: fields);
     return AdminFeedbackModel.fromJson(data as Map<String, dynamic>);
+  }
+
+  // ── AI request log ──────────────────────────────────────────────────────────
+
+  Future<List<AdminAiRequestLogEntry>> listAiRequests({
+    int skip = 0,
+    int limit = 21,
+    String? status,
+    String? requestType,
+  }) async {
+    final query = <String, String>{
+      'skip': '$skip',
+      'limit': '$limit',
+      if (status != null && status.isNotEmpty) 'status': status,
+      if (requestType != null && requestType.isNotEmpty)
+        'request_type': requestType,
+    };
+    final data = await _api.get('/admin/ai-requests', query: query);
+    final list = data as List? ?? [];
+    return list
+        .whereType<Map>()
+        .map(
+          (e) => AdminAiRequestLogEntry.fromJson(Map<String, dynamic>.from(e)),
+        )
+        .toList();
   }
 }

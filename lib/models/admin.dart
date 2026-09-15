@@ -68,10 +68,14 @@ class AdminActivity {
       type: type,
       createdAt: json['created_at'] as String? ?? '',
       user: type == 'user' && json['user'] is Map
-          ? AdminActivityUser.fromJson(Map<String, dynamic>.from(json['user'] as Map))
+          ? AdminActivityUser.fromJson(
+              Map<String, dynamic>.from(json['user'] as Map),
+            )
           : null,
       recipe: type == 'recipe' && json['recipe'] is Map
-          ? AdminActivityRecipe.fromJson(Map<String, dynamic>.from(json['recipe'] as Map))
+          ? AdminActivityRecipe.fromJson(
+              Map<String, dynamic>.from(json['recipe'] as Map),
+            )
           : null,
     );
   }
@@ -95,9 +99,11 @@ class AdminOverview {
       totalRecipes: (json['total_recipes'] as num?)?.toInt() ?? 0,
       recentActivities: raw is List
           ? raw
-              .whereType<Map>()
-              .map((e) => AdminActivity.fromJson(Map<String, dynamic>.from(e)))
-              .toList()
+                .whereType<Map>()
+                .map(
+                  (e) => AdminActivity.fromJson(Map<String, dynamic>.from(e)),
+                )
+                .toList()
           : const [],
     );
   }
@@ -109,7 +115,8 @@ class AdminLabelCount {
   const AdminLabelCount({required this.label, required this.count});
   final String label;
   final int count;
-  factory AdminLabelCount.fromJson(Map<String, dynamic> json) => AdminLabelCount(
+  factory AdminLabelCount.fromJson(Map<String, dynamic> json) =>
+      AdminLabelCount(
         label: json['label'] as String? ?? '',
         count: (json['count'] as num?)?.toInt() ?? 0,
       );
@@ -173,7 +180,8 @@ class AdminTopUser {
   final int chatSessions;
   final int score;
 
-  String get displayName => (fullName != null && fullName!.isNotEmpty) ? fullName! : username;
+  String get displayName =>
+      (fullName != null && fullName!.isNotEmpty) ? fullName! : username;
 
   factory AdminTopUser.fromJson(Map<String, dynamic> json) {
     final user = json['user'] as Map<String, dynamic>?;
@@ -204,11 +212,11 @@ class AdminAiUsage {
   final double failRate;
 
   factory AdminAiUsage.fromJson(Map<String, dynamic> json) => AdminAiUsage(
-        requestType: json['request_type'] as String? ?? '',
-        total: (json['total'] as num?)?.toInt() ?? 0,
-        failed: (json['failed'] as num?)?.toInt() ?? 0,
-        failRate: (json['fail_rate'] as num?)?.toDouble() ?? 0,
-      );
+    requestType: json['request_type'] as String? ?? '',
+    total: (json['total'] as num?)?.toInt() ?? 0,
+    failed: (json['failed'] as num?)?.toInt() ?? 0,
+    failRate: (json['fail_rate'] as num?)?.toDouble() ?? 0,
+  );
 }
 
 class AdminActivePoint {
@@ -216,9 +224,28 @@ class AdminActivePoint {
   final String period;
   final int activeUsers;
 
-  factory AdminActivePoint.fromJson(Map<String, dynamic> json) => AdminActivePoint(
+  factory AdminActivePoint.fromJson(Map<String, dynamic> json) =>
+      AdminActivePoint(
         period: json['period'] as String? ?? '',
         activeUsers: (json['active_users'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class AdminResponseTimePoint {
+  const AdminResponseTimePoint({
+    required this.period,
+    required this.avgDurationMs,
+    required this.count,
+  });
+  final String period;
+  final double avgDurationMs;
+  final int count;
+
+  factory AdminResponseTimePoint.fromJson(Map<String, dynamic> json) =>
+      AdminResponseTimePoint(
+        period: json['period'] as String? ?? '',
+        avgDurationMs: (json['avg_duration_ms'] as num?)?.toDouble() ?? 0,
+        count: (json['count'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -238,11 +265,14 @@ class AdminMealPlanAdoption {
   final int totalSuggestions;
   final double adoptionRate;
 
-  factory AdminMealPlanAdoption.fromJson(Map<String, dynamic> json) => AdminMealPlanAdoption(
+  factory AdminMealPlanAdoption.fromJson(Map<String, dynamic> json) =>
+      AdminMealPlanAdoption(
         totalUsers: (json['total_users'] as num?)?.toInt() ?? 0,
-        usersWithMealPlans: (json['users_with_meal_plans'] as num?)?.toInt() ?? 0,
+        usersWithMealPlans:
+            (json['users_with_meal_plans'] as num?)?.toInt() ?? 0,
         totalMealPlans: (json['total_meal_plans'] as num?)?.toInt() ?? 0,
-        usersWithSuggestions: (json['users_with_suggestions'] as num?)?.toInt() ?? 0,
+        usersWithSuggestions:
+            (json['users_with_suggestions'] as num?)?.toInt() ?? 0,
         totalSuggestions: (json['total_suggestions'] as num?)?.toInt() ?? 0,
         adoptionRate: (json['adoption_rate'] as num?)?.toDouble() ?? 0,
       );
@@ -252,7 +282,8 @@ class AdminDailySignup {
   const AdminDailySignup({required this.date, required this.count});
   final String date;
   final int count;
-  factory AdminDailySignup.fromJson(Map<String, dynamic> json) => AdminDailySignup(
+  factory AdminDailySignup.fromJson(Map<String, dynamic> json) =>
+      AdminDailySignup(
         date: json['date'] as String? ?? '',
         count: (json['count'] as num?)?.toInt() ?? 0,
       );
@@ -266,7 +297,7 @@ class AdminAnalytics {
     this.topUsers = const [],
     this.aiUsage = const [],
     this.dailyActiveUsers = const [],
-    this.weeklyActiveUsers = const [],
+    this.responseTimeTrend = const [],
     this.dietaryDistribution = const [],
     this.mealPlanAdoption,
   });
@@ -277,28 +308,44 @@ class AdminAnalytics {
   final List<AdminTopUser> topUsers;
   final List<AdminAiUsage> aiUsage;
   final List<AdminActivePoint> dailyActiveUsers;
-  final List<AdminActivePoint> weeklyActiveUsers;
+  final List<AdminResponseTimePoint> responseTimeTrend;
   final List<AdminLabelCount> dietaryDistribution;
   final AdminMealPlanAdoption? mealPlanAdoption;
 
   factory AdminAnalytics.fromJson(Map<String, dynamic> json) {
     List<T> parseList<T>(dynamic raw, T Function(Map<String, dynamic>) f) {
       if (raw is! List) return const [];
-      return raw.whereType<Map>().map((e) => f(Map<String, dynamic>.from(e))).toList();
+      return raw
+          .whereType<Map>()
+          .map((e) => f(Map<String, dynamic>.from(e)))
+          .toList();
     }
 
     return AdminAnalytics(
       topRecipes: parseList(json['top_recipes'], AdminTopRecipe.fromJson),
-      popularLabels: parseList(json['popular_recipes'], AdminLabelCount.fromJson),
+      popularLabels: parseList(
+        json['popular_recipes'],
+        AdminLabelCount.fromJson,
+      ),
       dailySignups: parseList(json['daily_signups'], AdminDailySignup.fromJson),
       topUsers: parseList(json['top_users'], AdminTopUser.fromJson),
       aiUsage: parseList(json['ai_usage'], AdminAiUsage.fromJson),
-      dailyActiveUsers: parseList(json['daily_active_users'], AdminActivePoint.fromJson),
-      weeklyActiveUsers: parseList(json['weekly_active_users'], AdminActivePoint.fromJson),
-      dietaryDistribution: parseList(json['dietary_restriction_distribution'], AdminLabelCount.fromJson),
+      dailyActiveUsers: parseList(
+        json['daily_active_users'],
+        AdminActivePoint.fromJson,
+      ),
+      responseTimeTrend: parseList(
+        json['response_time_trend'],
+        AdminResponseTimePoint.fromJson,
+      ),
+      dietaryDistribution: parseList(
+        json['dietary_restriction_distribution'],
+        AdminLabelCount.fromJson,
+      ),
       mealPlanAdoption: json['meal_plan_adoption'] is Map
           ? AdminMealPlanAdoption.fromJson(
-              Map<String, dynamic>.from(json['meal_plan_adoption'] as Map))
+              Map<String, dynamic>.from(json['meal_plan_adoption'] as Map),
+            )
           : null,
     );
   }
@@ -329,6 +376,52 @@ class AdminUserDetail {
   }
 }
 
+// ── AI request log ───────────────────────────────────────────────────────────
+
+class AdminAiRequestLogEntry {
+  const AdminAiRequestLogEntry({
+    required this.id,
+    required this.requestType,
+    required this.status,
+    this.durationMs,
+    this.tokenUsage,
+    this.provider,
+    this.errorMessage,
+    required this.createdAt,
+    required this.userId,
+  });
+
+  /// The AI request/task id. String (not numeric) — matches the backend's
+  /// task id format used across `/ai/*` endpoints (see `AiRequestDetailModel
+  /// .taskId`), confirmed against the web admin's `AdminAiRequestLogEntry`
+  /// TS interface (`id: string`).
+  final String id;
+  final String requestType;
+  final String status;
+  final int? durationMs;
+  final int? tokenUsage;
+  final String? provider;
+  final String? errorMessage;
+  final String createdAt;
+  final int userId;
+
+  String get displayUser => 'User #$userId';
+
+  factory AdminAiRequestLogEntry.fromJson(Map<String, dynamic> json) {
+    return AdminAiRequestLogEntry(
+      id: json['id'] as String? ?? json['id']?.toString() ?? '',
+      requestType: json['request_type'] as String? ?? '',
+      status: json['status'] as String? ?? 'pending',
+      durationMs: (json['duration_ms'] as num?)?.toInt(),
+      tokenUsage: (json['token_usage'] as num?)?.toInt(),
+      provider: json['provider'] as String?,
+      errorMessage: json['error_message'] as String?,
+      createdAt: json['created_at'] as String? ?? '',
+      userId: (json['user_id'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 // ── Recipe translation ────────────────────────────────────────────────────────
 
 class RecipeTranslation {
@@ -347,7 +440,8 @@ class RecipeTranslation {
   factory RecipeTranslation.fromJson(Map<String, dynamic> json) {
     List<String> toStrList(dynamic v) {
       if (v is List) return v.map((e) => '$e').toList();
-      if (v is String) return v.split('\n').where((s) => s.trim().isNotEmpty).toList();
+      if (v is String)
+        return v.split('\n').where((s) => s.trim().isNotEmpty).toList();
       return const [];
     }
 
@@ -394,7 +488,18 @@ int adminAvatarColorInt(String name, {bool isDark = false}) {
 int _hslToInt(double h, double s, double l) {
   final a = s * (l < 0.5 ? l : 1 - l);
   double k(double n) => (n + h * 12) % 12;
-  double f(double n) => l - a * (1.0 - (-1.0 > k(n) - 3 ? -1.0 : k(n) - 3 < 1 ? k(n) - 3 : 1.0).clamp(-1.0, 1.0)).abs().clamp(0.0, 1.0);
+  double f(double n) =>
+      l -
+      a *
+          (1.0 -
+                  (-1.0 > k(n) - 3
+                          ? -1.0
+                          : k(n) - 3 < 1
+                          ? k(n) - 3
+                          : 1.0)
+                      .clamp(-1.0, 1.0))
+              .abs()
+              .clamp(0.0, 1.0);
   // Avoid .clamp usage ambiguity with int overloads, keep as double throughout
   final r = (f(0.0) * 255).round().clamp(0, 255);
   final g = (f(8.0) * 255).round().clamp(0, 255);
@@ -460,4 +565,3 @@ int categoricalColor(int index, {bool isDark = false}) {
   final (light, dark) = kAdminCategorical[index % kAdminCategorical.length];
   return isDark ? dark : light;
 }
-
