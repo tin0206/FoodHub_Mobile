@@ -134,7 +134,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
           context: context,
           isScrollControlled: true,
           showDragHandle: true,
-          backgroundColor: Theme.of(context).colorScheme.surface,
+          backgroundColor: Colors.white,
           builder: (ctx) => LangScope(
             lang: lang,
             child: _DetectedIngredientsSheet(
@@ -181,7 +181,7 @@ class _AiCaptureScreenState extends State<AiCaptureScreen> {
           context: context,
           isScrollControlled: true,
           showDragHandle: true,
-          backgroundColor: Theme.of(context).colorScheme.surface,
+          backgroundColor: Colors.white,
           builder: (ctx) => LangScope(
             lang: lang,
             child: _DishResultsSheet(results: candidates),
@@ -671,10 +671,10 @@ class _DetectedIngredientsSheetState extends State<_DetectedIngredientsSheet> {
             children: [
               Text(
                 S.of(context).confirmDetectedIngredients,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color: Color(0xFF111827),
                 ),
               ),
               const SizedBox(height: 12),
@@ -947,13 +947,12 @@ class _DishResultsSheet extends StatelessWidget {
 
   final List<DishResultModel> results;
 
+  static const _primary = Color(0xFF111827);
+  static const _secondary = Color(0xFF6B7280);
+  static const _cardBg = Color(0xFFF8FAFC);
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? const Color(0xFF141414) : Colors.white;
-    final primary = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
-    final secondary = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
-
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
@@ -963,19 +962,23 @@ class _DishResultsSheet extends StatelessWidget {
           children: [
             Text(
               S.of(context).dishDetectMode,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: primary,
+                color: _primary,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               S.of(context).dishRecognitionPickHint,
-              style: TextStyle(fontSize: 13, color: secondary),
+              style: const TextStyle(fontSize: 13, color: _secondary),
             ),
             const SizedBox(height: 14),
-            ...results.map((dish) => _DishCard(dish: dish, bg: bg, primary: primary, secondary: secondary)),
+            ...results.map((dish) => _DishCard(
+                dish: dish,
+                bg: _cardBg,
+                primary: _primary,
+                secondary: _secondary)),
           ],
         ),
       ),
