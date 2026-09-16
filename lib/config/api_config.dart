@@ -1,7 +1,11 @@
+import 'package:flutter/foundation.dart';
+
 class ApiConfig {
   ApiConfig._();
 
   static String _baseUrl = const String.fromEnvironment('API_BASE_URL');
+  static const _ceph = 'https://ceph.foodhub.io.vn/foodhub-images';
+  static const _publicApiOrigin = 'https://api.foodhub.io.vn';
 
   static String get baseUrl => _baseUrl;
 
@@ -11,6 +15,11 @@ class ApiConfig {
 
   static String get apiOrigin {
     return baseUrl.replaceFirst(RegExp(r'/api/v1/?$'), '');
+  }
+
+  static String get _origin {
+    final origin = apiOrigin;
+    return origin.isEmpty ? _publicApiOrigin : origin;
   }
 
   static String get ingredientsStreamUrl {
@@ -26,25 +35,42 @@ class ApiConfig {
     final parsed = Uri.tryParse(url);
     if (parsed == null) return '';
 
+    final objectKey = _objectKey(url, parsed);
+    if (objectKey != null) {
+      // Flutter web (Chrome / DevicePreview) uses XHR/CanvasKit and needs CORS.
+      // Ceph RGW currently answers GET without ACAO and OPTIONS 403.
+      if (kIsWeb) {
+        return '$_origin/media/$objectKey';
+      }
+      return '$_ceph/$objectKey';
+    }
+
     if (!parsed.hasScheme || url.startsWith('/')) {
       final path = url.startsWith('/') ? url : '/$url';
-      return '$apiOrigin$path';
+      return '$_origin$path';
     }
-
-    final path = parsed.path;
-    final mediaIdx = path.indexOf('/foodhub-images/');
-    if (mediaIdx >= 0) {
-      final objectKey = path.substring(mediaIdx + '/foodhub-images/'.length);
-      return '$apiOrigin/media/$objectKey';
-    }
-    if (path.startsWith('/media/')) {
-      return '$apiOrigin$path';
-    }
-
     if (parsed.scheme == 'http' || parsed.scheme == 'https') {
       return url;
     }
+    return '$_origin/${url.replaceFirst(RegExp(r'^/'), '')}';
+  }
 
-    return '$apiOrigin/${url.replaceFirst(RegExp(r'^/'), '')}';
+  static String? _objectKey(String url, Uri parsed) {
+    if (!parsed.hasScheme || url.startsWith('/')) {
+      final path = url.startsWith('/') ? url : '/$url';
+      if (path.startsWith('/media/')) {
+        return path.substring('/media/'.length);
+      }
+      return null;
+    }
+    final path = parsed.path;
+    final idx = path.indexOf('/foodhub-images/');
+    if (idx >= 0) {
+      return path.substring(idx + '/foodhub-images/'.length);
+    }
+    if (path.startsWith('/media/')) {
+      return path.substring('/media/'.length);
+    }
+    return null;
   }
 }

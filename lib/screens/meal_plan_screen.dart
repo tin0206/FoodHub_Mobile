@@ -372,30 +372,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                   slots: slots,
                                 ));
                               },
-                              onServings: (item, servings) async {
-                                final plan = _plan!;
-                                final slots = [
-                                  for (final current in plan.slots)
-                                    current.id == slot.id
-                                        ? current.withItems([
-                                            for (final it in current.items)
-                                              it.id == item.id
-                                                  ? MealPlanItemModel(
-                                                      id: it.id,
-                                                      recipeId: it.recipeId,
-                                                      servings: servings,
-                                                      recipe: it.recipe,
-                                                    )
-                                                  : it,
-                                          ])
-                                        : current,
-                                ];
-                                await _save(MealPlanModel(
-                                  id: plan.id,
-                                  planDate: plan.planDate,
-                                  slots: slots,
-                                ));
-                              },
                               onDeleteSlot: slot.isMain
                                   ? null
                                   : () async {
@@ -439,7 +415,6 @@ class _PlanSlotCard extends StatelessWidget {
     required this.secondaryText,
     required this.onAdd,
     required this.onRemoveItem,
-    required this.onServings,
     required this.onViewDetail,
     this.onDeleteSlot,
   });
@@ -451,7 +426,6 @@ class _PlanSlotCard extends StatelessWidget {
   final Color secondaryText;
   final VoidCallback onAdd;
   final ValueChanged<MealPlanItemModel> onRemoveItem;
-  final void Function(MealPlanItemModel item, double servings) onServings;
   final ValueChanged<MealPlanItemModel> onViewDetail;
   final VoidCallback? onDeleteSlot;
 
@@ -565,18 +539,12 @@ class _PlanSlotCard extends StatelessWidget {
                   for (final item in slot.items)
                     _MealItem(
                       item: item,
-                      isDarkMode: isDarkMode,
                       secondaryText: secondaryText,
                       cardBorder: cardBorder,
                       onRemove: () => onRemoveItem(item),
-                      onDecrease: item.servings > 1
-                          ? () => onServings(item, item.servings - 1)
-                          : null,
-                      onIncrease: () => onServings(item, item.servings + 1),
                       onViewDetail: item.recipe != null
                           ? () => onViewDetail(item)
                           : null,
-                      servingsSuffix: s.servingsSuffix,
                     ),
                 ],
               ),
@@ -590,25 +558,17 @@ class _PlanSlotCard extends StatelessWidget {
 class _MealItem extends StatelessWidget {
   const _MealItem({
     required this.item,
-    required this.isDarkMode,
     required this.secondaryText,
     required this.cardBorder,
     required this.onRemove,
-    required this.onIncrease,
-    required this.servingsSuffix,
-    this.onDecrease,
     this.onViewDetail,
   });
 
   final MealPlanItemModel item;
-  final bool isDarkMode;
   final Color secondaryText;
   final Color cardBorder;
   final VoidCallback onRemove;
-  final VoidCallback? onDecrease;
-  final VoidCallback onIncrease;
   final VoidCallback? onViewDetail;
-  final String servingsSuffix;
 
   @override
   Widget build(BuildContext context) {
@@ -637,49 +597,18 @@ class _MealItem extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: onViewDetail,
-                      child: Text(
-                        item.recipe?.title ?? '#${item.recipeId}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                child: GestureDetector(
+                  onTap: onViewDetail,
+                  child: Text(
+                    item.recipe?.title ?? '#${item.recipeId}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        _ServingButton(
-                          icon: Icons.remove_rounded,
-                          onTap: onDecrease,
-                          secondaryText: secondaryText,
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: Text(
-                            '${item.servings.toStringAsFixed(0)} $servingsSuffix',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: secondaryText,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        _ServingButton(
-                          icon: Icons.add_rounded,
-                          onTap: onIncrease,
-                          secondaryText: secondaryText,
-                        ),
-                      ],
-                    ),
-                  ],
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
               IconButton(
@@ -692,41 +621,6 @@ class _MealItem extends StatelessWidget {
         ),
         Divider(height: 1, indent: 78, color: cardBorder),
       ],
-    );
-  }
-}
-
-class _ServingButton extends StatelessWidget {
-  const _ServingButton({
-    required this.icon,
-    required this.secondaryText,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final Color secondaryText;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 24,
-        height: 24,
-        decoration: BoxDecoration(
-          color: enabled
-              ? const Color(0xFF059669).withValues(alpha: 0.12)
-              : secondaryText.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Icon(
-          icon,
-          size: 14,
-          color: enabled ? const Color(0xFF059669) : secondaryText.withValues(alpha: 0.4),
-        ),
-      ),
     );
   }
 }

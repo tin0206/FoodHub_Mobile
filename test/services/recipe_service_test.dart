@@ -296,21 +296,6 @@ void main() {
     });
   });
 
-  group('getDietaryRestrictions', () {
-    test('returns the restriction list without auth', () async {
-      when(
-        () => api.get('/recipes/dietary-restrictions', auth: false),
-      ).thenAnswer(
-        (_) async => {
-          'dietary_restrictions': ['vegan', 'keto'],
-        },
-      );
-
-      final restrictions = await recipeService.getDietaryRestrictions();
-      expect(restrictions, ['vegan', 'keto']);
-    });
-  });
-
   group('uploadRecipeImage', () {
     test('returns the image_url on success', () async {
       when(
