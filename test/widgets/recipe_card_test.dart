@@ -19,13 +19,15 @@ void main() {
     expect(find.text('${recipe.cookingMinutes} min'), findsOneWidget);
   });
 
-  testWidgets('shows calories only when nutrition data is present', (tester) async {
+  testWidgets('shows calories only when nutrition data is present', (
+    tester,
+  ) async {
     const withoutCalories = RecipeModel(id: 1, title: 'No calories');
     final withCalories = RecipeModel.fromJson({
       'id': 2,
       'title': 'With calories',
       'nutrition': {
-        'per_serving': {'Calories (kcal)': 450.0},
+        'per_serving': {'Calories (cal)': 450.0},
       },
     });
 

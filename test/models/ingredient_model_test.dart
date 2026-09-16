@@ -41,27 +41,27 @@ void main() {
     test('exposes macro getters and sorted extras', () {
       final nutrition = RecipeNutrition.fromJson({
         'per_serving': {
-          RecipeNutrition.kcalKey: 250.0,
+          RecipeNutrition.calKey: 250.0,
           RecipeNutrition.proteinKey: 20.0,
           'Sodium (mg)': 400.0,
           'Fiber (g)': 5.0,
         },
-        'total': {RecipeNutrition.kcalKey: 1000.0},
+        'total': {RecipeNutrition.calKey: 1000.0},
         'ingredients': [],
       });
 
-      expect(nutrition.kcalPerServing, 250.0);
+      expect(nutrition.calPerServing, 250.0);
       expect(nutrition.proteinPerServing, 20.0);
       expect(nutrition.carbsPerServing, isNull);
-      expect(
-        nutrition.extraPerServing.map((e) => e.key),
-        ['Fiber (g)', 'Sodium (mg)'],
-      );
+      expect(nutrition.extraPerServing.map((e) => e.key), [
+        'Fiber (g)',
+        'Sodium (mg)',
+      ]);
     });
 
     test('ignores non-numeric nutrient values', () {
       final nutrition = RecipeNutrition.fromJson({
-        'per_serving': {'Calories (kcal)': 'n/a'},
+        'per_serving': {'Calories (cal)': 'n/a'},
       });
       expect(nutrition.perServing, isEmpty);
     });

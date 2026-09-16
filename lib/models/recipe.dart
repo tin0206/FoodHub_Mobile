@@ -45,9 +45,9 @@ class RecipeModel {
   }
 
   int? get calories {
-    final kcal = nutrition?.kcalPerServing;
-    if (kcal == null) return null;
-    return kcal.round();
+    final cal = nutrition?.calPerServing;
+    if (cal == null) return null;
+    return cal.round();
   }
 
   String get ingredientsText => ingredients.join('\n');

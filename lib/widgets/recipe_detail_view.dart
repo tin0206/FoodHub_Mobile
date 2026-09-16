@@ -479,7 +479,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _macroChip('${fmt(nutrition.kcalPerServing)} ${s.calSuffix}', accentColor, colors),
+              _macroChip('${fmt(nutrition.calPerServing)} ${s.calSuffix}', accentColor, colors),
               const SizedBox(width: 8),
               _macroChip('${fmt(nutrition.proteinPerServing)}g ${s.proteinShort}', accentColor, colors),
               const SizedBox(width: 8),
@@ -2190,7 +2190,7 @@ class _NutritionPillRow extends StatelessWidget {
     String fmt(double? v) => v == null ? '—' : (v == v.roundToDouble() ? '${v.toInt()}' : v.toStringAsFixed(1));
     final s = S.of(context);
     final items = <String>[
-      if (nutrition.kcalPerServing != null) '${fmt(nutrition.kcalPerServing)} ${s.calSuffix}',
+      if (nutrition.calPerServing != null) '${fmt(nutrition.calPerServing)} ${s.calSuffix}',
       if (nutrition.proteinPerServing != null) '${fmt(nutrition.proteinPerServing)}g ${s.proteinShort}',
       if (nutrition.carbsPerServing != null) '${fmt(nutrition.carbsPerServing)}g ${s.carbsShort}',
       if (nutrition.fatPerServing != null) '${fmt(nutrition.fatPerServing)}g ${s.fatShort}',

@@ -9,7 +9,7 @@ Easy And Simple Fried Rice
 A quick and flavorful dish that combines cooked rice with a savory mix of vegetables and seasonings.
 
 **Nutrition (Per Serving):**
-- Calories: 115.2 kcal
+- Calories: 115.2 cal
 - Protein: 2.68 g
 - Carbohydrates: 18.41 g
 - Fat: 3.46 g
@@ -32,7 +32,7 @@ const modifiedFriedRice = '''
 A lighter version with less oil and onion.
 
 **🔥 Nutrition (Per Serving):**
-- Calories: 98.0 kcal
+- Calories: 98.0 cal
 - Protein: 2.68 g
 - Carbohydrates: 18.41 g
 - Fat: 2.10 g
@@ -55,7 +55,7 @@ const secondModifiedFriedRice = '''
 A lighter version with less oil and onion.
 
 **🔥 Nutrition (Per Serving):**
-- Calories: 90.0 kcal
+- Calories: 90.0 cal
 - Protein: 2.68 g
 - Carbohydrates: 18.41 g
 - Fat: 1.80 g
@@ -103,7 +103,8 @@ void main() {
     });
 
     test('reads Vietnamese modified first line', () {
-      const vi = '**🍽️ Phở Bò (Đã chỉnh sửa)**\n\n**🥗 Nguyên liệu:**\n- xương';
+      const vi =
+          '**🍽️ Phở Bò (Đã chỉnh sửa)**\n\n**🥗 Nguyên liệu:**\n- xương';
       expect(parseModifiedRecipeTitle(vi), 'Phở Bò');
     });
 
@@ -188,40 +189,48 @@ void main() {
       final hunks = diffRecipeLines(originalFriedRice, modifiedFriedRice);
       final changed = hunks.where((h) => h.op == RecipeDiffOp.changed).toList();
       expect(
-        hunks.any((h) => h.isHighlight && h.text.contains('kcal')),
+        hunks.any((h) => h.isHighlight && h.text.contains('cal')),
         isFalse,
       );
       expect(
         hunks.any((h) => h.isHighlight && h.text.contains('Heat oil')),
         isFalse,
       );
+      expect(changed.any((h) => h.text.contains('1 teaspoon oil')), isTrue);
+      expect(changed.any((h) => h.text.contains('1 cup onions')), isTrue);
       expect(
-        changed.any((h) => h.text.contains('1 teaspoon oil')),
-        isTrue,
-      );
-      expect(
-        changed.any((h) => h.text.contains('1 cup onions')),
-        isTrue,
-      );
-      expect(
-        changed.any((h) => stripRecipeDecor(h.previous ?? '').contains('1 tablespoon oil')),
+        changed.any(
+          (h) =>
+              stripRecipeDecor(h.previous ?? '').contains('1 tablespoon oil'),
+        ),
         isTrue,
       );
     });
 
-    test('latest modified diffs ingredients against the previous modified, not original', () {
-      final vsOriginal = diffRecipeLines(originalFriedRice, secondModifiedFriedRice);
-      final vsPrevious = diffRecipeLines(modifiedFriedRice, secondModifiedFriedRice);
+    test(
+      'latest modified diffs ingredients against the previous modified, not original',
+      () {
+        final vsOriginal = diffRecipeLines(
+          originalFriedRice,
+          secondModifiedFriedRice,
+        );
+        final vsPrevious = diffRecipeLines(
+          modifiedFriedRice,
+          secondModifiedFriedRice,
+        );
 
-      expect(
-        vsPrevious.where((h) => h.isHighlight).length,
-        lessThan(vsOriginal.where((h) => h.isHighlight).length),
-      );
-      expect(
-        vsPrevious.any((h) => h.isHighlight && h.text.contains('3 cups cooked rice')),
-        isTrue,
-      );
-    });
+        expect(
+          vsPrevious.where((h) => h.isHighlight).length,
+          lessThan(vsOriginal.where((h) => h.isHighlight).length),
+        );
+        expect(
+          vsPrevious.any(
+            (h) => h.isHighlight && h.text.contains('3 cups cooked rice'),
+          ),
+          isTrue,
+        );
+      },
+    );
   });
 
   group('RecipeDiffBody', () {
@@ -229,9 +238,14 @@ void main() {
       tester,
     ) async {
       final hunks = diffRecipeLines(originalFriedRice, modifiedFriedRice);
-      await tester.pumpWidget(_wrap(RecipeDiffBody(hunks: hunks, isDarkMode: false)));
+      await tester.pumpWidget(
+        _wrap(RecipeDiffBody(hunks: hunks, isDarkMode: false)),
+      );
 
-      expect(find.text('Tap a highlighted line to see the previous text'), findsNothing);
+      expect(
+        find.text('Tap a highlighted line to see the previous text'),
+        findsNothing,
+      );
 
       await tester.ensureVisible(find.textContaining('1 teaspoon oil'));
       await tester.tap(find.textContaining('1 teaspoon oil'));
@@ -242,31 +256,36 @@ void main() {
       expect(find.textContaining('1 tablespoon oil'), findsWidgets);
     });
 
-    testWidgets('MarkdownReplyBody uses the previous recipe when current is modified', (
+    testWidgets(
+      'MarkdownReplyBody uses the previous recipe when current is modified',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            MarkdownReplyBody(
+              markdown: modifiedFriedRice,
+              isDarkMode: false,
+              previousMarkdown: originalFriedRice,
+            ),
+          ),
+        );
+
+        expect(find.byType(RecipeDiffBody), findsOneWidget);
+        expect(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget.key is ValueKey<String> &&
+                (widget.key as ValueKey<String>).value.startsWith(
+                  'recipe-diff-',
+                ),
+          ),
+          findsWidgets,
+        );
+      },
+    );
+
+    testWidgets('does not enter diff mode without a previous recipe', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        _wrap(
-          MarkdownReplyBody(
-            markdown: modifiedFriedRice,
-            isDarkMode: false,
-            previousMarkdown: originalFriedRice,
-          ),
-        ),
-      );
-
-      expect(find.byType(RecipeDiffBody), findsOneWidget);
-      expect(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget.key is ValueKey<String> &&
-              (widget.key as ValueKey<String>).value.startsWith('recipe-diff-'),
-        ),
-        findsWidgets,
-      );
-    });
-
-    testWidgets('does not enter diff mode without a previous recipe', (tester) async {
       await tester.pumpWidget(
         _wrap(
           const MarkdownReplyBody(

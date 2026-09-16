@@ -661,9 +661,9 @@ class _ProfileTab extends StatelessWidget {
                 rows: [
                   _InfoRow(
                     icon: Icons.local_fire_department_outlined,
-                    label: 'Calories (kcal/day)',
+                    label: 'Calories (cal/day)',
                     value: user.calorieTarget != null
-                        ? '${user.calorieTarget} kcal/day'
+                        ? '${user.calorieTarget} cal/day'
                         : '—',
                   ),
                   _InfoRow(
@@ -1067,11 +1067,11 @@ class _InfoCard extends StatelessWidget {
                             row.label,
                             style: TextStyle(fontSize: 12.5, color: textSub),
                           ),
-                          const Spacer(),
-                          Flexible(
+                          Expanded(
                             child: Text(
                               row.value,
                               textAlign: TextAlign.right,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w600,

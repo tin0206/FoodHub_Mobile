@@ -118,18 +118,21 @@ class RecipeNutrition {
   final Map<String, double> total;
   final List<RecipeNutritionLine> ingredients;
 
-  static const kcalKey = 'Calories (kcal)';
+  // Value stays 'Calories (cal)' — it's the literal key the backend's
+  // nutrition payload uses, not display text (the UI shows `s.calSuffix`,
+  // i.e. "cal"). Only the Dart-side name is "cal" for consistency.
+  static const calKey = 'Calories (cal)';
   static const proteinKey = 'Protein (g)';
   static const carbsKey = 'Carbohydrates (g)';
   static const fatKey = 'Fat (g)';
 
-  double? get kcalPerServing => perServing[kcalKey];
+  double? get calPerServing => perServing[calKey];
   double? get proteinPerServing => perServing[proteinKey];
   double? get carbsPerServing => perServing[carbsKey];
   double? get fatPerServing => perServing[fatKey];
 
   List<MapEntry<String, double>> get extraPerServing {
-    const macros = {kcalKey, proteinKey, carbsKey, fatKey};
+    const macros = {calKey, proteinKey, carbsKey, fatKey};
     return perServing.entries.where((e) => !macros.contains(e.key)).toList()
       ..sort((a, b) => a.key.compareTo(b.key));
   }
