@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/dietary_categories.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/favorite.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
@@ -1461,24 +1462,10 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
     TextEditingController(),
   ];
   final Set<String> _selectedLabels = {};
-  List<String> _availableLabels = [];
   bool _isSaving = false;
   bool _isDetectingDish = false;
   Uint8List? _imageBytes;
   String _imageFilename = 'recipe.jpg';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadDietaryLabels();
-  }
-
-  Future<void> _loadDietaryLabels() async {
-    try {
-      final options = await _recipeService.getDietaryRestrictions();
-      if (mounted) setState(() => _availableLabels = options);
-    } catch (_) {}
-  }
 
   Future<void> _pickImage() async {
     final file = await ImagePicker().pickImage(
@@ -2143,7 +2130,7 @@ class _AddRecipePanelState extends State<_AddRecipePanel> {
                         Wrap(
                           spacing: 6,
                           runSpacing: 6,
-                          children: _availableLabels.map((label) {
+                          children: kRecipeLabelOptions.map((label) {
                             final isSelected = _selectedLabels.contains(label);
                             return FilterChip(
                               selected: isSelected,

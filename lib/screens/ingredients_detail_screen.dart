@@ -423,7 +423,6 @@ class _IngredientsDetailScreenState extends State<IngredientsDetailScreen> {
                                           }
                                         });
                                       },
-                                      servingsLabel: s.plannedServings,
                                     ),
                                 ],
                               ),
@@ -497,7 +496,6 @@ class _AisleSection extends StatelessWidget {
     required this.onToggleCollapse,
     required this.onToggleChecked,
     required this.onToggleExpanded,
-    required this.servingsLabel,
   });
 
   final ShoppingListGroupModel group;
@@ -511,7 +509,6 @@ class _AisleSection extends StatelessWidget {
   final VoidCallback onToggleCollapse;
   final void Function(String key) onToggleChecked;
   final void Function(String key) onToggleExpanded;
-  final String Function(double) servingsLabel;
 
   int get _doneCount => group.items.where((it) => checked.contains(it.key)).length;
 
@@ -627,7 +624,6 @@ class _AisleSection extends StatelessWidget {
                 cardBorder: cardBorder,
                 onToggleChecked: () => onToggleChecked(group.items[i].key),
                 onToggleExpanded: () => onToggleExpanded(group.items[i].key),
-                servingsLabel: servingsLabel,
               ),
               if (i < group.items.length - 1)
                 Divider(height: 1, indent: 52, color: cardBorder),
@@ -651,7 +647,6 @@ class _ShoppingRow extends StatelessWidget {
     required this.cardBorder,
     required this.onToggleChecked,
     required this.onToggleExpanded,
-    required this.servingsLabel,
   });
 
   final ShoppingListItemModel item;
@@ -662,7 +657,6 @@ class _ShoppingRow extends StatelessWidget {
   final Color cardBorder;
   final VoidCallback onToggleChecked;
   final VoidCallback onToggleExpanded;
-  final String Function(double) servingsLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -769,7 +763,6 @@ class _ShoppingRow extends StatelessWidget {
                             child: Text(
                               [
                                 if (source.recipeTitle.isNotEmpty) source.recipeTitle,
-                                servingsLabel(source.servings),
                                 if (source.line.isNotEmpty) source.line,
                               ].join(' · '),
                               style: TextStyle(

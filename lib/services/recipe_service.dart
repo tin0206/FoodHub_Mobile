@@ -161,12 +161,6 @@ class RecipeService {
         .toList();
   }
 
-  Future<List<String>> getDietaryRestrictions() async {
-    final data = await _api.get('/recipes/dietary-restrictions', auth: false);
-    final map = data as Map<String, dynamic>;
-    return (map['dietary_restrictions'] as List<dynamic>).cast<String>();
-  }
-
   Future<void> deleteRecipe(int id) async {
     await _api.delete('/recipes/$id');
     changes.value++;

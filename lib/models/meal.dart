@@ -186,9 +186,7 @@ class ShoppingListItemModel {
         (json['text'] as String?) ??
         (json['natural_name'] as String?) ??
         '';
-    final servings = (json['servings'] as num?)?.toDouble() ?? 1;
-    final quantity = (json['quantity_text'] as String?) ??
-        (servings > 1 ? '×${servings % 1 == 0 ? servings.toStringAsFixed(0) : servings}' : '');
+    final quantity = (json['quantity_text'] as String?) ?? '';
     final sources = <ShoppingListSourceModel>[
       for (final source in json['sources'] as List<dynamic>? ?? [])
         if (source is Map)
@@ -200,7 +198,7 @@ class ShoppingListItemModel {
           ShoppingListSourceModel(
             recipeId: 0,
             recipeTitle: title.toString(),
-            servings: servings,
+            servings: 1,
             line: name,
           ),
         );

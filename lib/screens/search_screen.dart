@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/dietary_categories.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
@@ -9,23 +10,6 @@ import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/meal_slot_picker.dart';
 import 'package:foodhub_mobile/widgets/recipe_card.dart';
 import 'package:foodhub_mobile/widgets/recipe_detail_view.dart';
-
-const _kMealTypeCategories = [
-  ('🌅', 'Breakfast'),
-  ('🥗', 'Lunch'),
-  ('🍝', 'Dinner'),
-];
-
-const _kDietaryEmojiMap = {
-  'Alcoholic': '🍸',
-  'Beverage': '🥤',
-  'Dairy Free': '🥛',
-  'Gluten Free': '🌾',
-  'Nut Free': '🥜',
-  'Pescetarian': '🐟',
-  'Vegan': '🌱',
-  'Vegetarian': '🥦',
-};
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({
@@ -59,13 +43,11 @@ class _SearchScreenState extends State<SearchScreen> {
   int? _selectedRecipeIndex;
   bool _savedCurrentRecipe = false;
 
-  List<String> _dietaryOptions = [];
   int _totalCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadDietaryRestrictions();
     _loadRecipes();
     _loadFavoriteIds();
     FavoriteService.changes.addListener(_onFavoritesChanged);
@@ -77,16 +59,7 @@ class _SearchScreenState extends State<SearchScreen> {
   // left showing the previous language after a switch.
   void _onLanguageChanged() {
     if (!mounted) return;
-    _loadDietaryRestrictions();
     _loadRecipes();
-  }
-
-  Future<void> _loadDietaryRestrictions() async {
-    try {
-      final options = await _recipeService.getDietaryRestrictions();
-      if (!mounted) return;
-      setState(() => _dietaryOptions = options);
-    } catch (_) {}
   }
 
   void _onFavoritesChanged() {
@@ -115,8 +88,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
     try {
       final dietary =
-          _selectedCategory != null &&
-              _dietaryOptions.contains(_selectedCategory)
+          _selectedCategory != null && isDietaryCategory(_selectedCategory!)
           ? _selectedCategory
           : null;
       final query = _query.isNotEmpty
@@ -400,13 +372,7 @@ class _SearchScreenState extends State<SearchScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children:
-              [
-                ..._kMealTypeCategories,
-                ..._dietaryOptions.map(
-                  (d) => (_kDietaryEmojiMap[d] ?? '🍽️', d),
-                ),
-              ].map((entry) {
+          children: kSearchCategoryChips.map((entry) {
                 final (emoji, label) = entry;
                 final isSelected = _selectedCategory == label;
                 return InkWell(
