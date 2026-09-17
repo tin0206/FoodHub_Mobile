@@ -39,7 +39,7 @@ class _SearchScreenState extends State<SearchScreen> {
   String? _loadError;
 
   String _query = '';
-  String? _selectedCategory;
+  String? _selectedCategory = defaultMealCategory();
   int? _selectedRecipeIndex;
   bool _savedCurrentRecipe = false;
 

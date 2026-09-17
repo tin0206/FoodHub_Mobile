@@ -40,3 +40,12 @@ const kRecipeLabelOptions = <String>[
 ];
 
 bool isDietaryCategory(String label) => kDietaryLabels.contains(label);
+
+/// Same windows as the home greeting: morning → Breakfast, afternoon → Lunch,
+/// evening → Dinner.
+String defaultMealCategory([DateTime? now]) {
+  final hour = (now ?? DateTime.now()).hour;
+  if (hour < 12) return 'Breakfast';
+  if (hour < 17) return 'Lunch';
+  return 'Dinner';
+}
