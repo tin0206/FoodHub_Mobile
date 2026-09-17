@@ -39,7 +39,7 @@ class _SearchScreenState extends State<SearchScreen> {
   String? _loadError;
 
   String _query = '';
-  String? _selectedCategory = defaultMealCategory();
+  final Set<String> _selectedCategories = {defaultMealCategory()};
   int? _selectedRecipeIndex;
   bool _savedCurrentRecipe = false;
 
@@ -76,7 +76,7 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (_) {}
   }
 
-  bool get _hasFilter => _query.isNotEmpty || _selectedCategory != null;
+  bool get _hasFilter => _query.isNotEmpty || _selectedCategories.isNotEmpty;
 
   Future<void> _loadRecipes() async {
     setState(() {
@@ -87,19 +87,8 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final dietary =
-          _selectedCategory != null && isDietaryCategory(_selectedCategory!)
-          ? _selectedCategory
-          : null;
-      final query = _query.isNotEmpty
-          ? _query
-          : (_selectedCategory != null && dietary == null
-                ? _selectedCategory
-                : null);
-
       final result = await _recipeService.searchRecipes(
-        query: query,
-        dietaryRestriction: dietary,
+        query: recipeSearchQuery(text: _query, categories: _selectedCategories),
         limit: _hasFilter ? null : 50,
       );
 
@@ -141,7 +130,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _toggleCategory(String category) {
     setState(() {
-      _selectedCategory = _selectedCategory == category ? null : category;
+      if (!_selectedCategories.add(category)) {
+        _selectedCategories.remove(category);
+      }
     });
     _loadRecipes();
   }
@@ -374,7 +365,7 @@ class _SearchScreenState extends State<SearchScreen> {
           runSpacing: 8,
           children: kSearchCategoryChips.map((entry) {
                 final (emoji, label) = entry;
-                final isSelected = _selectedCategory == label;
+                final isSelected = _selectedCategories.contains(label);
                 return InkWell(
                   onTap: () => _toggleCategory(label),
                   borderRadius: BorderRadius.circular(999),

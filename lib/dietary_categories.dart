@@ -49,3 +49,20 @@ String defaultMealCategory([DateTime? now]) {
   if (hour < 17) return 'Lunch';
   return 'Dinner';
 }
+
+/// Search uses `q` only: selected chips plus typed text,
+/// e.g. Dinner + Vegan + cake → "Dinner Vegan cake".
+String? recipeSearchQuery({
+  required String text,
+  Iterable<String> categories = const [],
+}) {
+  final selected = {for (final c in categories) c.trim()}.difference({''});
+  final chips = [
+    for (final (_, label) in kSearchCategoryChips)
+      if (selected.contains(label)) label,
+  ];
+  final typed = text.trim();
+  final parts = [...chips, if (typed.isNotEmpty) typed];
+  if (parts.isEmpty) return null;
+  return parts.join(' ');
+}
