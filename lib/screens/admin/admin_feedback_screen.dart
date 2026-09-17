@@ -84,184 +84,212 @@ class _AdminFeedbackScreenState extends State<AdminFeedbackScreen> {
 
     return Container(
       color: bg,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: RefreshIndicator(
+        onRefresh: _load,
+        color: kAdminAccent,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 80),
+          children: [
+            // Header
+            Row(
               children: [
-                // Header
-                Row(
-                  children: [
-                    Text(s.adminFeedbackTitle,
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: textPrimary)),
-                    const SizedBox(width: 8),
-                    if (_items != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: kAdminAccent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          '${_items!.length}${_hasNext ? '+' : ''}',
-                          style: const TextStyle(
-                              fontSize: 11,
+                Text(s.adminFeedbackTitle,
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: textPrimary)),
+                const SizedBox(width: 8),
+                if (_items != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: kAdminAccent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${_items!.length}${_hasNext ? '+' : ''}',
+                      style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: kAdminAccent),
+                    ),
+                  ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: _loading ? null : _load,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: kAdminAccent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        _loading
+                            ? const SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: kAdminAccent),
+                              )
+                            : const Icon(Icons.refresh_rounded,
+                                size: 13, color: kAdminAccent),
+                        const SizedBox(width: 5),
+                        const Text(
+                          'Refresh',
+                          style: TextStyle(
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: kAdminAccent),
                         ),
-                      ),
-                    const Spacer(),
-                    if (_loading)
-                      const SizedBox(
-                        width: 14, height: 14,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: kAdminAccent),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                // Status filter
-                Text('Status',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: textSub)),
-                const SizedBox(height: 6),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: statuses.map((st) {
-                      final label = st.isEmpty
-                          ? 'All'
-                          : s.feedbackStatusDisplay(st);
-                      final sel = _statusFilter == st;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: _FilterChip(
-                          label: label,
-                          selected: sel,
-                          isDark: isDark,
-                          onTap: () => _setStatus(st),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Category filter
-                Text('Category',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: textSub)),
-                const SizedBox(height: 6),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: categories.map((cat) {
-                      final label = cat.isEmpty
-                          ? 'All'
-                          : s.feedbackCategoryDisplay(cat);
-                      final sel = _categoryFilter == cat;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: _FilterChip(
-                          label: label,
-                          selected: sel,
-                          isDark: isDark,
-                          onTap: () => _setCategory(cat),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
-            ),
-          ),
-
-          // List
-          Expanded(
-            child: _error != null
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_error!,
-                            style: TextStyle(fontSize: 12, color: textSub)),
-                        TextButton(
-                          onPressed: _load,
-                          child: Text(s.retry),
-                        ),
                       ],
                     ),
-                  )
-                : _items == null
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2.5, color: kAdminAccent),
-                      )
-                    : _items!.isEmpty
-                        ? Center(
-                            child: Text(s.feedbackNoneYet,
-                                style: TextStyle(fontSize: 13, color: textSub)),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 80),
-                            itemCount: _items!.length + (_hasNext ? 1 : 0),
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 8),
-                            itemBuilder: (_, i) {
-                              if (i == _items!.length) {
-                                return _PaginationRow(
-                                  page: _page,
-                                  hasNext: _hasNext,
-                                  isDark: isDark,
-                                  textSub: textSub,
-                                  onPrev: _page > 0
-                                      ? () {
-                                          setState(() => _page--);
-                                          _load();
-                                        }
-                                      : null,
-                                  onNext: () {
-                                    setState(() => _page++);
-                                    _load();
-                                  },
-                                );
-                              }
-                              final fb = _items![i];
-                              return _FeedbackRow(
-                                feedback: fb,
-                                isDark: isDark,
-                                cardBg: cardBg,
-                                textPrimary: textPrimary,
-                                textSub: textSub,
-                                s: s,
-                                onTap: () async {
-                                  await Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          AdminFeedbackDetailScreen(
-                                        feedbackId: fb.id,
-                                        isDarkMode: isDark,
-                                      ),
-                                    ),
-                                  );
-                                  _load();
-                                },
-                              );
-                            },
-                          ),
-          ),
-        ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Status filter
+            Text('Status',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: textSub)),
+            const SizedBox(height: 6),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: statuses.map((st) {
+                  final label = st.isEmpty
+                      ? 'All'
+                      : s.feedbackStatusDisplay(st);
+                  final sel = _statusFilter == st;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: _FilterChip(
+                      label: label,
+                      selected: sel,
+                      isDark: isDark,
+                      onTap: () => _setStatus(st),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Category filter
+            Text('Category',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: textSub)),
+            const SizedBox(height: 6),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: categories.map((cat) {
+                  final label = cat.isEmpty
+                      ? 'All'
+                      : s.feedbackCategoryDisplay(cat);
+                  final sel = _categoryFilter == cat;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: _FilterChip(
+                      label: label,
+                      selected: sel,
+                      isDark: isDark,
+                      onTap: () => _setCategory(cat),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // ── List ────────────────────────────────────────────────
+            if (_error != null)
+              SizedBox(
+                height: 260,
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(_error!,
+                          style: TextStyle(fontSize: 12, color: textSub)),
+                      TextButton(
+                        onPressed: _load,
+                        child: Text(s.retry),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (_items == null)
+              const SizedBox(
+                height: 260,
+                child: Center(
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2.5, color: kAdminAccent),
+                ),
+              )
+            else if (_items!.isEmpty)
+              SizedBox(
+                height: 260,
+                child: Center(
+                  child: Text(s.feedbackNoneYet,
+                      style: TextStyle(fontSize: 13, color: textSub)),
+                ),
+              )
+            else ...[
+              for (var i = 0; i < _items!.length; i++) ...[
+                if (i > 0) const SizedBox(height: 8),
+                _FeedbackRow(
+                  feedback: _items![i],
+                  isDark: isDark,
+                  cardBg: cardBg,
+                  textPrimary: textPrimary,
+                  textSub: textSub,
+                  s: s,
+                  onTap: () async {
+                    final fb = _items![i];
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AdminFeedbackDetailScreen(
+                          feedbackId: fb.id,
+                          isDarkMode: isDark,
+                        ),
+                      ),
+                    );
+                    _load();
+                  },
+                ),
+              ],
+              if (_hasNext) ...[
+                const SizedBox(height: 8),
+                _PaginationRow(
+                  page: _page,
+                  hasNext: _hasNext,
+                  isDark: isDark,
+                  textSub: textSub,
+                  onPrev: _page > 0
+                      ? () {
+                          setState(() => _page--);
+                          _load();
+                        }
+                      : null,
+                  onNext: () {
+                    setState(() => _page++);
+                    _load();
+                  },
+                ),
+              ],
+            ],
+          ],
+        ),
       ),
     );
   }

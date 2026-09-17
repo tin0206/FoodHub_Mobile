@@ -429,7 +429,7 @@ class S {
       _vi ? 'Đặt mục tiêu dinh dưỡng' : 'Set your dietary objectives';
   String get primaryGoalLabel => _vi ? 'Mục tiêu chính' : 'Primary Goal';
   String get dailyCalorieTarget =>
-      _vi ? 'Calories mục tiêu (cal/ngày)' : 'Target Calories (cal/day)';
+      _vi ? 'Calories mục tiêu (kcal/ngày)' : 'Target Calories (kcal/day)';
   String get targetProtein =>
       _vi ? 'Protein mục tiêu (g/ngày)' : 'Target Protein (g/day)';
   String get targetCarb =>

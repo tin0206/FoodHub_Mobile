@@ -27,7 +27,7 @@ void main() {
       'id': 2,
       'title': 'With calories',
       'nutrition': {
-        'per_serving': {'Calories (cal)': 450.0},
+        'per_serving': {'Calories (kcal)': 450.0},
       },
     });
 

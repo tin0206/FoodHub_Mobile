@@ -118,10 +118,10 @@ class RecipeNutrition {
   final Map<String, double> total;
   final List<RecipeNutritionLine> ingredients;
 
-  // Value stays 'Calories (cal)' — it's the literal key the backend's
+  // Value stays 'Calories (kcal)' — it's the literal key the backend's
   // nutrition payload uses, not display text (the UI shows `s.calSuffix`,
   // i.e. "cal"). Only the Dart-side name is "cal" for consistency.
-  static const calKey = 'Calories (cal)';
+  static const calKey = 'Calories (kcal)';
   static const proteinKey = 'Protein (g)';
   static const carbsKey = 'Carbohydrates (g)';
   static const fatKey = 'Fat (g)';

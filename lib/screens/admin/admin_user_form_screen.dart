@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/config/app_theme.dart';
 import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
 import 'package:foodhub_mobile/services/admin_service.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 
 class AdminUserFormScreen extends StatefulWidget {
-  const AdminUserFormScreen({
-    super.key,
-    required this.isDarkMode,
-    this.user,
-  });
+  const AdminUserFormScreen({super.key, required this.isDarkMode, this.user});
 
   final bool isDarkMode;
   final UserModel? user;
@@ -53,30 +50,42 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
   ];
 
   static const _dietaryOptions = [
-    'Vegan', 'Vegetarian', 'Gluten Free', 'High Protein',
-    'Keto', 'Pescetarian', 'Healthy', 'Breakfast',
+    'Vegan',
+    'Vegetarian',
+    'Gluten Free',
+    'High Protein',
+    'Keto',
+    'Pescetarian',
+    'Healthy',
+    'Breakfast',
   ];
 
   @override
   void initState() {
     super.initState();
     final u = widget.user;
-    _passwordCtrl = TextEditingController(text: widget.isEditing ? '' : '123456');
+    _passwordCtrl = TextEditingController(
+      text: widget.isEditing ? '' : '123456',
+    );
     _fullNameCtrl = TextEditingController(text: u?.fullName ?? '');
     _emailCtrl = TextEditingController(text: u?.email ?? '');
     _usernameCtrl = TextEditingController(text: u?.username ?? '');
-    _ageCtrl = TextEditingController(
-        text: u?.age != null ? '${u!.age}' : '');
+    _ageCtrl = TextEditingController(text: u?.age != null ? '${u!.age}' : '');
     _weightCtrl = TextEditingController(
-        text: u?.weight != null ? '${u!.weight}' : '');
+      text: u?.weight != null ? '${u!.weight}' : '',
+    );
     _calorieCtrl = TextEditingController(
-        text: u?.calorieTarget != null ? '${u!.calorieTarget}' : '');
+      text: u?.calorieTarget != null ? '${u!.calorieTarget}' : '',
+    );
     _proteinCtrl = TextEditingController(
-        text: u?.proteinTarget != null ? '${u!.proteinTarget}' : '');
+      text: u?.proteinTarget != null ? '${u!.proteinTarget}' : '',
+    );
     _carbCtrl = TextEditingController(
-        text: u?.carbTarget != null ? '${u!.carbTarget}' : '');
+      text: u?.carbTarget != null ? '${u!.carbTarget}' : '',
+    );
     _fatCtrl = TextEditingController(
-        text: u?.fatTarget != null ? '${u!.fatTarget}' : '');
+      text: u?.fatTarget != null ? '${u!.fatTarget}' : '',
+    );
     _role = u?.role ?? 'user';
     _isActive = u?.isActive ?? true;
     _gender = u?.gender ?? '';
@@ -169,549 +178,606 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
     final isDark = widget.isDarkMode;
     final bg = isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF8FAFC);
     final cardBg = isDark ? const Color(0xFF141414) : Colors.white;
-    final textPrimary =
-        isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
-    final textSub =
-        isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
-    final hintColor =
-        isDark ? const Color(0xFF64748B) : const Color(0xFF9CA3AF);
-    final divColor =
-        isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
+    final textPrimary = isDark
+        ? const Color(0xFFF8FAFC)
+        : const Color(0xFF111827);
+    final textSub = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+    final hintColor = isDark
+        ? const Color(0xFF64748B)
+        : const Color(0xFF9CA3AF);
+    final divColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
 
-    InputDecoration fieldDec(String label, {IconData? icon, Widget? suffix}) =>
-        InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(fontSize: 13, color: textSub),
-          hintStyle: TextStyle(color: hintColor),
-          prefixIcon: icon != null
-              ? Icon(icon, size: 18, color: textSub)
-              : null,
-          suffixIcon: suffix,
-          filled: true,
-          fillColor: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(11),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(11),
-            borderSide: isDark
-                ? BorderSide.none
-                : const BorderSide(color: Color(0xFFE5E7EB)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(11),
-            borderSide: const BorderSide(color: kAdminAccent, width: 1.5),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(11),
-            borderSide: const BorderSide(color: Color(0xFFF43F5E)),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(11),
-            borderSide: const BorderSide(
-                color: Color(0xFFF43F5E), width: 1.5),
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        );
-
-    return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
-        foregroundColor: textPrimary,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.close_rounded, color: textSub),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          widget.isEditing ? 'Edit User' : 'Add User',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: textPrimary,
-          ),
-        ),
-        centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: divColor),
-        ),
+    InputDecoration fieldDec(
+      String label, {
+      IconData? icon,
+      Widget? suffix,
+    }) => InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(fontSize: 13, color: textSub),
+      hintStyle: TextStyle(color: hintColor),
+      prefixIcon: icon != null ? Icon(icon, size: 18, color: textSub) : null,
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: BorderSide.none,
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(14),
-          children: [
-            // ── Basic Info ─────────────────────────────────────────────
-            _FormSection(
-              title: 'Account Info',
-              icon: Icons.badge_rounded,
-              isDark: isDark,
-              cardBg: cardBg,
-              textPrimary: textPrimary,
-              children: [
-                TextFormField(
-                  controller: _fullNameCtrl,
-                  style: TextStyle(fontSize: 14, color: textPrimary),
-                  decoration: fieldDec('Full Name', icon: Icons.person_rounded),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _emailCtrl,
-                  style: TextStyle(fontSize: 14, color: textPrimary),
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: fieldDec('Email', icon: Icons.email_rounded),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Required';
-                    if (!v.contains('@')) return 'Invalid email';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _usernameCtrl,
-                  style: TextStyle(fontSize: 14, color: textPrimary),
-                  decoration: fieldDec('Username',
-                      icon: Icons.alternate_email_rounded),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
-                if (!widget.isEditing) ...[
-                  const SizedBox(height: 10),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: isDark
+            ? BorderSide.none
+            : const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: kAdminAccent, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: Color(0xFFF43F5E)),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(11),
+        borderSide: const BorderSide(color: Color(0xFFF43F5E), width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    );
+
+    // Pushed via Navigator.push onto the app's root Navigator — outside
+    // AdminShellScreen's local Theme(isDark ? dark : light) override that
+    // the tab screens sit inside, so it needs its own override to match.
+    return Theme(
+      data: isDark ? AppTheme.dark : AppTheme.light,
+      child: Scaffold(
+        backgroundColor: bg,
+        appBar: AppBar(
+          backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+          foregroundColor: textPrimary,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.close_rounded, color: textSub),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            widget.isEditing ? 'Edit User' : 'Add User',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: textPrimary,
+            ),
+          ),
+          centerTitle: true,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Divider(height: 1, color: divColor),
+          ),
+        ),
+        body: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(14),
+            children: [
+              // ── Basic Info ─────────────────────────────────────────────
+              _FormSection(
+                title: 'Account Info',
+                icon: Icons.badge_rounded,
+                isDark: isDark,
+                cardBg: cardBg,
+                textPrimary: textPrimary,
+                children: [
                   TextFormField(
-                    controller: _passwordCtrl,
-                    obscureText: _obscurePassword,
+                    controller: _fullNameCtrl,
                     style: TextStyle(fontSize: 14, color: textPrimary),
                     decoration: fieldDec(
-                      'Password',
-                      icon: Icons.lock_rounded,
-                      suffix: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_rounded
-                              : Icons.visibility_rounded,
-                          size: 18,
-                          color: textSub,
-                        ),
-                        onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword),
-                      ),
+                      'Full Name',
+                      icon: Icons.person_rounded,
                     ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _emailCtrl,
+                    style: TextStyle(fontSize: 14, color: textPrimary),
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: fieldDec('Email', icon: Icons.email_rounded),
                     validator: (v) {
-                      if (widget.isEditing) return null;
-                      if (v == null || v.isEmpty) return 'Required';
-                      if (v.length < 6) return 'Min 6 characters';
+                      if (v == null || v.trim().isEmpty) return 'Required';
+                      if (!v.contains('@')) return 'Invalid email';
                       return null;
                     },
                   ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _usernameCtrl,
+                    style: TextStyle(fontSize: 14, color: textPrimary),
+                    decoration: fieldDec(
+                      'Username',
+                      icon: Icons.alternate_email_rounded,
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                  if (!widget.isEditing) ...[
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _passwordCtrl,
+                      obscureText: _obscurePassword,
+                      style: TextStyle(fontSize: 14, color: textPrimary),
+                      decoration: fieldDec(
+                        'Password',
+                        icon: Icons.lock_rounded,
+                        suffix: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_rounded
+                                : Icons.visibility_rounded,
+                            size: 18,
+                            color: textSub,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
+                        ),
+                      ),
+                      validator: (v) {
+                        if (widget.isEditing) return null;
+                        if (v == null || v.isEmpty) return 'Required';
+                        if (v.length < 6) return 'Min 6 characters';
+                        return null;
+                      },
+                    ),
+                  ],
                 ],
-              ],
-            ),
-            const SizedBox(height: 12),
+              ),
+              const SizedBox(height: 12),
 
-            // ── Role & Status ──────────────────────────────────────────
-            _FormSection(
-              title: 'Role & Status',
-              icon: Icons.admin_panel_settings_rounded,
-              isDark: isDark,
-              cardBg: cardBg,
-              textPrimary: textPrimary,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Role',
-                              style:
-                                  TextStyle(fontSize: 12, color: textSub)),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: ['user', 'admin'].map((r) {
-                              final sel = _role == r;
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: GestureDetector(
-                                  onTap: () =>
-                                      setState(() => _role = r),
-                                  child: AnimatedContainer(
-                                    duration:
-                                        const Duration(milliseconds: 150),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: sel
-                                          ? kAdminAccent
-                                          : (isDark
-                                              ? const Color(0xFF1E1E1E)
-                                              : const Color(0xFFF3F4F6)),
-                                      borderRadius:
-                                          BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      r[0].toUpperCase() + r.substring(1),
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
+              // ── Role & Status ──────────────────────────────────────────
+              _FormSection(
+                title: 'Role & Status',
+                icon: Icons.admin_panel_settings_rounded,
+                isDark: isDark,
+                cardBg: cardBg,
+                textPrimary: textPrimary,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Role',
+                              style: TextStyle(fontSize: 12, color: textSub),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: ['user', 'admin'].map((r) {
+                                final sel = _role == r;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _role = r),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 150,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
                                         color: sel
-                                            ? Colors.white
-                                            : textSub,
+                                            ? kAdminAccent
+                                            : (isDark
+                                                  ? const Color(0xFF1E1E1E)
+                                                  : const Color(0xFFF3F4F6)),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        r[0].toUpperCase() + r.substring(1),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: sel ? Colors.white : textSub,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              );
-                            }).toList(),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Active',
+                            style: TextStyle(fontSize: 12, color: textSub),
+                          ),
+                          const SizedBox(height: 4),
+                          Switch(
+                            value: _isActive,
+                            onChanged: (v) => setState(() => _isActive = v),
+                            activeThumbColor: const Color(0xFF10B981),
+                            activeTrackColor: const Color(
+                              0xFF10B981,
+                            ).withValues(alpha: 0.35),
                           ),
                         ],
                       ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('Active',
-                            style:
-                                TextStyle(fontSize: 12, color: textSub)),
-                        const SizedBox(height: 4),
-                        Switch(
-                          value: _isActive,
-                          onChanged: (v) => setState(() => _isActive = v),
-                          activeThumbColor: const Color(0xFF10B981),
-                          activeTrackColor:
-                              const Color(0xFF10B981).withValues(alpha: 0.35),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
 
-            // ── Gender ────────────────────────────────────────────────
-            _FormSection(
-              title: 'Gender',
-              icon: Icons.wc_rounded,
-              isDark: isDark,
-              cardBg: cardBg,
-              textPrimary: textPrimary,
-              children: [
-                Text('Optional', style: TextStyle(fontSize: 12, color: textSub)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    ('male', 'Male'),
-                    ('female', 'Female'),
-                    ('other', 'Other'),
-                  ].asMap().entries.map((e) {
-                    final (value, label) = e.value;
-                    final sel = _gender == value;
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: e.key < 2 ? 7 : 0),
-                        child: GestureDetector(
-                          onTap: () => setState(() => _gender = sel ? '' : value),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(vertical: 9),
-                            decoration: BoxDecoration(
-                              color: sel
-                                  ? kAdminAccent
-                                  : (isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6)),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              label,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: sel ? Colors.white : textSub,
+              // ── Gender ────────────────────────────────────────────────
+              _FormSection(
+                title: 'Gender',
+                icon: Icons.wc_rounded,
+                isDark: isDark,
+                cardBg: cardBg,
+                textPrimary: textPrimary,
+                children: [
+                  Text(
+                    'Optional',
+                    style: TextStyle(fontSize: 12, color: textSub),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children:
+                        [
+                          ('male', 'Male'),
+                          ('female', 'Female'),
+                          ('other', 'Other'),
+                        ].asMap().entries.map((e) {
+                          final (value, label) = e.value;
+                          final sel = _gender == value;
+                          return Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                right: e.key < 2 ? 7 : 0,
+                              ),
+                              child: GestureDetector(
+                                onTap: () =>
+                                    setState(() => _gender = sel ? '' : value),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 9,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: sel
+                                        ? kAdminAccent
+                                        : (isDark
+                                              ? const Color(0xFF1E1E1E)
+                                              : const Color(0xFFF3F4F6)),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    label,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: sel ? Colors.white : textSub,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
+                          );
+                        }).toList(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // ── Nutrition Goals ────────────────────────────────────────
+              _FormSection(
+                title: 'Nutrition Goals',
+                icon: Icons.local_fire_department_rounded,
+                isDark: isDark,
+                cardBg: cardBg,
+                textPrimary: textPrimary,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _ageCtrl,
+                          style: TextStyle(fontSize: 14, color: textPrimary),
+                          keyboardType: TextInputType.number,
+                          decoration: fieldDec('Age', icon: Icons.cake_rounded),
+                          validator: (v) {
+                            if (v != null && v.isNotEmpty) {
+                              if (int.tryParse(v) == null) {
+                                return 'Invalid';
+                              }
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _weightCtrl,
+                          style: TextStyle(fontSize: 14, color: textPrimary),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: fieldDec(
+                            'Weight (kg)',
+                            icon: Icons.monitor_weight_rounded,
+                          ),
+                          validator: (v) {
+                            if (v != null && v.isNotEmpty) {
+                              if (double.tryParse(v) == null) {
+                                return 'Invalid';
+                              }
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _calorieCtrl,
+                          style: TextStyle(fontSize: 14, color: textPrimary),
+                          keyboardType: TextInputType.number,
+                          decoration: fieldDec(
+                            'Calorie Target',
+                            icon: Icons.local_fire_department_outlined,
+                          ),
+                          validator: (v) {
+                            if (v != null && v.isNotEmpty) {
+                              if (int.tryParse(v) == null) return 'Invalid';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _proteinCtrl,
+                          style: TextStyle(fontSize: 14, color: textPrimary),
+                          keyboardType: TextInputType.number,
+                          decoration: fieldDec(
+                            'Protein Target (g)',
+                            icon: Icons.fitness_center_rounded,
+                          ),
+                          validator: (v) {
+                            if (v != null && v.isNotEmpty) {
+                              if (int.tryParse(v) == null) return 'Invalid';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _carbCtrl,
+                          style: TextStyle(fontSize: 14, color: textPrimary),
+                          keyboardType: TextInputType.number,
+                          decoration: fieldDec(
+                            'Carb Target (g)',
+                            icon: Icons.grain_rounded,
+                          ),
+                          validator: (v) {
+                            if (v != null && v.isNotEmpty) {
+                              if (int.tryParse(v) == null) return 'Invalid';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _fatCtrl,
+                          style: TextStyle(fontSize: 14, color: textPrimary),
+                          keyboardType: TextInputType.number,
+                          decoration: fieldDec(
+                            'Fat Target (g)',
+                            icon: Icons.water_drop_outlined,
+                          ),
+                          validator: (v) {
+                            if (v != null && v.isNotEmpty) {
+                              if (int.tryParse(v) == null) return 'Invalid';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Primary Goal',
+                    style: TextStyle(fontSize: 12, color: textSub),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 7,
+                    runSpacing: 7,
+                    children: _goals.map((g) {
+                      final sel = _primaryGoal == g;
+                      return GestureDetector(
+                        onTap: () =>
+                            setState(() => _primaryGoal = sel ? null : g),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: sel
+                                ? kAdminAccent
+                                : (isDark
+                                      ? const Color(0xFF1E1E1E)
+                                      : const Color(0xFFF3F4F6)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            g,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: sel ? Colors.white : textSub,
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
 
-            // ── Nutrition Goals ────────────────────────────────────────
-            _FormSection(
-              title: 'Nutrition Goals',
-              icon: Icons.local_fire_department_rounded,
-              isDark: isDark,
-              cardBg: cardBg,
-              textPrimary: textPrimary,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _ageCtrl,
-                        style: TextStyle(fontSize: 14, color: textPrimary),
-                        keyboardType: TextInputType.number,
-                        decoration:
-                            fieldDec('Age', icon: Icons.cake_rounded),
-                        validator: (v) {
-                          if (v != null && v.isNotEmpty) {
-                            if (int.tryParse(v) == null) {
-                              return 'Invalid';
-                            }
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _weightCtrl,
-                        style: TextStyle(fontSize: 14, color: textPrimary),
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                        decoration: fieldDec('Weight (kg)',
-                            icon: Icons.monitor_weight_rounded),
-                        validator: (v) {
-                          if (v != null && v.isNotEmpty) {
-                            if (double.tryParse(v) == null) {
-                              return 'Invalid';
-                            }
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _calorieCtrl,
-                        style: TextStyle(fontSize: 14, color: textPrimary),
-                        keyboardType: TextInputType.number,
-                        decoration: fieldDec('Calorie Target',
-                            icon: Icons.local_fire_department_outlined),
-                        validator: (v) {
-                          if (v != null && v.isNotEmpty) {
-                            if (int.tryParse(v) == null) return 'Invalid';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _proteinCtrl,
-                        style: TextStyle(fontSize: 14, color: textPrimary),
-                        keyboardType: TextInputType.number,
-                        decoration: fieldDec('Protein Target (g)',
-                            icon: Icons.fitness_center_rounded),
-                        validator: (v) {
-                          if (v != null && v.isNotEmpty) {
-                            if (int.tryParse(v) == null) return 'Invalid';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _carbCtrl,
-                        style: TextStyle(fontSize: 14, color: textPrimary),
-                        keyboardType: TextInputType.number,
-                        decoration: fieldDec('Carb Target (g)',
-                            icon: Icons.grain_rounded),
-                        validator: (v) {
-                          if (v != null && v.isNotEmpty) {
-                            if (int.tryParse(v) == null) return 'Invalid';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _fatCtrl,
-                        style: TextStyle(fontSize: 14, color: textPrimary),
-                        keyboardType: TextInputType.number,
-                        decoration: fieldDec('Fat Target (g)',
-                            icon: Icons.water_drop_outlined),
-                        validator: (v) {
-                          if (v != null && v.isNotEmpty) {
-                            if (int.tryParse(v) == null) return 'Invalid';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text('Primary Goal',
-                    style: TextStyle(fontSize: 12, color: textSub)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 7,
-                  runSpacing: 7,
-                  children: _goals.map((g) {
-                    final sel = _primaryGoal == g;
-                    return GestureDetector(
-                      onTap: () => setState(() =>
-                          _primaryGoal = sel ? null : g),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: sel
-                              ? kAdminAccent
-                              : (isDark
-                                  ? const Color(0xFF1E1E1E)
-                                  : const Color(0xFFF3F4F6)),
-                          borderRadius: BorderRadius.circular(8),
+              // ── Dietary Restrictions ───────────────────────────────────
+              _FormSection(
+                title: 'Dietary Restrictions',
+                icon: Icons.eco_rounded,
+                isDark: isDark,
+                cardBg: cardBg,
+                textPrimary: textPrimary,
+                children: [
+                  Wrap(
+                    spacing: 7,
+                    runSpacing: 7,
+                    children: _dietaryOptions.map((d) {
+                      final sel = _dietaryRestrictions.contains(d);
+                      return GestureDetector(
+                        onTap: () => setState(() {
+                          sel
+                              ? _dietaryRestrictions.remove(d)
+                              : _dietaryRestrictions.add(d);
+                        }),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: sel
+                                ? kAdminAccent.withValues(alpha: 0.15)
+                                : (isDark
+                                      ? const Color(0xFF1E1E1E)
+                                      : const Color(0xFFF3F4F6)),
+                            borderRadius: BorderRadius.circular(8),
+                            border: sel
+                                ? Border.all(
+                                    color: kAdminAccent.withValues(alpha: 0.5),
+                                    width: 1,
+                                  )
+                                : null,
+                          ),
+                          child: Text(
+                            d,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: sel ? kAdminAccent : textSub,
+                            ),
+                          ),
                         ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // ── Success notice ─────────────────────────────────────────
+              if (_notice != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle_outline_rounded,
+                        size: 15,
+                        color: Color(0xFF10B981),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
                         child: Text(
-                          g,
-                          style: TextStyle(
+                          _notice!,
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: sel ? Colors.white : textSub,
+                            color: Color(0xFF10B981),
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // ── Dietary Restrictions ───────────────────────────────────
-            _FormSection(
-              title: 'Dietary Restrictions',
-              icon: Icons.eco_rounded,
-              isDark: isDark,
-              cardBg: cardBg,
-              textPrimary: textPrimary,
-              children: [
-                Wrap(
-                  spacing: 7,
-                  runSpacing: 7,
-                  children: _dietaryOptions.map((d) {
-                    final sel = _dietaryRestrictions.contains(d);
-                    return GestureDetector(
-                      onTap: () => setState(() {
-                        sel
-                            ? _dietaryRestrictions.remove(d)
-                            : _dietaryRestrictions.add(d);
-                      }),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: sel
-                              ? kAdminAccent.withValues(alpha: 0.15)
-                              : (isDark
-                                  ? const Color(0xFF1E1E1E)
-                                  : const Color(0xFFF3F4F6)),
-                          borderRadius: BorderRadius.circular(8),
-                          border: sel
-                              ? Border.all(
-                                  color: kAdminAccent.withValues(alpha: 0.5),
-                                  width: 1)
-                              : null,
-                        ),
-                        child: Text(
-                          d,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                sel ? kAdminAccent : textSub,
-                          ),
+                      GestureDetector(
+                        onTap: () => setState(() => _notice = null),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          size: 14,
+                          color: Color(0xFF10B981),
                         ),
                       ),
-                    );
-                  }).toList(),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
 
-            // ── Success notice ─────────────────────────────────────────
-            if (_notice != null)
-              Container(
-                margin: const EdgeInsets.only(bottom: 14),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+              // ── Submit ─────────────────────────────────────────────────
+              FilledButton(
+                onPressed: _isSaving ? null : _submit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: kAdminAccent,
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(13),
+                  ),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle_outline_rounded,
-                        size: 15, color: Color(0xFF10B981)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _notice!,
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        widget.isEditing ? 'Save Changes' : 'Create User',
                         style: const TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF10B981)),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => _notice = null),
-                      child: const Icon(Icons.close_rounded, size: 14, color: Color(0xFF10B981)),
-                    ),
-                  ],
-                ),
               ),
-
-            // ── Submit ─────────────────────────────────────────────────
-            FilledButton(
-              onPressed: _isSaving ? null : _submit,
-              style: FilledButton.styleFrom(
-                backgroundColor: kAdminAccent,
-                minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(13)),
-              ),
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2),
-                    )
-                  : Text(
-                      widget.isEditing ? 'Save Changes' : 'Create User',
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700),
-                    ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

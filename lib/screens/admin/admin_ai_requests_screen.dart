@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/config/app_theme.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/admin.dart';
 import 'package:foodhub_mobile/screens/admin/admin_shell_screen.dart';
@@ -122,305 +123,290 @@ class _AdminAiRequestsScreenState extends State<AdminAiRequestsScreen> {
     final rangeStart = list.isEmpty ? 0 : _page * _kPageSize + 1;
     final rangeEnd = _page * _kPageSize + list.length;
 
-    return Scaffold(
-      backgroundColor: bg,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  InkWell(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          size: 13,
-                          color: kAdminAccent,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          s.adminBackToAnalytics,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: kAdminAccent,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
+    // Pushed via Navigator.push onto the app's root Navigator — outside
+    // AdminShellScreen's local Theme(isDark ? dark : light) override that
+    // the tab screens sit inside. Without this, ambient Theme.of(context)
+    // (and anything that reads it implicitly, like RefreshIndicator's
+    // spinner disc) would fall back to MaterialApp's hardcoded light theme
+    // regardless of the admin's dark-mode preference.
+    return Theme(
+      data: isDark ? AppTheme.dark : AppTheme.light,
+      child: Scaffold(
+        backgroundColor: bg,
+        body: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: _load,
+            color: kAdminAccent,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
+              children: [
+                InkWell(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 13,
+                        color: kAdminAccent,
+                      ),
+                      const SizedBox(width: 4),
                       Text(
-                        s.adminAiRequestsPageTitle,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: textPrimary,
-                        ),
-                      ),
-                      const Spacer(),
-                      GestureDetector(
-                        onTap: _loading ? null : _load,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: kAdminAccent.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              _loading
-                                  ? const SizedBox(
-                                      width: 12,
-                                      height: 12,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: kAdminAccent,
-                                      ),
-                                    )
-                                  : const Icon(
-                                      Icons.refresh_rounded,
-                                      size: 13,
-                                      color: kAdminAccent,
-                                    ),
-                              const SizedBox(width: 5),
-                              const Text(
-                                'Refresh',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: kAdminAccent,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Status filter chips
-                  SizedBox(
-                    height: 30,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        _FilterChip(
-                          label: 'All',
-                          isDark: isDark,
-                          selected: _statusFilter == null,
-                          onTap: () => _setStatusFilter(null),
-                        ),
-                        for (final st in _kStatuses)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 7),
-                            child: _FilterChip(
-                              label: s.adminAiRequestStatusDisplay(st),
-                              isDark: isDark,
-                              selected: _statusFilter == st,
-                              onTap: () => _setStatusFilter(st),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Request type filter
-                  Row(
-                    children: [
-                      Text(
-                        s.adminRequestTypeFilterLabel,
-                        style: TextStyle(fontSize: 11.5, color: textSub),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: cardBg,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isDark
-                                  ? const Color(0xFF2A2A2A)
-                                  : const Color(0xFFE5E7EB),
-                            ),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String?>(
-                              value: _typeFilter,
-                              isExpanded: true,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                              ),
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                color: textPrimary,
-                              ),
-                              dropdownColor: cardBg,
-                              icon: Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                color: textSub,
-                                size: 18,
-                              ),
-                              items: [
-                                const DropdownMenuItem(
-                                  value: null,
-                                  child: Text('All'),
-                                ),
-                                for (final t in _kRequestTypes)
-                                  DropdownMenuItem(
-                                    value: t,
-                                    child: Text(s.adminAiRequestTypeDisplay(t)),
-                                  ),
-                              ],
-                              onChanged: _setTypeFilter,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  if (_error != null)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF43F5E).withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        s.adminAiRequestsLoadError,
+                        s.adminBackToAnalytics,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFFF43F5E),
+                          fontWeight: FontWeight.w600,
+                          color: kAdminAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(
+                      s.adminAiRequestsPageTitle,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: textPrimary,
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: _loading ? null : _load,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: kAdminAccent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            _loading
+                                ? const SizedBox(
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: kAdminAccent,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.refresh_rounded,
+                                    size: 13,
+                                    color: kAdminAccent,
+                                  ),
+                            const SizedBox(width: 5),
+                            const Text(
+                              'Refresh',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: kAdminAccent,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                ],
-              ),
-            ),
+                  ],
+                ),
+                const SizedBox(height: 10),
 
-            Expanded(
-              child: _loading && _items == null
-                  ? const Center(
+                // Status filter chips
+                SizedBox(
+                  height: 30,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _FilterChip(
+                        label: 'All',
+                        isDark: isDark,
+                        selected: _statusFilter == null,
+                        onTap: () => _setStatusFilter(null),
+                      ),
+                      for (final st in _kStatuses)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 7),
+                          child: _FilterChip(
+                            label: s.adminAiRequestStatusDisplay(st),
+                            isDark: isDark,
+                            selected: _statusFilter == st,
+                            onTap: () => _setStatusFilter(st),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Request type filter
+                Row(
+                  children: [
+                    Text(
+                      s.adminRequestTypeFilterLabel,
+                      style: TextStyle(fontSize: 11.5, color: textSub),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF2A2A2A)
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String?>(
+                            value: _typeFilter,
+                            isExpanded: true,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: textPrimary,
+                            ),
+                            dropdownColor: cardBg,
+                            icon: Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: textSub,
+                              size: 18,
+                            ),
+                            items: [
+                              const DropdownMenuItem(
+                                value: null,
+                                child: Text('All'),
+                              ),
+                              for (final t in _kRequestTypes)
+                                DropdownMenuItem(
+                                  value: t,
+                                  child: Text(s.adminAiRequestTypeDisplay(t)),
+                                ),
+                            ],
+                            onChanged: _setTypeFilter,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                if (_error != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF43F5E).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      s.adminAiRequestsLoadError,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFF43F5E),
+                      ),
+                    ),
+                  ),
+
+                // ── List ────────────────────────────────────────────────
+                if (_loading && _items == null)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 48),
+                    child: Center(
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
                         color: kAdminAccent,
                       ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      color: kAdminAccent,
-                      child: list.isEmpty
-                          ? ListView(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              children: [
-                                SizedBox(
-                                  height: 300,
-                                  child: Center(
-                                    child: Text(
-                                      s.adminAiRequestsEmpty,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: textSub,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : ListView(
-                              padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Text(
-                                    s.adminAiRequestsPagination(
-                                      rangeStart,
-                                      rangeEnd,
-                                      _hasNext,
-                                    ),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: textSub,
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: cardBg,
-                                    borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: isDark ? 0.3 : 0.06,
-                                        ),
-                                        blurRadius: isDark ? 10 : 8,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(14),
-                                    child: Column(
-                                      children: list.asMap().entries.map((e) {
-                                        return _AiRequestRow(
-                                          entry: e.value,
-                                          isDark: isDark,
-                                          lang: lang,
-                                          showTopDivider: e.key > 0,
-                                          statusColor: _statusColor(
-                                            e.value.status,
-                                          ),
-                                          onTapUser: () =>
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      AdminUserDetailScreen(
-                                                        userId: e.value.userId,
-                                                        isDarkMode: isDark,
-                                                      ),
-                                                ),
-                                              ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                ),
-                                _PaginationFooter(
-                                  isDark: isDark,
-                                  page: _page,
-                                  hasNext: _hasNext,
-                                  loading: _loading,
-                                  onPrev: _page > 0
-                                      ? () {
-                                          setState(() => _page--);
-                                          _load();
-                                        }
-                                      : null,
-                                  onNext: () {
-                                    setState(() => _page++);
-                                    _load();
-                                  },
-                                ),
-                              ],
-                            ),
                     ),
+                  )
+                else if (list.isEmpty)
+                  SizedBox(
+                    height: 260,
+                    child: Center(
+                      child: Text(
+                        s.adminAiRequestsEmpty,
+                        style: TextStyle(fontSize: 13, color: textSub),
+                      ),
+                    ),
+                  )
+                else ...[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      s.adminAiRequestsPagination(
+                        rangeStart,
+                        rangeEnd,
+                        _hasNext,
+                      ),
+                      style: TextStyle(fontSize: 11, color: textSub),
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: isDark ? 0.3 : 0.06,
+                          ),
+                          blurRadius: isDark ? 10 : 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Column(
+                        children: list.asMap().entries.map((e) {
+                          return _AiRequestRow(
+                            entry: e.value,
+                            isDark: isDark,
+                            lang: lang,
+                            showTopDivider: e.key > 0,
+                            statusColor: _statusColor(e.value.status),
+                            onTapUser: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => AdminUserDetailScreen(
+                                  userId: e.value.userId,
+                                  isDarkMode: isDark,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  _PaginationFooter(
+                    isDark: isDark,
+                    page: _page,
+                    hasNext: _hasNext,
+                    loading: _loading,
+                    onPrev: _page > 0
+                        ? () {
+                            setState(() => _page--);
+                            _load();
+                          }
+                        : null,
+                    onNext: () {
+                      setState(() => _page++);
+                      _load();
+                    },
+                  ),
+                ],
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

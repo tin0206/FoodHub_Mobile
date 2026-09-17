@@ -20,8 +20,8 @@ void main() {
           {'mapped_id': 1, 'mapped_name': 'Beef', 'total_grams': 500},
         ],
         'nutrition': {
-          'per_serving': {'Calories (cal)': 320.0, 'Protein (g)': 25.0},
-          'total': {'Calories (cal)': 1280.0},
+          'per_serving': {'Calories (kcal)': 320.0, 'Protein (g)': 25.0},
+          'total': {'Calories (kcal)': 1280.0},
           'ingredients': [],
         },
       });

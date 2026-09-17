@@ -77,6 +77,24 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
     );
   }
 
+  // ProfileScreen only reports a saved change through this callback (its
+  // theme switch/dietary chips/goal picker just edit local pending state
+  // until "Save changes" succeeds) — `onThemeChanged` above is never
+  // actually invoked, so reading the persisted theme back here is what
+  // makes the dark/light toggle take effect after saving.
+  void _onUserUpdated(UserModel user) {
+    setState(() {
+      _isDarkMode = user.theme == 'dark';
+      _dietaryRestrictions = {...user.dietaryRestrictions};
+      if (user.primaryGoal != null && user.primaryGoal!.isNotEmpty) {
+        _primaryGoal = user.primaryGoal!;
+      }
+    });
+    if (user.language != null && user.language!.isNotEmpty) {
+      LangScope.current.value = user.language!;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = _isDarkMode;
@@ -106,7 +124,7 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
         },
         primaryGoal: _primaryGoal,
         onPrimaryGoalChanged: (goal) => setState(() => _primaryGoal = goal),
-        onUserUpdated: (_) {},
+        onUserUpdated: _onUserUpdated,
       ),
     ];
 

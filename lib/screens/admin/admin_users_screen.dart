@@ -136,14 +136,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
     return Stack(
       children: [
-        Column(
-          children: [
-        // ── Header ──────────────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        RefreshIndicator(
+          onRefresh: () => _load(),
+          color: kAdminAccent,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 80),
             children: [
+              // ── Header ──────────────────────────────────────────────
               Row(
                 children: [
                   Text(
@@ -299,96 +299,83 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   ),
                   child: Text(_error!, style: const TextStyle(fontSize: 12, color: Color(0xFFF43F5E))),
                 ),
+
+              // ── List ────────────────────────────────────────────────
+              if (_loading && _users == null)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: kAdminAccent),
+                  ),
+                )
+              else if (list.isEmpty)
+                SizedBox(
+                  height: 260,
+                  child: Center(
+                    child: Text(
+                      _debouncedQuery.isNotEmpty
+                          ? 'No users match "$_debouncedQuery"'
+                          : 'No users found',
+                      style: TextStyle(fontSize: 13, color: textSub),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                        blurRadius: isDark ? 10 : 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Column(
+                      children: list.asMap().entries.map((e) {
+                        return _UserRow(
+                          user: e.value,
+                          isDark: isDark,
+                          showTopDivider: e.key > 0,
+                          isFirst: e.key == 0,
+                          isLast: e.key == list.length - 1,
+                          onTap: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => AdminUserDetailScreen(
+                                  userId: e.value.id,
+                                  isDarkMode: isDark,
+                                ),
+                              ),
+                            );
+                            _load();
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              if (list.isNotEmpty)
+                _PaginationFooter(
+                  isDark: isDark,
+                  page: _page,
+                  hasNext: _hasNext,
+                  loading: _loading,
+                  onPrev: _page > 0 ? () {
+                    setState(() => _page--);
+                    _load();
+                  } : null,
+                  onNext: () {
+                    setState(() => _page++);
+                    _load();
+                  },
+                ),
             ],
           ),
-        ),
-
-        // ── List ────────────────────────────────────────────────────
-        Expanded(
-          child: _loading && _users == null
-              ? const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2.5, color: kAdminAccent),
-                )
-              : RefreshIndicator(
-                  onRefresh: () => _load(),
-                  color: kAdminAccent,
-                  child: list.isEmpty
-                      ? ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            SizedBox(
-                              height: 300,
-                              child: Center(
-                                child: Text(
-                                  _debouncedQuery.isNotEmpty
-                                      ? 'No users match "$_debouncedQuery"'
-                                      : 'No users found',
-                                  style: TextStyle(fontSize: 13, color: textSub),
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : ListView(
-                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 80),
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                color: cardBg,
-                                borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-                                    blurRadius: isDark ? 10 : 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(14),
-                                child: Column(
-                                  children: list.asMap().entries.map((e) {
-                                    return _UserRow(
-                                      user: e.value,
-                                      isDark: isDark,
-                                      showTopDivider: e.key > 0,
-                                      isFirst: e.key == 0,
-                                      isLast: e.key == list.length - 1,
-                                      onTap: () async {
-                                        await Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (_) => AdminUserDetailScreen(
-                                              userId: e.value.id,
-                                              isDarkMode: isDark,
-                                            ),
-                                          ),
-                                        );
-                                        _load();
-                                      },
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                            ),
-                            _PaginationFooter(
-                              isDark: isDark,
-                              page: _page,
-                              hasNext: _hasNext,
-                              loading: _loading,
-                              onPrev: _page > 0 ? () {
-                                setState(() => _page--);
-                                _load();
-                              } : null,
-                              onNext: () {
-                                setState(() => _page++);
-                                _load();
-                              },
-                            ),
-                          ],
-                        ),
-                ),
-        ),
-          ],
         ),
 
         // ── Add User FAB ────────────────────────────────────────────────

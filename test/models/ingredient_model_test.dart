@@ -61,7 +61,7 @@ void main() {
 
     test('ignores non-numeric nutrient values', () {
       final nutrition = RecipeNutrition.fromJson({
-        'per_serving': {'Calories (cal)': 'n/a'},
+        'per_serving': {'Calories (kcal)': 'n/a'},
       });
       expect(nutrition.perServing, isEmpty);
     });

@@ -102,233 +102,247 @@ class _AdminRecipesScreenState extends State<AdminRecipesScreen> {
 
     return Stack(
       children: [
-        Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        RefreshIndicator(
+          onRefresh: () => _loadRecipes(),
+          color: kAdminAccent,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 80),
+            children: [
+              // ── Header ─────────────────────────────────────────────
+              Row(
                 children: [
-                  // ── Header ─────────────────────────────────────────────
-                  Row(
-                    children: [
-                      Text(
-                        'Recipes',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: textPrimary,
-                        ),
+                  Text(
+                    'Recipes',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: kAdminAccent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${_recipes.length}${_hasNext ? '+' : ''}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: kAdminAccent,
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: kAdminAccent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          '${_recipes.length}${_hasNext ? '+' : ''}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: kAdminAccent,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: _loadingRecipes ? null : () => _loadRecipes(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: kAdminAccent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          _loadingRecipes
+                              ? const SizedBox(
+                                  width: 12,
+                                  height: 12,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: kAdminAccent),
+                                )
+                              : const Icon(Icons.refresh_rounded,
+                                  size: 13, color: kAdminAccent),
+                          const SizedBox(width: 5),
+                          const Text(
+                            'Refresh',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: kAdminAccent),
                           ),
-                        ),
+                        ],
                       ),
-                      const Spacer(),
-                      if (_loadingRecipes)
-                        const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: kAdminAccent),
-                        ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // ── Search ─────────────────────────────────────────────
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: _onSearchChanged,
+                  style: TextStyle(fontSize: 14, color: textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'Search recipes…',
+                    hintStyle: TextStyle(color: textSub, fontSize: 13),
+                    prefixIcon: Icon(Icons.search, color: textSub, size: 20),
+                    filled: true,
+                    fillColor: cardBg,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: kAdminAccent),
+                    ),
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // ── Visibility filter ──────────────────────────────────
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _FilterChip(
+                      label: 'All',
+                      selected: _visibilityFilter == null,
+                      isDark: isDark,
+                      onTap: () => _setVisibility(null),
+                    ),
+                    _FilterChip(
+                      label: 'Public',
+                      selected: _visibilityFilter == 'public',
+                      isDark: isDark,
+                      onTap: () => _setVisibility('public'),
+                      icon: Icons.visibility_rounded,
+                    ),
+                    _FilterChip(
+                      label: 'Private',
+                      selected: _visibilityFilter == 'private',
+                      isDark: isDark,
+                      onTap: () => _setVisibility('private'),
+                      icon: Icons.visibility_off_rounded,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // ── Recipe list ────────────────────────────────────────
+              if (_loadingRecipes && _recipes.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: kAdminAccent),
+                  ),
+                )
+              else if (_recipes.isEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 48),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+                        blurRadius: isDark ? 10 : 8,
+                        offset: const Offset(0, 3),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-
-                  // ── Search ─────────────────────────────────────────────
-                  DecoratedBox(
+                  child: Column(
+                    children: [
+                      Icon(Icons.menu_book_outlined, size: 32, color: textSub.withValues(alpha: 0.4)),
+                      const SizedBox(height: 10),
+                      Text('No recipes found',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary)),
+                      const SizedBox(height: 4),
+                      Text(
+                        _query.isNotEmpty ? 'Try a different search' : 'Try a different visibility filter',
+                        style: TextStyle(fontSize: 12, color: textSub),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Opacity(
+                  opacity: _loadingRecipes ? 0.6 : 1.0,
+                  child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          blurRadius: isDark ? 10 : 8,
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
-                    child: TextField(
-                      controller: _searchCtrl,
-                      onChanged: _onSearchChanged,
-                      style: TextStyle(fontSize: 14, color: textPrimary),
-                      decoration: InputDecoration(
-                        hintText: 'Search recipes…',
-                        hintStyle: TextStyle(color: textSub, fontSize: 13),
-                        prefixIcon: Icon(Icons.search, color: textSub, size: 20),
-                        filled: true,
-                        fillColor: cardBg,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: kAdminAccent),
-                        ),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // ── Visibility filter ──────────────────────────────────
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _FilterChip(
-                          label: 'All',
-                          selected: _visibilityFilter == null,
+                    child: Column(
+                      children: _recipes.asMap().entries.map((e) {
+                        final i = e.key;
+                        final r = e.value;
+                        final isLast = i == _recipes.length - 1;
+                        return _RecipeRow(
+                          recipe: r,
                           isDark: isDark,
-                          onTap: () => _setVisibility(null),
-                        ),
-                        _FilterChip(
-                          label: 'Public',
-                          selected: _visibilityFilter == 'public',
-                          isDark: isDark,
-                          onTap: () => _setVisibility('public'),
-                          icon: Icons.visibility_rounded,
-                        ),
-                        _FilterChip(
-                          label: 'Private',
-                          selected: _visibilityFilter == 'private',
-                          isDark: isDark,
-                          onTap: () => _setVisibility('private'),
-                          icon: Icons.visibility_off_rounded,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-              ),
-            ),
-
-            // ── Recipe list ────────────────────────────────────────────
-            Expanded(
-              child: _loadingRecipes && _recipes.isEmpty
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2.5, color: kAdminAccent),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: () => _loadRecipes(),
-                      color: kAdminAccent,
-                      child: ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 80),
-                        children: [
-                          if (_recipes.isEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(vertical: 48),
-                              decoration: BoxDecoration(
-                                color: cardBg,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-                                    blurRadius: isDark ? 10 : 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(Icons.menu_book_outlined, size: 32, color: textSub.withValues(alpha: 0.4)),
-                                  const SizedBox(height: 10),
-                                  Text('No recipes found',
-                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimary)),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _query.isNotEmpty ? 'Try a different search' : 'Try a different visibility filter',
-                                    style: TextStyle(fontSize: 12, color: textSub),
-                                  ),
-                                ],
-                              ),
-                            )
-                          else
-                            Opacity(
-                              opacity: _loadingRecipes ? 0.6 : 1.0,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: cardBg,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-                                      blurRadius: isDark ? 10 : 8,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  children: _recipes.asMap().entries.map((e) {
-                                    final i = e.key;
-                                    final r = e.value;
-                                    final isLast = i == _recipes.length - 1;
-                                    return _RecipeRow(
-                                      recipe: r,
-                                      isDark: isDark,
-                                      textPrimary: textPrimary,
-                                      textSub: textSub,
-                                      showTopDivider: i > 0,
-                                      isLast: isLast,
-                                      onTap: () async {
-                                        await Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (_) => AdminRecipeDetailScreen(
-                                              recipeId: r.id,
-                                              isDarkMode: isDark,
-                                            ),
-                                          ),
-                                        );
-                                        _loadRecipes();
-                                      },
-                                    );
-                                  }).toList(),
+                          textPrimary: textPrimary,
+                          textSub: textSub,
+                          showTopDivider: i > 0,
+                          isLast: isLast,
+                          onTap: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => AdminRecipeDetailScreen(
+                                  recipeId: r.id,
+                                  isDarkMode: isDark,
                                 ),
                               ),
-                            ),
-                          if (_recipes.isNotEmpty)
-                            _PaginationRow(
-                              isDark: isDark,
-                              loading: _loadingRecipes,
-                              hasNext: _hasNext,
-                              page: _page,
-                              onPrev: _page > 0
-                                  ? () {
-                                      setState(() => _page--);
-                                      _loadRecipes(replace: true);
-                                    }
-                                  : null,
-                              onNext: () {
-                                setState(() => _page++);
-                                _loadRecipes(replace: true);
-                              },
-                            ),
-                        ],
-                      ),
-                    ), // RefreshIndicator
-            ),
-          ],
+                            );
+                            _loadRecipes();
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              if (_recipes.isNotEmpty)
+                _PaginationRow(
+                  isDark: isDark,
+                  loading: _loadingRecipes,
+                  hasNext: _hasNext,
+                  page: _page,
+                  onPrev: _page > 0
+                      ? () {
+                          setState(() => _page--);
+                          _loadRecipes(replace: true);
+                        }
+                      : null,
+                  onNext: () {
+                    setState(() => _page++);
+                    _loadRecipes(replace: true);
+                  },
+                ),
+            ],
+          ),
         ),
 
         // ── Add Recipe FAB ────────────────────────────────────────────────

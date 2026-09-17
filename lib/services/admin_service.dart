@@ -60,6 +60,7 @@ class AdminService {
     List<String>? dietaryRestrictions,
     int? estimatedServings,
     String? imageUrl,
+    Map<String, dynamic>? nutrition,
   }) async {
     final body = <String, dynamic>{
       'title': title,
@@ -69,6 +70,7 @@ class AdminService {
         'dietary_restrictions': dietaryRestrictions,
       if (estimatedServings != null) 'estimated_servings': estimatedServings,
       if (imageUrl != null && imageUrl.isNotEmpty) 'image_url': imageUrl,
+      if (nutrition != null && nutrition.isNotEmpty) 'nutrition': nutrition,
     };
     final data = await _api.post('/recipes', body: body);
     return RecipeModel.fromJson(data as Map<String, dynamic>);
@@ -82,6 +84,7 @@ class AdminService {
     List<String>? dietaryRestrictions,
     int? estimatedServings,
     String? imageUrl,
+    Map<String, dynamic>? nutrition,
   }) async {
     final body = <String, dynamic>{
       if (title != null) 'title': title,
@@ -91,8 +94,12 @@ class AdminService {
         'dietary_restrictions': dietaryRestrictions,
       if (estimatedServings != null) 'estimated_servings': estimatedServings,
       if (imageUrl != null) 'image_url': imageUrl,
+      if (nutrition != null && nutrition.isNotEmpty) 'nutrition': nutrition,
     };
-    final data = await _api.patch('/recipes/$id', body: body);
+    // Admin-only endpoint: edits the recipe in place (no fork-to-private-copy
+    // and no ownership check), unlike the shared `/recipes/{id}` PATCH used
+    // by the regular user-facing recipe screens.
+    final data = await _api.patch('/admin/recipes/$id', body: body);
     return RecipeModel.fromJson(data as Map<String, dynamic>);
   }
 

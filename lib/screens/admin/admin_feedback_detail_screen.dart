@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:foodhub_mobile/config/app_theme.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/admin.dart';
 import 'package:foodhub_mobile/models/feedback.dart';
@@ -22,8 +23,7 @@ class AdminFeedbackDetailScreen extends StatefulWidget {
       _AdminFeedbackDetailScreenState();
 }
 
-class _AdminFeedbackDetailScreenState
-    extends State<AdminFeedbackDetailScreen> {
+class _AdminFeedbackDetailScreenState extends State<AdminFeedbackDetailScreen> {
   final _admin = AdminService();
   final _replyCtrl = TextEditingController();
 
@@ -54,7 +54,10 @@ class _AdminFeedbackDetailScreenState
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final fb = await _admin.getFeedback(widget.feedbackId);
       if (!mounted) return;
@@ -105,8 +108,8 @@ class _AdminFeedbackDetailScreenState
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content:
-                Text(e is ApiException ? e.message : 'Unable to save.')),
+          content: Text(e is ApiException ? e.message : 'Unable to save.'),
+        ),
       );
     }
   }
@@ -117,34 +120,48 @@ class _AdminFeedbackDetailScreenState
     final s = S.of(context);
     final bg = isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF8FAFC);
     final cardBg = isDark ? const Color(0xFF141414) : Colors.white;
-    final textPrimary =
-        isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
+    final textPrimary = isDark
+        ? const Color(0xFFF8FAFC)
+        : const Color(0xFF111827);
     final textSub = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
-    final divColor =
-        isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
-    final fieldFill =
-        isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
+    final divColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F4F6);
+    final fieldFill = isDark
+        ? const Color(0xFF1E1E1E)
+        : const Color(0xFFF3F4F6);
+
+    // Pushed via Navigator.push onto the app's root Navigator — outside
+    // AdminShellScreen's local Theme(isDark ? dark : light) override that
+    // the tab screens sit inside, so it needs its own override to match.
+    final themeData = isDark ? AppTheme.dark : AppTheme.light;
 
     if (_loading) {
-      return Scaffold(
-        backgroundColor: bg,
-        body: const Center(
+      return Theme(
+        data: themeData,
+        child: Scaffold(
+          backgroundColor: bg,
+          body: const Center(
             child: CircularProgressIndicator(
-                strokeWidth: 2.5, color: kAdminAccent)),
+              strokeWidth: 2.5,
+              color: kAdminAccent,
+            ),
+          ),
+        ),
       );
     }
 
     if (_error != null || _feedback == null) {
-      return Scaffold(
-        backgroundColor: bg,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(_error ?? 'Not found',
-                  style: TextStyle(color: textSub)),
-              TextButton(onPressed: _load, child: Text(s.retry)),
-            ],
+      return Theme(
+        data: themeData,
+        child: Scaffold(
+          backgroundColor: bg,
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_error ?? 'Not found', style: TextStyle(color: textSub)),
+                TextButton(onPressed: _load, child: Text(s.retry)),
+              ],
+            ),
           ),
         ),
       );
@@ -158,285 +175,333 @@ class _AdminFeedbackDetailScreenState
 
     final statuses = ['open', 'in_progress', 'resolved'];
 
-    return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
-        foregroundColor: textPrimary,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              size: 18, color: textSub),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '#${fb.id} — ${s.feedbackCategoryDisplay(fb.category)}',
-          style: TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
-        ),
-        centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: divColor),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(14),
-        children: [
-          // ── Submitted By ────────────────────────────────────────────────
-          _FormSection(
-            title: 'Submitted By',
-            icon: Icons.person_rounded,
-            isDark: isDark,
-            cardBg: cardBg,
-            textPrimary: textPrimary,
-            children: [
-              InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => AdminUserDetailScreen(
-                      userId: user.id, isDarkMode: isDark),
-                )),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: avatarColor.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(initials,
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: avatarColor)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(userName,
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: textPrimary)),
-                            Text(user.email,
-                                style: TextStyle(
-                                    fontSize: 11, color: textSub)),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right_rounded,
-                          size: 18, color: textSub),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+    return Theme(
+      data: themeData,
+      child: Scaffold(
+        backgroundColor: bg,
+        appBar: AppBar(
+          backgroundColor: isDark ? const Color(0xFF0A0A0A) : Colors.white,
+          foregroundColor: textPrimary,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 18,
+              color: textSub,
+            ),
+            onPressed: () => Navigator.pop(context),
           ),
-          const SizedBox(height: 12),
-
-          // ── Feedback ────────────────────────────────────────────────────
-          _FormSection(
-            title: 'Feedback',
-            icon: Icons.forum_rounded,
-            isDark: isDark,
-            cardBg: cardBg,
-            textPrimary: textPrimary,
-            children: [
-              _InfoRow(
-                label: 'Category',
-                value: s.feedbackCategoryDisplay(fb.category),
-                textPrimary: textPrimary,
-                textSub: textSub,
-                divColor: divColor,
-              ),
-              if (fb.rating != null)
-                _InfoRow(
-                  label: 'Rating',
-                  value: '${fb.rating}/5',
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(
-                      5,
-                      (i) => Icon(
-                        i < fb.rating!
-                            ? Icons.star_rounded
-                            : Icons.star_outline_rounded,
-                        size: 14,
-                        color: i < fb.rating!
-                            ? const Color(0xFFF59E0B)
-                            : textSub,
+          title: Text(
+            '#${fb.id} — ${s.feedbackCategoryDisplay(fb.category)}',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: textPrimary,
+            ),
+          ),
+          centerTitle: true,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Divider(height: 1, color: divColor),
+          ),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(14),
+          children: [
+            // ── Submitted By ────────────────────────────────────────────────
+            _FormSection(
+              title: 'Submitted By',
+              icon: Icons.person_rounded,
+              isDark: isDark,
+              cardBg: cardBg,
+              textPrimary: textPrimary,
+              children: [
+                InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AdminUserDetailScreen(
+                        userId: user.id,
+                        isDarkMode: isDark,
                       ),
                     ),
                   ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: avatarColor.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            initials,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: avatarColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                userName,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              Text(
+                                user.email,
+                                style: TextStyle(fontSize: 11, color: textSub),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                          color: textSub,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // ── Feedback ────────────────────────────────────────────────────
+            _FormSection(
+              title: 'Feedback',
+              icon: Icons.forum_rounded,
+              isDark: isDark,
+              cardBg: cardBg,
+              textPrimary: textPrimary,
+              children: [
+                _InfoRow(
+                  label: 'Category',
+                  value: s.feedbackCategoryDisplay(fb.category),
                   textPrimary: textPrimary,
                   textSub: textSub,
                   divColor: divColor,
                 ),
-              _InfoRow(
-                label: 'Submitted',
-                value: _fmtDate(fb.createdAt),
-                textPrimary: textPrimary,
-                textSub: textSub,
-                divColor: divColor,
-              ),
-              const SizedBox(height: 8),
-              Text('Message',
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: textSub)),
-              const SizedBox(height: 6),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: fieldFill,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(fb.message,
-                    style: TextStyle(fontSize: 13, color: textPrimary)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // ── Status & Reply ──────────────────────────────────────────────
-          _FormSection(
-            title: 'Status & Reply',
-            icon: Icons.edit_note_rounded,
-            isDark: isDark,
-            cardBg: cardBg,
-            textPrimary: textPrimary,
-            children: [
-              Text(s.adminFeedbackStatusFieldLabel,
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: textSub)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: statuses.map((st) {
-                  final sel = _pendingStatus == st;
-                  Color stColor;
-                  switch (st) {
-                    case 'open':
-                      stColor = const Color(0xFF10B981);
-                      break;
-                    case 'in_progress':
-                      stColor = const Color(0xFFF59E0B);
-                      break;
-                    default:
-                      stColor = const Color(0xFF94A3B8);
-                  }
-                  return GestureDetector(
-                    onTap: () => setState(() => _pendingStatus = st),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: sel
-                            ? stColor.withValues(alpha: isDark ? 0.22 : 0.12)
-                            : fieldFill,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: sel
-                              ? stColor.withValues(alpha: 0.7)
-                              : Colors.transparent,
-                          width: 1.5,
+                if (fb.rating != null)
+                  _InfoRow(
+                    label: 'Rating',
+                    value: '${fb.rating}/5',
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(
+                        5,
+                        (i) => Icon(
+                          i < fb.rating!
+                              ? Icons.star_rounded
+                              : Icons.star_outline_rounded,
+                          size: 14,
+                          color: i < fb.rating!
+                              ? const Color(0xFFF59E0B)
+                              : textSub,
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 7,
-                            height: 7,
-                            decoration: BoxDecoration(
-                                color: stColor, shape: BoxShape.circle),
+                    ),
+                    textPrimary: textPrimary,
+                    textSub: textSub,
+                    divColor: divColor,
+                  ),
+                _InfoRow(
+                  label: 'Submitted',
+                  value: _fmtDate(fb.createdAt),
+                  textPrimary: textPrimary,
+                  textSub: textSub,
+                  divColor: divColor,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Message',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: textSub,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: fieldFill,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    fb.message,
+                    style: TextStyle(fontSize: 13, color: textPrimary),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // ── Status & Reply ──────────────────────────────────────────────
+            _FormSection(
+              title: 'Status & Reply',
+              icon: Icons.edit_note_rounded,
+              isDark: isDark,
+              cardBg: cardBg,
+              textPrimary: textPrimary,
+              children: [
+                Text(
+                  s.adminFeedbackStatusFieldLabel,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: textSub,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: statuses.map((st) {
+                    final sel = _pendingStatus == st;
+                    Color stColor;
+                    switch (st) {
+                      case 'open':
+                        stColor = const Color(0xFF10B981);
+                        break;
+                      case 'in_progress':
+                        stColor = const Color(0xFFF59E0B);
+                        break;
+                      default:
+                        stColor = const Color(0xFF94A3B8);
+                    }
+                    return GestureDetector(
+                      onTap: () => setState(() => _pendingStatus = st),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: sel
+                              ? stColor.withValues(alpha: isDark ? 0.22 : 0.12)
+                              : fieldFill,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: sel
+                                ? stColor.withValues(alpha: 0.7)
+                                : Colors.transparent,
+                            width: 1.5,
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            s.feedbackStatusDisplay(st),
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: sel ? stColor : textSub,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: stColor,
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 6),
+                            Text(
+                              s.feedbackStatusDisplay(st),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: sel ? stColor : textSub,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  s.adminFeedbackReplyFieldLabel,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: textSub,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _replyCtrl,
+                  minLines: 3,
+                  maxLines: 6,
+                  style: TextStyle(fontSize: 13, color: textPrimary),
+                  decoration: InputDecoration(
+                    hintText: 'Write a reply to the user…',
+                    hintStyle: TextStyle(color: textSub, fontSize: 13),
+                    filled: true,
+                    fillColor: fieldFill,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(
+                        color: kAdminAccent,
+                        width: 1.5,
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 14),
-              Text(s.adminFeedbackReplyFieldLabel,
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: textSub)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _replyCtrl,
-                minLines: 3,
-                maxLines: 6,
-                style: TextStyle(fontSize: 13, color: textPrimary),
-                decoration: InputDecoration(
-                  hintText: 'Write a reply to the user…',
-                  hintStyle: TextStyle(color: textSub, fontSize: 13),
-                  filled: true,
-                  fillColor: fieldFill,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
+                    contentPadding: const EdgeInsets.all(12),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide:
-                        const BorderSide(color: kAdminAccent, width: 1.5),
-                  ),
-                  contentPadding: const EdgeInsets.all(12),
                 ),
-              ),
-              const SizedBox(height: 14),
-              FilledButton(
-                onPressed: (_saving || !_hasChanges) ? null : _save,
-                style: FilledButton.styleFrom(
-                  backgroundColor: kAdminAccent,
-                  disabledBackgroundColor:
-                      kAdminAccent.withValues(alpha: 0.35),
-                  minimumSize: const Size.fromHeight(46),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                const SizedBox(height: 14),
+                FilledButton(
+                  onPressed: (_saving || !_hasChanges) ? null : _save,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: kAdminAccent,
+                    disabledBackgroundColor: kAdminAccent.withValues(
+                      alpha: 0.35,
+                    ),
+                    minimumSize: const Size.fromHeight(46),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          s.adminFeedbackSaveCta,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
-                child: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : Text(s.adminFeedbackSaveCta,
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -493,11 +558,14 @@ class _FormSection extends StatelessWidget {
                 child: Icon(icon, size: 14, color: kAdminAccent),
               ),
               const SizedBox(width: 8),
-              Text(title,
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: textPrimary)),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: textPrimary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -533,15 +601,17 @@ class _InfoRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
             children: [
-              Text(label,
-                  style: TextStyle(fontSize: 12.5, color: textSub)),
+              Text(label, style: TextStyle(fontSize: 12.5, color: textSub)),
               const Spacer(),
               trailing ??
-                  Text(value,
-                      style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: textPrimary)),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: textPrimary,
+                    ),
+                  ),
             ],
           ),
         ),

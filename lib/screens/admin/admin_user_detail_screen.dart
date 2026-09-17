@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/api_config.dart';
+import 'package:foodhub_mobile/config/app_theme.dart';
 import 'package:foodhub_mobile/models/admin.dart';
 import 'package:foodhub_mobile/models/recipe.dart';
 import 'package:foodhub_mobile/models/user.dart';
@@ -148,32 +149,43 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
         : const Color(0xFF111827);
     final textSub = isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
 
+    // Pushed via Navigator.push onto the app's root Navigator — outside
+    // AdminShellScreen's local Theme(isDark ? dark : light) override that
+    // the tab screens sit inside, so it needs its own override to match.
+    final themeData = isDark ? AppTheme.dark : AppTheme.light;
+
     if (_loading) {
-      return Scaffold(
-        backgroundColor: bg,
-        body: const Center(
-          child: CircularProgressIndicator(
-            strokeWidth: 2.5,
-            color: kAdminAccent,
+      return Theme(
+        data: themeData,
+        child: Scaffold(
+          backgroundColor: bg,
+          body: const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: kAdminAccent,
+            ),
           ),
         ),
       );
     }
 
     if (_error != null || _detail == null) {
-      return Scaffold(
-        backgroundColor: bg,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _error ?? 'User not found',
-                style: TextStyle(color: textSub),
-              ),
-              const SizedBox(height: 12),
-              TextButton(onPressed: _load, child: const Text('Retry')),
-            ],
+      return Theme(
+        data: themeData,
+        child: Scaffold(
+          backgroundColor: bg,
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _error ?? 'User not found',
+                  style: TextStyle(color: textSub),
+                ),
+                const SizedBox(height: 12),
+                TextButton(onPressed: _load, child: const Text('Retry')),
+              ],
+            ),
           ),
         ),
       );
@@ -184,241 +196,248 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
     final name = user.fullName ?? user.username;
     final avatarColor = Color(adminAvatarColorInt(name, isDark: isDark));
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: bg,
-        body: Column(
-          children: [
-            // ── Gradient header ───────────────────────────────────────
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF6366F1), Color(0xFF4338CA)],
+    return Theme(
+      data: themeData,
+      child: DefaultTabController(
+        length: 3,
+        child: Scaffold(
+          backgroundColor: bg,
+          body: Column(
+            children: [
+              // ── Gradient header ───────────────────────────────────────
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF6366F1), Color(0xFF4338CA)],
+                  ),
                 ),
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 2, 8, 0),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                          const Spacer(),
-                          GestureDetector(
-                            onTap: () async {
-                              await Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => AdminUserFormScreen(
-                                    isDarkMode: isDark,
-                                    user: user,
-                                  ),
-                                ),
-                              );
-                              _load();
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(7),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.edit_rounded,
-                                size: 16,
+                child: SafeArea(
+                  bottom: false,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 2, 8, 0),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                size: 18,
                                 color: Colors.white,
                               ),
+                              onPressed: () => Navigator.pop(context),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(2.5),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: CircleAvatar(
-                              radius: 27,
-                              backgroundColor: avatarColor.withValues(
-                                alpha: 0.25,
-                              ),
-                              child: Text(
-                                adminAvatarInitials(name),
-                                style: TextStyle(
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w700,
-                                  color: avatarColor,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  name,
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                    letterSpacing: -0.3,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  user.email,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white.withValues(alpha: 0.68),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 7),
-                                Row(
-                                  children: [
-                                    _GradientRoleBadge(role: user.role),
-                                    const SizedBox(width: 6),
-                                    _GradientStatusBadge(
-                                      isActive: user.isActive,
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: () async {
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => AdminUserFormScreen(
+                                      isDarkMode: isDark,
+                                      user: user,
                                     ),
-                                  ],
+                                  ),
+                                );
+                                _load();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.edit_rounded,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(2.5),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: CircleAvatar(
+                                radius: 27,
+                                backgroundColor: avatarColor.withValues(
+                                  alpha: 0.25,
+                                ),
+                                child: Text(
+                                  adminAvatarInitials(name),
+                                  style: TextStyle(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w700,
+                                    color: avatarColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name,
+                                    style: const TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      letterSpacing: -0.3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    user.email,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.68,
+                                      ),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 7),
+                                  Row(
+                                    children: [
+                                      _GradientRoleBadge(role: user.role),
+                                      const SizedBox(width: 6),
+                                      _GradientStatusBadge(
+                                        isActive: user.isActive,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                _CompactStat(
+                                  icon: Icons.menu_book_rounded,
+                                  value: '${detail.recipesCount}',
+                                  label: 'recipes',
+                                ),
+                                const SizedBox(height: 6),
+                                _CompactStat(
+                                  icon: Icons.favorite_rounded,
+                                  value: '${detail.savedCount}',
+                                  label: 'saved',
                                 ),
                               ],
                             ),
+                          ],
+                        ),
+                      ),
+                      TabBar(
+                        labelColor: Colors.white,
+                        unselectedLabelColor: Colors.white.withValues(
+                          alpha: 0.5,
+                        ),
+                        indicatorColor: Colors.white,
+                        indicatorSize: TabBarIndicatorSize.label,
+                        labelStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        unselectedLabelStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        dividerColor: Colors.white.withValues(alpha: 0.15),
+                        tabs: [
+                          const Tab(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.person_rounded, size: 14),
+                                SizedBox(width: 5),
+                                Text('Profile'),
+                              ],
+                            ),
                           ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              _CompactStat(
-                                icon: Icons.menu_book_rounded,
-                                value: '${detail.recipesCount}',
-                                label: 'recipes',
-                              ),
-                              const SizedBox(height: 6),
-                              _CompactStat(
-                                icon: Icons.favorite_rounded,
-                                value: '${detail.savedCount}',
-                                label: 'saved',
-                              ),
-                            ],
+                          Tab(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.favorite_rounded, size: 14),
+                                const SizedBox(width: 5),
+                                const Text('Saved'),
+                                const SizedBox(width: 4),
+                                _TabCountBadge(count: detail.savedCount),
+                              ],
+                            ),
+                          ),
+                          Tab(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.menu_book_rounded, size: 14),
+                                const SizedBox(width: 5),
+                                const Text('Recipes'),
+                                const SizedBox(width: 4),
+                                _TabCountBadge(count: detail.recipesCount),
+                              ],
+                            ),
                           ),
                         ],
                       ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── Tab content ───────────────────────────────────────────
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _ProfileTab(
+                      user: user,
+                      isDark: isDark,
+                      cardBg: cardBg,
+                      textPrimary: textPrimary,
+                      textSub: textSub,
+                      isActive: user.isActive,
+                      toggling: _toggling,
+                      onToggleActive: _confirmToggleActive,
                     ),
-                    TabBar(
-                      labelColor: Colors.white,
-                      unselectedLabelColor: Colors.white.withValues(alpha: 0.5),
-                      indicatorColor: Colors.white,
-                      indicatorSize: TabBarIndicatorSize.label,
-                      labelStyle: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      unselectedLabelStyle: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      dividerColor: Colors.white.withValues(alpha: 0.15),
-                      tabs: [
-                        const Tab(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.person_rounded, size: 14),
-                              SizedBox(width: 5),
-                              Text('Profile'),
-                            ],
-                          ),
-                        ),
-                        Tab(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.favorite_rounded, size: 14),
-                              const SizedBox(width: 5),
-                              const Text('Saved'),
-                              const SizedBox(width: 4),
-                              _TabCountBadge(count: detail.savedCount),
-                            ],
-                          ),
-                        ),
-                        Tab(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.menu_book_rounded, size: 14),
-                              const SizedBox(width: 5),
-                              const Text('Recipes'),
-                              const SizedBox(width: 4),
-                              _TabCountBadge(count: detail.recipesCount),
-                            ],
-                          ),
-                        ),
-                      ],
+                    _LazyRecipeListTab(
+                      userId: widget.userId,
+                      isDark: isDark,
+                      cardBg: cardBg,
+                      textPrimary: textPrimary,
+                      textSub: textSub,
+                      emptyMessage: 'No saved recipes yet',
+                      emptyIcon: Icons.favorite_border_rounded,
+                      loader: (id) => AdminService().getUserFavorites(id),
+                    ),
+                    _LazyRecipeListTab(
+                      userId: widget.userId,
+                      isDark: isDark,
+                      cardBg: cardBg,
+                      textPrimary: textPrimary,
+                      textSub: textSub,
+                      emptyMessage: 'No recipes created yet',
+                      emptyIcon: Icons.menu_book_outlined,
+                      loader: (id) => AdminService().getUserRecipes(id),
                     ),
                   ],
                 ),
               ),
-            ),
-
-            // ── Tab content ───────────────────────────────────────────
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _ProfileTab(
-                    user: user,
-                    isDark: isDark,
-                    cardBg: cardBg,
-                    textPrimary: textPrimary,
-                    textSub: textSub,
-                    isActive: user.isActive,
-                    toggling: _toggling,
-                    onToggleActive: _confirmToggleActive,
-                  ),
-                  _LazyRecipeListTab(
-                    userId: widget.userId,
-                    isDark: isDark,
-                    cardBg: cardBg,
-                    textPrimary: textPrimary,
-                    textSub: textSub,
-                    emptyMessage: 'No saved recipes yet',
-                    emptyIcon: Icons.favorite_border_rounded,
-                    loader: (id) => AdminService().getUserFavorites(id),
-                  ),
-                  _LazyRecipeListTab(
-                    userId: widget.userId,
-                    isDark: isDark,
-                    cardBg: cardBg,
-                    textPrimary: textPrimary,
-                    textSub: textSub,
-                    emptyMessage: 'No recipes created yet',
-                    emptyIcon: Icons.menu_book_outlined,
-                    loader: (id) => AdminService().getUserRecipes(id),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -661,9 +680,9 @@ class _ProfileTab extends StatelessWidget {
                 rows: [
                   _InfoRow(
                     icon: Icons.local_fire_department_outlined,
-                    label: 'Calories (cal/day)',
+                    label: 'Calories (kcal/day)',
                     value: user.calorieTarget != null
-                        ? '${user.calorieTarget} cal/day'
+                        ? '${user.calorieTarget} kcal/day'
                         : '—',
                   ),
                   _InfoRow(
