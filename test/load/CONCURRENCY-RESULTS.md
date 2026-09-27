@@ -1,6 +1,6 @@
 # Concurrency test — consolidated results
 
-Run: breaking-point search 2026-09-24T13:11 → 13:45 (mở rộng case 2/3 lúc 13:46-13:54); baseline bổ sung 2026-09-27T11:32 → 11:36
+Run: breaking-point search 2026-09-24T13:11 → 13:45 (mở rộng case 2/3 lúc 13:46-13:54); baseline bổ sung 2026-09-27T11:32 → 11:36 (mức 1 đồng thời chạy lúc 12:02-12:03)
 
 Mỗi case chạy độc lập, tuần tự (không song song với case khác) để kết quả không bị nhiễu lẫn nhau. Log đầy đủ từng bước nằm trong `test/load/logs/`. Case 2 và 3 chạy thêm một pha mở rộng (32→256) vì pha đầu (1→32) chưa tìm ra điểm gãy.
 
@@ -15,15 +15,15 @@ Mọi con số latency trong báo cáo này = thời gian tính **từ lúc gử
 
 ## Tóm tắt
 
-| Case | API | Baseline p50 @ 5 / @ 10 đồng thời | Điểm gãy (đồng thời) | Loại lỗi chiếm ưu thế tại điểm gãy | Ghi chú |
+| Case | API | Baseline p50 @ 1 / @ 5 / @ 10 đồng thời | Điểm gãy (đồng thời) | Loại lỗi chiếm ưu thế tại điểm gãy | Ghi chú |
 |---|---|---|---:|---|---|
-| 1 (GET) | `GET /users/me` | 1.55s / 1.86s | **97** | connection_error | So với STRESS-07: `/recipes/search` (công khai) vỡ ở 40-45, nhưng endpoint có auth này lại chịu tải cao hơn hẳn |
-| 1 (PATCH) | `PATCH /users/me` | 1.37s / 1.92s | **95** | connection_error | Gần bằng GET — hợp lý vì cùng tài nguyên |
-| 2 | `POST /ai/dish-recognition` | 8.56s / 9.90s | **48** | http_error | Latency đã tăng rất mạnh trước khi gãy (p50 2.7s ở 1 đồng thời → 34.8s ở 48) |
-| 3 | `POST /ai/ingredients/detect` | 11.4s / 13.2s | **196** | connection_error | Chịu tải tốt hơn hẳn case 2 dù cùng là AI vision — có nhiễu nhẹ ở mức 128 trước khi vỡ hẳn ở 200+ |
-| 4 | `POST /ai/chat/welcome` + `/ai/chat` | 21.0s / 41.5s | **28** | http_error | Thấp nhất trong 4 case — LLM chat là nút thắt cổ chai rõ rệt nhất; latency đã cao ngay cả ở tải trung bình |
+| 1 (GET) | `GET /users/me` | 0.32s / 1.55s / 1.86s | **97** | connection_error | So với STRESS-07: `/recipes/search` (công khai) vỡ ở 40-45, nhưng endpoint có auth này lại chịu tải cao hơn hẳn |
+| 1 (PATCH) | `PATCH /users/me` | 0.38s / 1.37s / 1.92s | **95** | connection_error | Gần bằng GET — hợp lý vì cùng tài nguyên |
+| 2 | `POST /ai/dish-recognition` | 1.72s / 8.56s / 9.90s | **48** | http_error | Latency đã tăng rất mạnh trước khi gãy (p50 2.7s ở 1 đồng thời → 34.8s ở 48) |
+| 3 | `POST /ai/ingredients/detect` | 0.82s / 11.4s / 13.2s | **196** | connection_error | Chịu tải tốt hơn hẳn case 2 dù cùng là AI vision — có nhiễu nhẹ ở mức 128 trước khi vỡ hẳn ở 200+ |
+| 4 | `POST /ai/chat/welcome` + `/ai/chat` | 3.78s / 21.0s / 41.5s | **28** | http_error | Thấp nhất trong 4 case — LLM chat là nút thắt cổ chai rõ rệt nhất; latency đã cao ngay cả ở tải trung bình |
 
-Baseline dùng mức tải giả định 5 và 10 người dùng đồng thời (không phải số liệu traffic thực đo được — nếu có Grafana/analytics thực tế nên thay bằng số đó). Case 2-4 chỉ chạy 1 request/worker ở baseline (để tiết kiệm chi phí compute AI thật), nên p95/p99 baseline của các case này chỉ mang tính tham khảo (mẫu nhỏ), không đáng tin bằng các số ở phần tìm điểm gãy (mẫu lớn hơn).
+Baseline dùng mức tải giả định 1, 5 và 10 người dùng đồng thời (không phải số liệu traffic thực đo được — nếu có Grafana/analytics thực tế nên thay bằng số đó). Case 2-4 chỉ chạy 1 request/worker ở baseline (để tiết kiệm chi phí compute AI thật), nên p95/p99 baseline của các case này chỉ mang tính tham khảo (mẫu nhỏ), không đáng tin bằng các số ở phần tìm điểm gãy (mẫu lớn hơn).
 
 ## Case 1 — GET /users/me
 
@@ -34,6 +34,7 @@ Baseline dùng mức tải giả định 5 và 10 người dùng đồng thời 
 **Baseline** (`--baseline`, log `logs\case1_get_baseline_20260927_113239.txt`):
 
 ```
+[   1 concurrent] ok=2/2  error_rate=0%  p50=315ms p95=315ms p99=315ms  throughput=3.51 req/s   [HEALTHY]
 [   5 concurrent] ok=10/10  error_rate=0%  p50=1554ms p95=1885ms p99=1885ms  throughput=2.85 req/s   [HEALTHY]
 [  10 concurrent] ok=20/20  error_rate=0%  p50=1863ms p95=3050ms p99=3050ms  throughput=4.64 req/s   [HEALTHY]
 ```
@@ -59,6 +60,7 @@ KET LUAN: muc dong thoi toi da con ON DINH = 97 nguoi dung cung luc
 **Baseline** (`--baseline`, log `logs\case1_patch_baseline_20260927_113305.txt`):
 
 ```
+[   1 concurrent] ok=2/2  error_rate=0%  p50=381ms p95=381ms p99=381ms  throughput=2.79 req/s   [HEALTHY]
 [   5 concurrent] ok=10/10  error_rate=0%  p50=1368ms p95=2056ms p99=2056ms  throughput=2.97 req/s   [HEALTHY]
 [  10 concurrent] ok=20/20  error_rate=0%  p50=1917ms p95=2793ms p99=2793ms  throughput=4.43 req/s   [HEALTHY]
 ```
@@ -84,6 +86,7 @@ KET LUAN: muc dong thoi toi da con ON DINH = 95 nguoi dung cung luc
 **Baseline** (`--baseline`, log `logs\case2_dish_recognition_baseline_20260927_113330.txt`, 1 request/worker):
 
 ```
+[   1 concurrent] ok=1/1  error_rate=0%  p50=1722ms p95=1722ms p99=1722ms  throughput=0.58 req/s   [HEALTHY]
 [   5 concurrent] ok=5/5  error_rate=0%  p50=8563ms p95=14739ms p99=14739ms  throughput=0.34 req/s   [HEALTHY]
 [  10 concurrent] ok=10/10  error_rate=0%  p50=9897ms p95=24675ms p99=24675ms  throughput=0.41 req/s   [HEALTHY]
 ```
@@ -124,6 +127,7 @@ Lỗi ở điểm gãy toàn bộ là `http_error` (không phải timeout/connec
 **Baseline** (`--baseline`, log `logs\case3_ingredient_detection_baseline_20260927_113426.txt`, 1 request/worker):
 
 ```
+[   1 concurrent] ok=1/1  error_rate=0%  p50=823ms p95=823ms p99=823ms  throughput=1.21 req/s   [HEALTHY]
 [   5 concurrent] ok=5/5  error_rate=0%  p50=11412ms p95=14574ms p99=14574ms  throughput=0.34 req/s   [HEALTHY]
 [  10 concurrent] ok=10/10  error_rate=0%  p50=13218ms p95=25260ms p99=25260ms  throughput=0.40 req/s   [HEALTHY]
 ```
@@ -170,6 +174,7 @@ Lưu ý: có nhiễu nhẹ (128 lỗi 5% rồi 192 lại về 0% lỗi) trước
 **Baseline** (`--baseline`, log `logs\case4_llm_chat_baseline_20260927_113524.txt`, welcome + 2 tin nhắn/worker):
 
 ```
+[   1 concurrent] ok=3/3  error_rate=0%  p50=3779ms p95=9857ms p99=9857ms  throughput=0.20 req/s   [HEALTHY]
 [   5 concurrent] ok=15/15  error_rate=0%  p50=20984ms p95=47846ms p99=47846ms  throughput=0.20 req/s   [HEALTHY]
 [  10 concurrent] ok=30/30  error_rate=0%  p50=41490ms p95=94981ms p99=95040ms  throughput=0.23 req/s   [HEALTHY]
 ```

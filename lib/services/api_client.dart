@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:foodhub_mobile/config/api_config.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
+import 'package:foodhub_mobile/services/session_expired_notifier.dart';
 import 'package:foodhub_mobile/services/token_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -43,7 +44,7 @@ class ApiClient {
       future = future.timeout(timeout);
     }
     final response = await future;
-    return _handleResponse(response);
+    return _handleResponse(response, auth: auth);
   }
 
   Future<dynamic> post(
@@ -62,7 +63,7 @@ class ApiClient {
       future = future.timeout(timeout);
     }
     final response = await future;
-    return _handleResponse(response);
+    return _handleResponse(response, auth: auth);
   }
 
   Future<dynamic> put(
@@ -76,7 +77,7 @@ class ApiClient {
       headers: await _headers(auth: auth),
       body: body == null ? null : jsonEncode(body),
     );
-    return _handleResponse(response);
+    return _handleResponse(response, auth: auth);
   }
 
   Future<dynamic> patch(
@@ -90,7 +91,7 @@ class ApiClient {
       headers: await _headers(auth: auth),
       body: body == null ? null : jsonEncode(body),
     );
-    return _handleResponse(response);
+    return _handleResponse(response, auth: auth);
   }
 
   Future<dynamic> delete(
@@ -102,7 +103,7 @@ class ApiClient {
       _uri(path, query),
       headers: await _headers(auth: auth),
     );
-    return _handleResponse(response, allowEmpty: true);
+    return _handleResponse(response, allowEmpty: true, auth: auth);
   }
 
   Future<dynamic> postMultipart(
@@ -135,10 +136,14 @@ class ApiClient {
     }
     final streamed = await sendFuture;
     final response = await http.Response.fromStream(streamed);
-    return _handleResponse(response);
+    return _handleResponse(response, auth: auth);
   }
 
-  dynamic _handleResponse(http.Response response, {bool allowEmpty = false}) {
+  dynamic _handleResponse(
+    http.Response response, {
+    bool allowEmpty = false,
+    bool auth = true,
+  }) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty || response.statusCode == 204) {
         if (allowEmpty) return null;
@@ -152,6 +157,14 @@ class ApiClient {
       body = jsonDecode(response.body);
     } catch (_) {
       body = response.body;
+    }
+
+    // Only a 401 on a request that actually sent a token means the token
+    // itself was rejected (expired/invalid) — a 401 from `auth: false`
+    // endpoints (e.g. wrong password on /auth/login) is a normal login
+    // failure, not a session expiry, so it must not trigger a global logout.
+    if (auth && response.statusCode == 401) {
+      SessionExpiredNotifier.instance.handle();
     }
 
     throw ApiException(

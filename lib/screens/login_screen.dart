@@ -11,7 +11,12 @@ import 'package:foodhub_mobile/services/google_auth_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.sessionExpired = false});
+
+  /// True when routed here by [SessionExpiredNotifier] after an API call
+  /// came back 401 mid-session — shows a toast explaining why the user
+  /// suddenly landed back on the login screen instead of leaving it silent.
+  final bool sessionExpired;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -29,6 +34,20 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loginError = false;
 
   final _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.sessionExpired) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        showErrorToast(
+          context,
+          'Your session has expired. Please sign in again.',
+        );
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -58,7 +77,8 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => VerifyEmailScreen(email: email, prefillOtp: prefillOtp),
+            builder: (_) =>
+                VerifyEmailScreen(email: email, prefillOtp: prefillOtp),
           ),
         );
         return;
@@ -214,7 +234,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             onChanged: (_) {
-                              if (_loginError) setState(() => _loginError = false);
+                              if (_loginError)
+                                setState(() => _loginError = false);
                             },
                             decoration: authInputDecoration(
                               hint: 'you@example.com',
@@ -238,7 +259,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             onChanged: (_) {
-                              if (_loginError) setState(() => _loginError = false);
+                              if (_loginError)
+                                setState(() => _loginError = false);
                             },
                             decoration:
                                 authInputDecoration(

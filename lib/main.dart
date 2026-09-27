@@ -5,7 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/config/app_theme.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/screens/splash_screen.dart';
+import 'package:foodhub_mobile/services/session_expired_notifier.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Root navigator, so [SessionExpiredNotifier] (a plain Dart class with no
+/// BuildContext of its own) can bounce the user to the login screen from
+/// anywhere the moment an API call reports an expired/invalid token.
+final navigatorKey = GlobalKey<NavigatorState>();
 
 /// Multi-device UI preview (iPhone/Android frames).
 /// On by default in debug. Disable if camera breaks:
@@ -17,6 +23,8 @@ const bool _kDevicePreview = bool.fromEnvironment(
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  SessionExpiredNotifier.instance.navigatorKey = navigatorKey;
 
   final prefs = await SharedPreferences.getInstance();
   final savedLang = prefs.getString('app_language');
@@ -41,6 +49,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'FoodHub',
       debugShowCheckedModeBanner: false,
       scrollBehavior: const MaterialScrollBehavior().copyWith(
