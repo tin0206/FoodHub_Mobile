@@ -317,6 +317,11 @@ class S {
       _vi ? 'Nguyên liệu phát hiện: $items' : 'Ingredients detected: $items';
   String dishDetectedName(String name) =>
       _vi ? 'Món ăn phát hiện: $name' : 'Dishes detected: $name';
+  String get howToMakeDishPrompt =>
+      _vi ? 'Cách làm món này:' : 'How to make this dish:';
+  String get whatCanIDoWithIngredientsPrompt => _vi
+      ? 'Tôi có thể làm gì với những nguyên liệu này:'
+      : 'What can I do with these ingredients:';
 
   // ── AI Recs screen ──────────────────────────────────────────────────────────
   String get aiCompanion => _vi ? 'Trợ lý AI' : 'AI Companion';
