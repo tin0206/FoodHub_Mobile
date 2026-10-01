@@ -169,11 +169,9 @@ class _RecsScreenState extends State<RecsScreen> {
   List<String> _ingredientsForApi() {
     final text = _composeIngredientsText?.trim();
     if (text == null || text.isEmpty) return const [];
-    var values = text;
-    const prefix = 'Ingredients detected:';
-    if (values.toLowerCase().startsWith(prefix.toLowerCase())) {
-      values = values.substring(prefix.length);
-    }
+    // Tách theo dấu ':' đầu tiên để bỏ label hiển thị (locale-safe).
+    final idx = text.indexOf(':');
+    final values = idx == -1 ? text : text.substring(idx + 1);
     return values
         .split(RegExp(r'[,;\n]'))
         .map((e) => e.trim())
@@ -181,15 +179,35 @@ class _RecsScreenState extends State<RecsScreen> {
         .toList();
   }
 
+  /// Tên món thô (bỏ label hiển thị), tách theo ':' đầu tiên.
+  String _rawDishName() {
+    final text = _composeDishText?.trim();
+    if (text == null || text.isEmpty) return '';
+    final idx = text.indexOf(':');
+    return idx == -1 ? text : text.substring(idx + 1).trim();
+  }
+
+  /// Câu prompt gửi lên AI cho dish detection.
+  String _dishPromptText(BuildContext ctx) {
+    final name = _rawDishName();
+    return name.isEmpty ? '' : '${S.of(ctx).howToMakeDishPrompt} $name';
+  }
+
+  /// Câu prompt gửi lên AI cho ingredients detection.
+  String _ingredientsPromptText(BuildContext ctx) {
+    final list = _ingredientsForApi();
+    return list.isEmpty
+        ? ''
+        : '${S.of(ctx).whatCanIDoWithIngredientsPrompt} ${list.join(', ')}';
+  }
+
   /// Single prompt from dish → ingredients → user query (only non-empty parts).
-  String _buildMergedPrompt(String userQuery) {
+  String _buildMergedPrompt(BuildContext ctx, String userQuery) {
     final parts = <String>[];
-    final dishText = _composeDishText?.trim();
-    final ingredientsText = _composeIngredientsText?.trim();
-    if (dishText != null && dishText.isNotEmpty) parts.add(dishText);
-    if (ingredientsText != null && ingredientsText.isNotEmpty) {
-      parts.add(ingredientsText);
-    }
+    final dishPrompt = _dishPromptText(ctx);
+    final ingredientsPrompt = _ingredientsPromptText(ctx);
+    if (dishPrompt.isNotEmpty) parts.add(dishPrompt);
+    if (ingredientsPrompt.isNotEmpty) parts.add(ingredientsPrompt);
     final trimmed = userQuery.trim();
     if (trimmed.isNotEmpty) parts.add(trimmed);
     return parts.join('\n');
@@ -486,7 +504,7 @@ class _RecsScreenState extends State<RecsScreen> {
     if (_isSending || _isBootstrapping) return;
 
     final userQuery = _promptController.text.trim();
-    final merged = _buildMergedPrompt(userQuery);
+    final merged = _buildMergedPrompt(context, userQuery);
     if (merged.isEmpty) return;
 
     final sessionId = _sessionId;
@@ -563,31 +581,33 @@ class _RecsScreenState extends State<RecsScreen> {
 
   Future<void> _sendDishDetection() async {
     if (_isSending || _isBootstrapping) return;
-    final text = _composeDishText?.trim();
-    if (text == null || text.isEmpty) return;
+    if (_composeDishText == null || _composeDishText!.trim().isEmpty) return;
     if (_sessionId == null || _sessionId!.isEmpty) return;
+    final promptText = _dishPromptText(context);
+    if (promptText.isEmpty) return;
     setState(() {
-      _messages.add(_ChatMessage(text: text, isUser: true));
+      _messages.add(_ChatMessage(text: promptText, isUser: true));
       _isSending = true;
       _composeDishText = null;
     });
     _scrollToBottom();
-    await _sendToAi(text, []);
+    await _sendToAi(promptText, []);
   }
 
   Future<void> _sendIngredientsDetection() async {
     if (_isSending || _isBootstrapping) return;
-    final text = _composeIngredientsText?.trim();
-    if (text == null || text.isEmpty) return;
+    if (_composeIngredientsText == null || _composeIngredientsText!.trim().isEmpty) return;
     if (_sessionId == null || _sessionId!.isEmpty) return;
     final ingredients = _ingredientsForApi();
+    final promptText = _ingredientsPromptText(context);
+    if (promptText.isEmpty) return;
     setState(() {
-      _messages.add(_ChatMessage(text: text, isUser: true));
+      _messages.add(_ChatMessage(text: promptText, isUser: true));
       _isSending = true;
       _composeIngredientsText = null;
     });
     _scrollToBottom();
-    await _sendToAi(text, ingredients);
+    await _sendToAi(promptText, ingredients);
   }
 
 

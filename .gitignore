@@ -36,6 +36,13 @@ android/app/src/main/res/values/strings.xml
 # commit test/integration/.env.test.example instead)
 test/integration/.env.test
 
+# Staging test credentials for the concurrency/load test suite (contains
+# real passwords — commit test/load/.env.test.example instead)
+test/load/.env.test
+
+# Timestamped run logs from the load test suite
+test/load/logs/
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
