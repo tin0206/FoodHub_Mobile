@@ -407,6 +407,12 @@ class S {
   String get emailLabel => 'Email';
   String get ageLabel => _vi ? 'Tuổi' : 'Age';
   String get weightLabel => _vi ? 'Cân nặng (kg)' : 'Weight (kg)';
+  String get heightLabel => _vi ? 'Chiều cao (cm)' : 'Height (cm)';
+  String get cookingSkillLabel => _vi ? 'Kỹ năng nấu ăn' : 'Cooking skill';
+  String get mealsPerDayLabel => _vi ? 'Số bữa / ngày' : 'Meals per day';
+  String get cookingSkillBeginner => _vi ? 'Mới bắt đầu' : 'Beginner';
+  String get cookingSkillIntermediate => _vi ? 'Trung bình' : 'Intermediate';
+  String get cookingSkillAdvanced => _vi ? 'Nâng cao' : 'Advanced';
   String get genderLabel => _vi ? 'Giới tính' : 'Gender';
   String get genderMale => _vi ? 'Nam' : 'Male';
   String get genderFemale => _vi ? 'Nữ' : 'Female';
@@ -438,6 +444,15 @@ class S {
       _vi ? 'Chất béo mục tiêu (g/ngày)' : 'Target Fat (g/day)';
   String get dietaryRestrictionsLabel =>
       _vi ? 'Chế độ ăn đặc biệt' : 'Dietary Restrictions';
+  String get excludedIngredientsLabel => _vi
+      ? 'Dị ứng / nguyên liệu loại trừ (cách nhau bởi dấu phẩy)'
+      : 'Allergies / excluded ingredients (comma-separated)';
+  String get favoriteFoodsLabel => _vi
+      ? 'Món / hương vị yêu thích (cách nhau bởi dấu phẩy)'
+      : 'Favorite foods (comma-separated)';
+  String get dislikedIngredientsLabel => _vi
+      ? 'Nguyên liệu không thích (cách nhau bởi dấu phẩy)'
+      : 'Disliked ingredients (comma-separated)';
   String get securityLabel => _vi ? 'Bảo mật' : 'Security';
   String get changePasswordLabel => _vi ? 'Đổi mật khẩu' : 'Change password';
   String get setPasswordLabel => _vi ? 'Đặt mật khẩu' : 'Set password';

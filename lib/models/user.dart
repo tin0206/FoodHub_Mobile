@@ -8,6 +8,9 @@ class UserModel {
     this.isActive = true,
     this.age,
     this.weight,
+    this.heightCm,
+    this.cookingSkill,
+    this.mealsPerDay = 3,
     this.gender,
     this.language,
     this.theme = 'light',
@@ -16,6 +19,9 @@ class UserModel {
     this.carbTarget,
     this.fatTarget,
     this.dietaryRestrictions = const [],
+    this.excludedIngredients = const [],
+    this.favoriteFoods = const [],
+    this.dislikedIngredients = const [],
     this.primaryGoal,
     this.hasPassword = true,
     this.googleId,
@@ -34,6 +40,9 @@ class UserModel {
   bool get isGoogleOnly => googleId != null && !hasPassword;
   final int? age;
   final double? weight;
+  final double? heightCm;
+  final String? cookingSkill;
+  final int mealsPerDay;
   final String? gender;
   final String? language;
   final String theme;
@@ -42,7 +51,15 @@ class UserModel {
   final int? carbTarget;
   final int? fatTarget;
   final List<String> dietaryRestrictions;
+  final List<String> excludedIngredients;
+  final List<String> favoriteFoods;
+  final List<String> dislikedIngredients;
   final String? primaryGoal;
+
+  static List<String> _stringList(dynamic value) {
+    if (value is! List) return const [];
+    return value.map((e) => e.toString()).toList();
+  }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
@@ -54,6 +71,9 @@ class UserModel {
       isActive: json['is_active'] as bool? ?? true,
       age: json['age'] as int?,
       weight: (json['weight'] as num?)?.toDouble(),
+      heightCm: (json['height_cm'] as num?)?.toDouble(),
+      cookingSkill: json['cooking_skill'] as String?,
+      mealsPerDay: json['meals_per_day'] as int? ?? 3,
       gender: json['gender'] as String?,
       language: json['language'] as String?,
       theme: json['theme'] as String? ?? 'light',
@@ -61,11 +81,10 @@ class UserModel {
       proteinTarget: json['protein_target'] as int?,
       carbTarget: json['carb_target'] as int?,
       fatTarget: json['fat_target'] as int?,
-      dietaryRestrictions:
-          (json['dietary_restrictions'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          const [],
+      dietaryRestrictions: _stringList(json['dietary_restrictions']),
+      excludedIngredients: _stringList(json['excluded_ingredients']),
+      favoriteFoods: _stringList(json['favorite_foods']),
+      dislikedIngredients: _stringList(json['disliked_ingredients']),
       primaryGoal: json['primary_goal'] as String?,
       hasPassword: json['has_password'] as bool? ?? true,
       googleId: json['google_id'] as String?,
@@ -76,12 +95,18 @@ class UserModel {
     String? fullName,
     int? age,
     double? weight,
+    double? heightCm,
+    String? cookingSkill,
+    int? mealsPerDay,
     String? gender,
     int? calorieTarget,
     int? proteinTarget,
     int? carbTarget,
     int? fatTarget,
     List<String>? dietaryRestrictions,
+    List<String>? excludedIngredients,
+    List<String>? favoriteFoods,
+    List<String>? dislikedIngredients,
     String? primaryGoal,
     String? language,
     String? theme,
@@ -90,6 +115,9 @@ class UserModel {
     if (fullName != null) data['full_name'] = fullName;
     if (age != null) data['age'] = age;
     if (weight != null) data['weight'] = weight;
+    if (heightCm != null) data['height_cm'] = heightCm;
+    if (cookingSkill != null) data['cooking_skill'] = cookingSkill;
+    if (mealsPerDay != null) data['meals_per_day'] = mealsPerDay;
     if (gender != null) data['gender'] = gender.isEmpty ? null : gender;
     if (calorieTarget != null) data['calorie_target'] = calorieTarget;
     if (proteinTarget != null) data['protein_target'] = proteinTarget;
@@ -97,6 +125,13 @@ class UserModel {
     if (fatTarget != null) data['fat_target'] = fatTarget;
     if (dietaryRestrictions != null) {
       data['dietary_restrictions'] = dietaryRestrictions;
+    }
+    if (excludedIngredients != null) {
+      data['excluded_ingredients'] = excludedIngredients;
+    }
+    if (favoriteFoods != null) data['favorite_foods'] = favoriteFoods;
+    if (dislikedIngredients != null) {
+      data['disliked_ingredients'] = dislikedIngredients;
     }
     if (primaryGoal != null) data['primary_goal'] = primaryGoal;
     if (language != null) data['language'] = language;
@@ -108,12 +143,18 @@ class UserModel {
     String? fullName,
     int? age,
     double? weight,
+    double? heightCm,
+    String? cookingSkill,
+    int? mealsPerDay,
     String? gender,
     int? calorieTarget,
     int? proteinTarget,
     int? carbTarget,
     int? fatTarget,
     List<String>? dietaryRestrictions,
+    List<String>? excludedIngredients,
+    List<String>? favoriteFoods,
+    List<String>? dislikedIngredients,
     String? primaryGoal,
     String? language,
     String? theme,
@@ -126,15 +167,24 @@ class UserModel {
       isActive: isActive,
       age: age ?? this.age,
       weight: weight ?? this.weight,
+      heightCm: heightCm ?? this.heightCm,
+      cookingSkill: cookingSkill ?? this.cookingSkill,
+      mealsPerDay: mealsPerDay ?? this.mealsPerDay,
       gender: gender ?? this.gender,
       calorieTarget: calorieTarget ?? this.calorieTarget,
       proteinTarget: proteinTarget ?? this.proteinTarget,
       carbTarget: carbTarget ?? this.carbTarget,
       fatTarget: fatTarget ?? this.fatTarget,
       dietaryRestrictions: dietaryRestrictions ?? this.dietaryRestrictions,
+      excludedIngredients: excludedIngredients ?? this.excludedIngredients,
+      favoriteFoods: favoriteFoods ?? this.favoriteFoods,
+      dislikedIngredients: dislikedIngredients ?? this.dislikedIngredients,
       primaryGoal: primaryGoal ?? this.primaryGoal,
       language: language ?? this.language,
       theme: theme ?? this.theme,
+      hasPassword: hasPassword,
+      googleId: googleId,
+      role: role,
     );
   }
 }

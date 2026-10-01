@@ -27,6 +27,16 @@ const kPrimaryGoals = [
   'Maintain Weight',
 ];
 
+const kCookingSkills = ['beginner', 'intermediate', 'advanced'];
+
+List<String> _csvToList(String value) => value
+    .split(',')
+    .map((e) => e.trim())
+    .where((e) => e.isNotEmpty)
+    .toList();
+
+String _listToCsv(List<String> values) => values.join(', ');
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     super.key,
@@ -65,6 +75,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _emailController;
   late TextEditingController _ageController;
   late TextEditingController _weightController;
+  late TextEditingController _heightController;
+  late TextEditingController _mealsPerDayController;
+  late TextEditingController _excludedController;
+  late TextEditingController _favoritesController;
+  late TextEditingController _dislikedController;
   late TextEditingController _calorieTargetController;
   late TextEditingController _proteinTargetController;
   late TextEditingController _carbTargetController;
@@ -74,21 +89,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late String _snapEmail;
   late String _snapAge;
   late String _snapWeight;
+  late String _snapHeight;
+  late String _snapMeals;
+  late String _snapExcluded;
+  late String _snapFavorites;
+  late String _snapDisliked;
   late String _snapCalorie;
   late String _snapProtein;
   late String _snapCarb;
   late String _snapFat;
   late String _snapGender;
+  late String _snapCookingSkill;
   late String _snapLanguage;
   late String _snapTheme;
 
   late bool _pendingDarkMode;
   late String _pendingLanguage;
   late String _pendingGender;
+  late String _pendingCookingSkill;
 
   bool _isSaving = false;
   String? _ageError;
   String? _weightError;
+  String? _heightError;
+  String? _mealsError;
   String? _calorieError;
   String? _proteinError;
   String? _carbError;
@@ -106,12 +130,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _pendingDarkMode = widget.isDarkMode;
     _pendingLanguage = widget.language;
     _pendingGender = _snapGender;
+    _pendingCookingSkill = _snapCookingSkill;
     _fullNameController = TextEditingController(text: _snapFullName)
       ..addListener(_onFieldChanged);
     _emailController = TextEditingController(text: _snapEmail);
     _ageController = TextEditingController(text: _snapAge)
       ..addListener(_onFieldChanged);
     _weightController = TextEditingController(text: _snapWeight)
+      ..addListener(_onFieldChanged);
+    _heightController = TextEditingController(text: _snapHeight)
+      ..addListener(_onFieldChanged);
+    _mealsPerDayController = TextEditingController(text: _snapMeals)
+      ..addListener(_onFieldChanged);
+    _excludedController = TextEditingController(text: _snapExcluded)
+      ..addListener(_onFieldChanged);
+    _favoritesController = TextEditingController(text: _snapFavorites)
+      ..addListener(_onFieldChanged);
+    _dislikedController = TextEditingController(text: _snapDisliked)
       ..addListener(_onFieldChanged);
     _calorieTargetController = TextEditingController(text: _snapCalorie)
       ..addListener(_onFieldChanged);
@@ -131,10 +166,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _pendingDarkMode = widget.isDarkMode;
       _pendingLanguage = widget.language;
       _pendingGender = _snapGender;
+      _pendingCookingSkill = _snapCookingSkill;
       _fullNameController.text = _snapFullName;
       _emailController.text = _snapEmail;
       _ageController.text = _snapAge;
       _weightController.text = _snapWeight;
+      _heightController.text = _snapHeight;
+      _mealsPerDayController.text = _snapMeals;
+      _excludedController.text = _snapExcluded;
+      _favoritesController.text = _snapFavorites;
+      _dislikedController.text = _snapDisliked;
       _calorieTargetController.text = _snapCalorie;
       _proteinTargetController.text = _snapProtein;
       _carbTargetController.text = _snapCarb;
@@ -147,7 +188,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _snapEmail = user.email;
     _snapAge = user.age?.toString() ?? '';
     _snapWeight = user.weight?.toString() ?? '';
+    _snapHeight = user.heightCm?.toString() ?? '';
+    _snapMeals = user.mealsPerDay.toString();
+    _snapExcluded = _listToCsv(user.excludedIngredients);
+    _snapFavorites = _listToCsv(user.favoriteFoods);
+    _snapDisliked = _listToCsv(user.dislikedIngredients);
     _snapGender = user.gender ?? '';
+    _snapCookingSkill = user.cookingSkill ?? '';
     _snapLanguage = user.language ?? 'en';
     _snapTheme = user.theme;
     _snapCalorie = user.calorieTarget?.toString() ?? '';
@@ -160,11 +207,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_fullNameController.text.trim() != _snapFullName) return true;
     if (_ageController.text.trim() != _snapAge) return true;
     if (_weightController.text.trim() != _snapWeight) return true;
+    if (_heightController.text.trim() != _snapHeight) return true;
+    if (_mealsPerDayController.text.trim() != _snapMeals) return true;
+    if (_excludedController.text.trim() != _snapExcluded) return true;
+    if (_favoritesController.text.trim() != _snapFavorites) return true;
+    if (_dislikedController.text.trim() != _snapDisliked) return true;
     if (_calorieTargetController.text.trim() != _snapCalorie) return true;
     if (_proteinTargetController.text.trim() != _snapProtein) return true;
     if (_carbTargetController.text.trim() != _snapCarb) return true;
     if (_fatTargetController.text.trim() != _snapFat) return true;
     if (_pendingGender != _snapGender) return true;
+    if (_pendingCookingSkill != _snapCookingSkill) return true;
     if (_pendingLanguage != _snapLanguage) return true;
     if (_pendingDarkMode != (_snapTheme == 'dark')) return true;
     final userDiet = widget.user.dietaryRestrictions.toSet();
@@ -180,6 +233,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _fullNameController.removeListener(_onFieldChanged);
     _ageController.removeListener(_onFieldChanged);
     _weightController.removeListener(_onFieldChanged);
+    _heightController.removeListener(_onFieldChanged);
+    _mealsPerDayController.removeListener(_onFieldChanged);
+    _excludedController.removeListener(_onFieldChanged);
+    _favoritesController.removeListener(_onFieldChanged);
+    _dislikedController.removeListener(_onFieldChanged);
     _calorieTargetController.removeListener(_onFieldChanged);
     _proteinTargetController.removeListener(_onFieldChanged);
     _carbTargetController.removeListener(_onFieldChanged);
@@ -188,6 +246,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _emailController.dispose();
     _ageController.dispose();
     _weightController.dispose();
+    _heightController.dispose();
+    _mealsPerDayController.dispose();
+    _excludedController.dispose();
+    _favoritesController.dispose();
+    _dislikedController.dispose();
     _calorieTargetController.dispose();
     _proteinTargetController.dispose();
     _carbTargetController.dispose();
@@ -206,7 +269,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_isSaving) return;
     final s = S.of(context);
 
-    String? ageErr, weightErr, calorieErr, proteinErr, carbErr, fatErr;
+    String? ageErr, weightErr, heightErr, mealsErr, calorieErr, proteinErr, carbErr, fatErr;
 
     final ageVal = _ageController.text.trim();
     if (ageVal.isNotEmpty) {
@@ -218,6 +281,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (weightVal.isNotEmpty) {
       final v = double.tryParse(weightVal);
       if (v == null || v <= 0) weightErr = s.mustBePositiveNumber;
+    }
+
+    final heightVal = _heightController.text.trim();
+    if (heightVal.isNotEmpty) {
+      final v = double.tryParse(heightVal);
+      if (v == null || v <= 0) heightErr = s.mustBePositiveNumber;
+    }
+
+    final mealsVal = _mealsPerDayController.text.trim();
+    if (mealsVal.isNotEmpty) {
+      final v = int.tryParse(mealsVal);
+      if (v == null || v < 1 || v > 6) mealsErr = s.mustBePositiveNumber;
     }
 
     final calorieVal = _calorieTargetController.text.trim();
@@ -247,6 +322,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _ageError = ageErr;
       _weightError = weightErr;
+      _heightError = heightErr;
+      _mealsError = mealsErr;
       _calorieError = calorieErr;
       _proteinError = proteinErr;
       _carbError = carbErr;
@@ -255,6 +332,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (ageErr != null ||
         weightErr != null ||
+        heightErr != null ||
+        mealsErr != null ||
         calorieErr != null ||
         proteinErr != null ||
         carbErr != null ||
@@ -282,12 +361,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'full_name': _fullNameController.text.trim(),
         if (ageVal.isNotEmpty) 'age': int.parse(ageVal),
         if (weightVal.isNotEmpty) 'weight': double.parse(weightVal),
+        if (heightVal.isNotEmpty) 'height_cm': double.parse(heightVal),
+        'cooking_skill':
+            _pendingCookingSkill.isEmpty ? null : _pendingCookingSkill,
+        'meals_per_day':
+            mealsVal.isNotEmpty ? int.parse(mealsVal) : 3,
         'gender': _pendingGender.isEmpty ? null : _pendingGender,
         if (calorieVal.isNotEmpty) 'calorie_target': int.parse(calorieVal),
         if (proteinVal.isNotEmpty) 'protein_target': int.parse(proteinVal),
         if (carbVal.isNotEmpty) 'carb_target': int.parse(carbVal),
         if (fatVal.isNotEmpty) 'fat_target': int.parse(fatVal),
         'dietary_restrictions': widget.selectedDietaryRestrictions.toList(),
+        'excluded_ingredients': _csvToList(_excludedController.text),
+        'favorite_foods': _csvToList(_favoritesController.text),
+        'disliked_ingredients': _csvToList(_dislikedController.text),
         'primary_goal': widget.primaryGoal,
         'language': _pendingLanguage,
         'theme': _pendingDarkMode ? 'dark' : 'light',
@@ -302,10 +389,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _emailController.text = _snapEmail;
         _ageController.text = _snapAge;
         _weightController.text = _snapWeight;
+        _heightController.text = _snapHeight;
+        _mealsPerDayController.text = _snapMeals;
+        _excludedController.text = _snapExcluded;
+        _favoritesController.text = _snapFavorites;
+        _dislikedController.text = _snapDisliked;
         _calorieTargetController.text = _snapCalorie;
         _proteinTargetController.text = _snapProtein;
         _carbTargetController.text = _snapCarb;
         _fatTargetController.text = _snapFat;
+        _pendingCookingSkill = _snapCookingSkill;
       });
       widget.onUserUpdated(updated);
       showProfileToast(context);
@@ -382,16 +475,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _pendingDarkMode = _snapTheme == 'dark';
       _pendingLanguage = _snapLanguage;
       _pendingGender = _snapGender;
+      _pendingCookingSkill = _snapCookingSkill;
       _fullNameController.text = _snapFullName;
       _emailController.text = _snapEmail;
       _ageController.text = _snapAge;
       _weightController.text = _snapWeight;
+      _heightController.text = _snapHeight;
+      _mealsPerDayController.text = _snapMeals;
+      _excludedController.text = _snapExcluded;
+      _favoritesController.text = _snapFavorites;
+      _dislikedController.text = _snapDisliked;
       _calorieTargetController.text = _snapCalorie;
       _proteinTargetController.text = _snapProtein;
       _carbTargetController.text = _snapCarb;
       _fatTargetController.text = _snapFat;
       _ageError = null;
       _weightError = null;
+      _heightError = null;
+      _mealsError = null;
       _carbError = null;
       _fatError = null;
       _calorieError = null;
@@ -677,6 +778,107 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _LabeledField(
+                            label: s.heightLabel,
+                            controller: _heightController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            hintText: 'e.g. 170',
+                            errorText: _heightError,
+                            secondaryText: _secondaryText,
+                            fillColor: _fieldFill,
+                            borderColor: _fieldBorder,
+                            isDarkMode: widget.isDarkMode,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _LabeledField(
+                            label: s.mealsPerDayLabel,
+                            controller: _mealsPerDayController,
+                            keyboardType: TextInputType.number,
+                            hintText: '1-6',
+                            errorText: _mealsError,
+                            secondaryText: _secondaryText,
+                            fillColor: _fieldFill,
+                            borderColor: _fieldBorder,
+                            isDarkMode: widget.isDarkMode,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      s.cookingSkillLabel,
+                      style: TextStyle(fontSize: 11, color: _secondaryText),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: kCookingSkills.asMap().entries.map((e) {
+                        final skill = e.value;
+                        final isSelected = _pendingCookingSkill == skill;
+                        final label = skill == 'beginner'
+                            ? s.cookingSkillBeginner
+                            : skill == 'intermediate'
+                                ? s.cookingSkillIntermediate
+                                : s.cookingSkillAdvanced;
+                        return Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              right: e.key < kCookingSkills.length - 1 ? 7 : 0,
+                            ),
+                            child: GestureDetector(
+                              onTap: () => setState(
+                                () => _pendingCookingSkill =
+                                    isSelected ? '' : skill,
+                              ),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 9,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? (widget.isDarkMode
+                                            ? const Color(0xFF059669)
+                                                .withValues(alpha: 0.22)
+                                            : const Color(0xFFDCFCE7))
+                                      : _fieldFill,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: isSelected
+                                      ? Border.all(
+                                          color: const Color(0xFF059669)
+                                              .withValues(alpha: 0.6),
+                                        )
+                                      : Border.all(color: _fieldBorder),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? (widget.isDarkMode
+                                              ? const Color(0xFF4ADE80)
+                                              : const Color(0xFF059669))
+                                        : _secondaryText,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                     const SizedBox(height: 10),
                     Text(
@@ -966,6 +1168,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         );
                       }).toList(),
+                    ),
+                    const SizedBox(height: 10),
+                    _LabeledField(
+                      label: s.excludedIngredientsLabel,
+                      controller: _excludedController,
+                      hintText: 'peanut, scallion, green onion',
+                      secondaryText: _secondaryText,
+                      fillColor: _fieldFill,
+                      borderColor: _fieldBorder,
+                      isDarkMode: widget.isDarkMode,
+                    ),
+                    const SizedBox(height: 10),
+                    _LabeledField(
+                      label: s.favoriteFoodsLabel,
+                      controller: _favoritesController,
+                      hintText: 'spicy, soup, chicken',
+                      secondaryText: _secondaryText,
+                      fillColor: _fieldFill,
+                      borderColor: _fieldBorder,
+                      isDarkMode: widget.isDarkMode,
+                    ),
+                    const SizedBox(height: 10),
+                    _LabeledField(
+                      label: s.dislikedIngredientsLabel,
+                      controller: _dislikedController,
+                      hintText: 'cilantro, liver',
+                      secondaryText: _secondaryText,
+                      fillColor: _fieldFill,
+                      borderColor: _fieldBorder,
+                      isDarkMode: widget.isDarkMode,
                     ),
                     const SizedBox(height: 12),
                   ],
