@@ -106,6 +106,8 @@ class ChatResponseModel {
     this.recipes = const [],
     this.options = const [],
     this.knownInfo = const {},
+    this.proposedProfile,
+    this.changedFields = const [],
   });
 
   final String taskId;
@@ -115,6 +117,8 @@ class ChatResponseModel {
   final List<RagRecipeModel> recipes;
   final List<ChatOptionModel> options;
   final Map<String, dynamic> knownInfo;
+  final Map<String, dynamic>? proposedProfile;
+  final List<String> changedFields;
 
   factory ChatResponseModel.fromJson(Map<String, dynamic> json) {
     return ChatResponseModel(
@@ -135,6 +139,13 @@ class ChatResponseModel {
       knownInfo: json['known_info'] is Map<String, dynamic>
           ? json['known_info'] as Map<String, dynamic>
           : const {},
+      proposedProfile: json['proposed_profile'] is Map
+          ? Map<String, dynamic>.from(json['proposed_profile'] as Map)
+          : null,
+      changedFields: (json['changed_fields'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
     );
   }
 }

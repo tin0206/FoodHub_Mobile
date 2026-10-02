@@ -41,6 +41,50 @@ class AiService {
     return _chatFromDetail(detail, fallbackSessionId: sessionId);
   }
 
+  /// Refine profile from previous session (propose-only), then welcome a new session.
+  Future<ChatResponseModel> newChat({
+    String? previousSessionId,
+    List<String> dietaryRestrictions = const [],
+    String? primaryGoal,
+    List<String> ingredients = const [],
+  }) async {
+    // ignore: avoid_print
+    print('[AiService] POST /ai/chat/new');
+    final data = await _api.post(
+      '/ai/chat/new',
+      timeout: _chatTimeout,
+      body: {
+        if (previousSessionId != null && previousSessionId.isNotEmpty)
+          'previous_session_id': previousSessionId,
+        'dietary_restrictions': dietaryRestrictions,
+        if (primaryGoal != null && primaryGoal.isNotEmpty)
+          'primary_goal': primaryGoal,
+        'ingredients': ingredients,
+      },
+    );
+    final map = Map<String, dynamic>.from(data as Map);
+    final detail = _requireCompleted(map);
+    final chat = _chatFromDetail(detail);
+    final proposed = map['proposed_profile'];
+    final changed = (map['changed_fields'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        const <String>[];
+    return ChatResponseModel(
+      taskId: chat.taskId,
+      reply: chat.reply,
+      phase: chat.phase,
+      sessionId: chat.sessionId,
+      recipes: chat.recipes,
+      options: chat.options,
+      knownInfo: chat.knownInfo,
+      proposedProfile: proposed is Map
+          ? Map<String, dynamic>.from(proposed)
+          : null,
+      changedFields: changed,
+    );
+  }
+
   Future<ChatResponseModel> chat({
     required String message,
     required String sessionId,
