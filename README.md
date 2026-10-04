@@ -65,7 +65,7 @@ flutter run --dart-define-from-file=config.json
 ### Android / iOS (prod)
 
 ```bash
-`
+flutter build apk --dart-define-from-file=config.prod.json
 flutter build ios --dart-define-from-file=config.prod.json
 ```
 
@@ -78,4 +78,5 @@ flutter build ios --dart-define-from-file=config.prod.json
 - **Authorized JavaScript origins:** `http://localhost`, `http://localhost:5000`
 
 APIs cần enable:
+
 - People API
