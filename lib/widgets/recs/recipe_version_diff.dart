@@ -65,8 +65,12 @@ class RecipeDiffHunk {
 }
 
 bool isDetailRecipeMarkdown(String text) {
-  return _ingredientHeaderPattern.hasMatch(text) &&
-      _stepsHeaderPattern.hasMatch(text);
+  if (_ingredientHeaderPattern.hasMatch(text) &&
+      _stepsHeaderPattern.hasMatch(text)) {
+    return true;
+  }
+  final lines = text.replaceAll('\r\n', '\n').split('\n');
+  return lines.any(_isIngredientHeader) && lines.any(_isStepsHeader);
 }
 
 String firstNonEmptyLine(String text) {
@@ -153,15 +157,75 @@ String? findPreviousRecipeMarkdown({
 
 String normalizeRecipeCompareLine(String line) => stripRecipeDecor(line);
 
+final _stepsWordPattern = RegExp(
+  r'(?:cooking\s+)?steps?|instructions?|directions?|c[aá]ch\s+l[aà]m',
+  caseSensitive: false,
+);
+
+final _ingredientWordPattern = RegExp(
+  r'ingredient|nguy[eê]n\s*li[eê]u',
+  caseSensitive: false,
+);
+
+/// Quantity plus one unit, so "1 1/3 tablespoon oil" and "2 teaspoons sesame oil"
+/// share a stable food name instead of the whole line.
+final _leadingQuantityPattern = RegExp(
+  r'^(?:\d+\s+\d+/\d+|\d+/\d+|\d+(?:[.,]\d+)?)(?:\s*[-–]\s*(?:\d+\s+\d+/\d+|\d+/\d+|\d+(?:[.,]\d+)?))?\s*',
+);
+
+final _leadingUnitPattern = RegExp(
+  r'^(?:tablespoons?|teaspoons?|tbsp\.?|tsp\.?|cups?|large|medium|small|grams?|kilograms?|g|kg|ml|l|oz|ounces?|lbs?|pounds?|cloves?|pinch(?:es)?|cans?|packages?|slices?|pieces?|muỗng|thìa|gram|quả|củ|nhánh|tép)\b\s*',
+  caseSensitive: false,
+);
+
+bool _isPlainSectionTitle(String line) {
+  final trimmed = line.trim();
+  if (trimmed.isEmpty || trimmed.length > 80) return false;
+  final cleaned = stripRecipeDecor(trimmed);
+  if (cleaned.isEmpty || RegExp(r'^\d').hasMatch(cleaned)) return false;
+  if (!_sectionTitlePattern.hasMatch(cleaned)) return false;
+  if (RegExp(r':\s*$').hasMatch(trimmed)) return true;
+  final letters = cleaned.replaceAll(RegExp(r'[^A-Za-zÀ-ỹ]'), '');
+  if (letters.length >= 3 &&
+      letters == letters.toUpperCase() &&
+      letters != letters.toLowerCase()) {
+    return true;
+  }
+  return !RegExp(r'[.!?]').hasMatch(cleaned) &&
+      cleaned.split(RegExp(r'\s+')).length <= 8;
+}
+
 bool _isSectionHeading(String line) {
   final trimmed = line.trim();
   if (trimmed.isEmpty) return false;
-  return RegExp(r'^#{1,4}\s+').hasMatch(trimmed) ||
-      RegExp(r'^\*\*[^*]+\*\*\s*:?\s*$').hasMatch(trimmed);
+  if (RegExp(r'^#{1,4}\s+\S').hasMatch(trimmed)) return true;
+  if (RegExp(r'^\*\*[^*]+\*\*\s*:?\s*$').hasMatch(trimmed)) return true;
+  return _isPlainSectionTitle(trimmed);
 }
 
 bool _isIngredientHeader(String line) {
-  return _ingredientHeaderPattern.hasMatch(line.trim());
+  if (!_ingredientWordPattern.hasMatch(line)) return false;
+  return _ingredientHeaderPattern.hasMatch(line.trim()) ||
+      _isSectionHeading(line);
+}
+
+bool _isStepsHeader(String line) {
+  if (!_stepsWordPattern.hasMatch(line)) return false;
+  return _stepsHeaderPattern.hasMatch(line.trim()) || _isSectionHeading(line);
+}
+
+/// Food name used to align an ingredient across versions when only the amount changed.
+String _ingredientKey(String line) {
+  var s = stripRecipeDecor(line).toLowerCase();
+  s = s.replaceFirst(RegExp(r'^(?:[-*•]\s+)+'), '');
+  final withoutQuantity = s.replaceFirst(_leadingQuantityPattern, '');
+  final withoutUnit = withoutQuantity.replaceFirst(_leadingUnitPattern, '');
+  final name = withoutUnit
+      .split(',')
+      .first
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  return name.isNotEmpty ? name : s.replaceAll(RegExp(r'\s+'), ' ').trim();
 }
 
 ({List<String> before, List<String> ingredients, List<String> after})
@@ -201,16 +265,37 @@ List<RecipeDiffHunk> diffRecipeLines(String previous, String current) {
   ];
 }
 
+bool _isIgnorableIngredientLine(String line) => stripRecipeDecor(line).isEmpty;
+
+/// Align ingredient lines by food name. A servings change rewrites every amount,
+/// so an exact-line diff marks the whole list as removed and then added, and the
+/// old adjacent-pair pass only turns the single boundary pair into "changed".
+/// Name alignment keeps each food as one update. A later copy of the same food
+/// (the model sometimes prints the old amount and the new amount) is an update
+/// too, not a brand-new ingredient.
 List<RecipeDiffHunk> _diffLineLists(List<String> oldLines, List<String> newLines) {
-  final oldNorm = oldLines.map(normalizeRecipeCompareLine).toList();
-  final newNorm = newLines.map(normalizeRecipeCompareLine).toList();
+  final oldContent =
+      oldLines.where((l) => !_isIgnorableIngredientLine(l)).toList();
+  final newContent =
+      newLines.where((l) => !_isIgnorableIngredientLine(l)).toList();
+  final aligned = _alignIngredientLines(oldContent, newContent);
+  return _weaveBlankLines(newLines, aligned);
+}
+
+List<RecipeDiffHunk> _alignIngredientLines(
+  List<String> oldLines,
+  List<String> newLines,
+) {
+  final oldKey = oldLines.map(_ingredientKey).toList();
+  final newKey = newLines.map(_ingredientKey).toList();
   final n = oldLines.length;
   final m = newLines.length;
+  bool sameFood(int i, int j) => oldKey[i].isNotEmpty && oldKey[i] == newKey[j];
 
   final dp = List.generate(n + 1, (_) => List<int>.filled(m + 1, 0));
   for (var i = n - 1; i >= 0; i--) {
     for (var j = m - 1; j >= 0; j--) {
-      if (oldNorm[i] == newNorm[j]) {
+      if (sameFood(i, j)) {
         dp[i][j] = dp[i + 1][j + 1] + 1;
       } else {
         dp[i][j] = dp[i + 1][j] >= dp[i][j + 1] ? dp[i + 1][j] : dp[i][j + 1];
@@ -218,12 +303,17 @@ List<RecipeDiffHunk> _diffLineLists(List<String> oldLines, List<String> newLines
     }
   }
 
+  final oldByKey = <String, String>{};
+  for (var i = 0; i < n; i++) {
+    if (oldKey[i].isNotEmpty) oldByKey.putIfAbsent(oldKey[i], () => oldLines[i]);
+  }
+
   final raw = <RecipeDiffHunk>[];
   var i = 0;
   var j = 0;
   while (i < n && j < m) {
-    if (oldNorm[i] == newNorm[j]) {
-      raw.add(RecipeDiffHunk.equal(newLines[j]));
+    if (sameFood(i, j)) {
+      raw.add(_hunkForMatchedIngredient(oldLines[i], newLines[j]));
       i++;
       j++;
     } else if (dp[i + 1][j] >= dp[i][j + 1]) {
@@ -241,23 +331,62 @@ List<RecipeDiffHunk> _diffLineLists(List<String> oldLines, List<String> newLines
     raw.add(RecipeDiffHunk.added(newLines[j++]));
   }
 
+  return [
+    for (final hunk in raw)
+      if (hunk.op != RecipeDiffOp.added)
+        hunk
+      else
+        _reuseOldAmount(hunk, oldByKey),
+  ];
+}
+
+RecipeDiffHunk _reuseOldAmount(
+  RecipeDiffHunk hunk,
+  Map<String, String> oldByKey,
+) {
+  final key = _ingredientKey(hunk.text);
+  final previous = key.isEmpty ? null : oldByKey[key];
+  if (previous == null) return hunk;
+  return _hunkForMatchedIngredient(previous, hunk.text);
+}
+
+RecipeDiffHunk _hunkForMatchedIngredient(String previous, String current) {
+  if (stripRecipeDecor(previous) == stripRecipeDecor(current)) {
+    return RecipeDiffHunk.equal(current);
+  }
+  return RecipeDiffHunk.changed(previous: previous, current: current);
+}
+
+/// Keep blank lines from the current ingredient block so markdown spacing stays intact.
+List<RecipeDiffHunk> _weaveBlankLines(
+  List<String> newLines,
+  List<RecipeDiffHunk> contentHunks,
+) {
   final out = <RecipeDiffHunk>[];
-  for (var k = 0; k < raw.length; k++) {
-    final a = raw[k];
-    if (k + 1 < raw.length) {
-      final b = raw[k + 1];
-      if (a.op == RecipeDiffOp.removed && b.op == RecipeDiffOp.added) {
-        out.add(RecipeDiffHunk.changed(previous: a.text, current: b.text));
-        k++;
-        continue;
-      }
-      if (a.op == RecipeDiffOp.added && b.op == RecipeDiffOp.removed) {
-        out.add(RecipeDiffHunk.changed(previous: b.text, current: a.text));
-        k++;
-        continue;
-      }
+  var h = 0;
+  void flushRemoved() {
+    while (h < contentHunks.length &&
+        contentHunks[h].op == RecipeDiffOp.removed) {
+      out.add(contentHunks[h]);
+      h++;
     }
-    out.add(a);
+  }
+
+  for (final line in newLines) {
+    if (_isIgnorableIngredientLine(line)) {
+      flushRemoved();
+      out.add(RecipeDiffHunk.equal(line));
+      continue;
+    }
+    flushRemoved();
+    if (h < contentHunks.length) {
+      out.add(contentHunks[h]);
+      h++;
+    }
+  }
+  while (h < contentHunks.length) {
+    out.add(contentHunks[h]);
+    h++;
   }
   return out;
 }

@@ -65,7 +65,7 @@ flutter run --dart-define-from-file=config.json
 ### Android / iOS (prod)
 
 ```bash
-flutter build apk --dart-define-from-file=config.prod.json
+`
 flutter build ios --dart-define-from-file=config.prod.json
 ```
 

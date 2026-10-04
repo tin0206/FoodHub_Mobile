@@ -93,6 +93,131 @@ Widget _wrap(Widget child, {String lang = 'en'}) {
   );
 }
 
+const scaledOriginal = '''
+Easy And Simple Fried Rice
+
+NUTRITION (Per Serving)
+
+Calories: 345.6 kcal
+Protein: 8.04 g
+Carbs: 55.22 g
+Fat: 10.37 g
+Ingredients (Servings: 3)
+
+1 tablespoon oil
+3 tablespoons fresh ginger, chopped
+2 tablespoons garlic, minced
+2 cups onions, thinly sliced
+1/4 teaspoon salt
+4 cups cooked rice, chilled
+2 large eggs, lightly beaten
+1/4 cup green onion, chopped
+2 tablespoons soy sauce
+2 teaspoons sesame oil
+COOKING STEPS
+
+Heat oil in a large nonstick skillet over medium heat.
+''';
+
+const scaledModified = '''
+🍽️ Easy And Simple Fried Rice (Modified)
+
+Thanks for the update! We've adjusted the recipe to reflect the new ingredient quantities.
+
+🔥 Nutrition (Per Serving):
+
+Calories (kcal): 345.6
+Protein (g): 8.04
+Fat (g): 10.37
+Carbohydrates (g): 55.22
+🥗 Ingredients (Servings: 6):
+
+1 1/3 tablespoon oil
+6 tablespoons fresh ginger, chopped
+2 3/4 tablespoons garlic, minced
+4 cups onions, thinly sliced
+1/2 teaspoon salt
+8 cups cooked rice, chilled
+4 large eggs, lightly beaten
+1/2 cup green onion, chopped
+2 3/4 tablespoons soy sauce
+2 3/4 teaspoons sesame oil
+👨‍🍳 Cooking Steps:
+
+Heat 1 1/3 tablespoon oil in a large nonstick skillet over medium heat.
+''';
+
+const duplicatedModified = '''
+🍽️ Easy And Simple Fried Rice (Modified)
+
+Thanks for the update! We've adjusted the recipe to reflect the new ingredient quantities.
+
+🔥 Nutrition (Per Serving):
+
+Calories (kcal): 345.6
+🥗 Ingredients (Servings: 6):
+
+
+1 tablespoon oil
+
+3 tablespoons fresh ginger, chopped
+
+2 tablespoons garlic, minced
+
+2 cups onions, thinly sliced
+
+1/4 teaspoon salt
+
+4 cups cooked rice, chilled
+
+2 large eggs, lightly beaten
+
+1/4 cup green onion, chopped
+
+2 tablespoons soy sauce
+
+1 1/3 tablespoon oil
+
+6 tablespoons fresh ginger, chopped
+
+2 3/4 tablespoons garlic, minced
+
+4 cups onions, thinly sliced
+
+1/2 teaspoon salt
+
+8 cups cooked rice, chilled
+
+4 large eggs, lightly beaten
+
+1/2 cup green onion, chopped
+
+2 3/4 tablespoons soy sauce
+
+2 3/4 teaspoons sesame oil
+👨‍🍳 Cooking Steps:
+
+Heat 1 1/3 tablespoon oil in a large nonstick skillet over medium heat.
+''';
+
+const swappedIngredient = '''
+🍽️ Easy And Simple Fried Rice (Modified)
+
+🥗 Ingredients (Servings: 3):
+1 teaspoon oil
+3 tablespoons fresh ginger, chopped
+2 tablespoons garlic, minced
+2 cups onions, thinly sliced
+1/4 teaspoon salt
+4 cups cooked rice, chilled
+2 large eggs, lightly beaten
+1/4 cup green onion, chopped
+2 tablespoons soy sauce
+1/4 cup cilantro, chopped
+👨‍🍳 Cooking Steps:
+1. Heat oil.
+''';
+
 void main() {
   group('parseModifiedRecipeTitle', () {
     test('reads English modified first line', () {
@@ -231,6 +356,71 @@ void main() {
         );
       },
     );
+    test('marks every scaled ingredient as changed, not delete-then-add', () {
+      final hunks = diffRecipeLines(scaledOriginal, scaledModified);
+      final highlights = hunks.where((h) => h.isHighlight).toList();
+      expect(highlights, hasLength(10));
+      expect(highlights.every((h) => h.op == RecipeDiffOp.changed), isTrue);
+      final oil = highlights.firstWhere(
+        (h) => h.text.contains('1 1/3 tablespoon oil'),
+      );
+      expect(oil.previous, contains('1 tablespoon oil'));
+      final sesame = highlights.firstWhere(
+        (h) => h.text.contains('2 3/4 teaspoons sesame oil'),
+      );
+      expect(sesame.previous, contains('2 teaspoons sesame oil'));
+      expect(
+        hunks.any((h) => h.isHighlight && h.text.contains('Heat 1 1/3')),
+        isFalse,
+      );
+    });
+
+    test(
+      'treats duplicated old amounts plus new amounts as updates of the same foods',
+      () {
+        final hunks = diffRecipeLines(scaledOriginal, duplicatedModified);
+        final highlights = hunks.where((h) => h.isHighlight).toList();
+        expect(
+          highlights.any(
+            (h) => h.op == RecipeDiffOp.removed || h.op == RecipeDiffOp.added,
+          ),
+          isFalse,
+        );
+        expect(highlights, hasLength(10));
+        expect(
+          hunks.any((h) => h.isHighlight && h.text.trim() == '1 tablespoon oil'),
+          isFalse,
+        );
+        final oil = highlights.firstWhere(
+          (h) => h.text.contains('1 1/3 tablespoon oil'),
+        );
+        expect(oil.previous, contains('1 tablespoon oil'));
+      },
+    );
+
+    test('still reports a real added and removed ingredient', () {
+      final hunks = diffRecipeLines(scaledOriginal, swappedIngredient);
+      final highlights = hunks.where((h) => h.isHighlight).toList();
+      expect(
+        highlights.any(
+          (h) => h.op == RecipeDiffOp.removed && h.text.contains('sesame oil'),
+        ),
+        isTrue,
+      );
+      expect(
+        highlights.any(
+          (h) => h.op == RecipeDiffOp.added && h.text.contains('cilantro'),
+        ),
+        isTrue,
+      );
+      expect(
+        highlights.any(
+          (h) =>
+              h.op == RecipeDiffOp.changed && h.text.contains('1 teaspoon oil'),
+        ),
+        isTrue,
+      );
+    });
   });
 
   group('RecipeDiffBody', () {
