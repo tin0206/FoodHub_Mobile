@@ -934,10 +934,7 @@ class _RecsScreenState extends State<RecsScreen> {
         },
         onNewChat: () {
           Navigator.of(ctx).pop();
-          _welcomeStarted = true;
-          _clearComposeDetections();
-          _promptController.clear();
-          _bootstrapWelcome();
+          _resetChat();
         },
       ),
     );

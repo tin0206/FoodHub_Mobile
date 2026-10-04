@@ -38,6 +38,7 @@ class RagRecipeModel {
     this.estimatedServings,
     this.locale = 'en',
     this.imageUrl = '',
+    this.recommendationReason,
   });
 
   final String title;
@@ -49,6 +50,9 @@ class RagRecipeModel {
   final int? estimatedServings;
   final String locale;
   final String imageUrl;
+
+  /// Present on personalized chat and meal-suggestion recipes.
+  final String? recommendationReason;
 
   factory RagRecipeModel.fromJson(Map<String, dynamic> json) {
     final rawId = json['recipe_id'] ?? json['id'];
@@ -69,6 +73,7 @@ class RagRecipeModel {
           : null,
       locale: (json['locale'] as String?) ?? 'en',
       imageUrl: json['image_url'] as String? ?? '',
+      recommendationReason: json['recommendation_reason'] as String?,
     );
   }
 
