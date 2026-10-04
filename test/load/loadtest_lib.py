@@ -196,6 +196,7 @@ class StepResult:
     concurrency: int
     total_requests: int
     categories: Counter = field(default_factory=Counter)
+    avg_ms: float = 0.0
     p50_ms: float = 0.0
     p95_ms: float = 0.0
     p99_ms: float = 0.0
@@ -221,6 +222,7 @@ def build_result(concurrency: int, latencies: list[float], categories: Counter, 
         concurrency=concurrency,
         total_requests=total,
         categories=categories,
+        avg_ms=(sum(latencies_ms) / len(latencies_ms)) if latencies_ms else 0.0,
         p50_ms=percentile(latencies_ms, 0.50),
         p95_ms=percentile(latencies_ms, 0.95),
         p99_ms=percentile(latencies_ms, 0.99),
@@ -294,7 +296,7 @@ def log_step(log: Logger, r: StepResult, max_error_rate: float, label: str = "")
         f"[{r.concurrency:>4} concurrent]{label} "
         f"{breakdown}/{r.total_requests}  "
         f"error_rate={r.error_rate:.0%}  "
-        f"p50={r.p50_ms:.0f}ms p95={r.p95_ms:.0f}ms p99={r.p99_ms:.0f}ms  "
+        f"avg={r.avg_ms:.0f}ms p50={r.p50_ms:.0f}ms p95={r.p95_ms:.0f}ms p99={r.p99_ms:.0f}ms  "
         f"throughput={r.throughput:.2f} req/s   [{tag}]"
     )
 
@@ -396,12 +398,19 @@ def build_ai_job_request_fn(
     pool: "AccountPool",
     timeout: float,
     extra_fields: dict[str, str] | None = None,
+    eval_metrics_sink: list[dict] | None = None,
 ) -> Callable[[int], tuple[float, str]]:
     """Builds a request_fn for a multipart-upload AI job endpoint (dish
     recognition / ingredient detection). The endpoint blocks for the whole
     job (no separate poll step — see loadtest_lib module docstring) and
     returns HTTP 200 even when the job itself failed, so success also
-    requires the response body's `status` field to be "completed"."""
+    requires the response body's `status` field to be "completed".
+
+    If `eval_metrics_sink` is given and the caller passed `eval: "true"` in
+    extra_fields, each successful response's `output_payload.eval_metrics`
+    (server-side latency/CPU/RAM instrumentation — see EvalMetricsModel) is
+    appended to it. list.append is atomic under the GIL, so this is safe to
+    share across the thread pool's workers without an explicit lock."""
 
     def call(i: int) -> tuple[float, str]:
         token = pool.token_for(i)
@@ -424,13 +433,49 @@ def build_ai_job_request_fn(
         category = classify_http(r.status_code, None)
         if category == "ok":
             try:
-                if r.json().get("status") != "completed":
-                    category = "job_failed"
+                body = r.json()
             except ValueError:
+                return elapsed, "job_failed"
+            if body.get("status") != "completed":
                 category = "job_failed"
+            elif eval_metrics_sink is not None:
+                metrics = (body.get("output_payload") or {}).get("eval_metrics")
+                if metrics:
+                    eval_metrics_sink.append(metrics)
         return elapsed, category
 
     return call
+
+
+EVAL_METRIC_FIELDS = [
+    "latency_ms", "cpu_percent", "system_cpu_percent", "ram_mb",
+    "ram_delta_mb", "system_ram_used_mb", "system_ram_percent", "cpu_count",
+]
+
+
+def summarize_eval_metrics(sink: list[dict]) -> dict | None:
+    """Averages each numeric EvalMetricsModel field across every sample
+    collected in `sink`; `device` is reported as-is from the first sample
+    (it's constant per deployment, e.g. "cpu"/"cuda")."""
+    if not sink:
+        return None
+    out: dict = {"n": len(sink), "device": sink[0].get("device")}
+    for field in EVAL_METRIC_FIELDS:
+        values = [m[field] for m in sink if field in m and m[field] is not None]
+        out[field] = (sum(values) / len(values)) if values else None
+    return out
+
+
+def format_eval_metrics(m: dict | None) -> str:
+    if not m:
+        return ""
+    return (
+        f"  [eval_metrics n={m['n']} device={m['device']} "
+        f"latency={m['latency_ms']:.0f}ms cpu={m['cpu_percent']:.0f}% "
+        f"sys_cpu={m['system_cpu_percent']:.0f}% ram={m['ram_mb']:.0f}MB "
+        f"ram_delta={m['ram_delta_mb']:.1f}MB sys_ram={m['system_ram_used_mb']:.0f}MB "
+        f"({m['system_ram_percent']:.0f}%) cpu_count={m['cpu_count']:.0f}]"
+    )
 
 
 def run_baseline(

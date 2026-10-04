@@ -23,11 +23,13 @@ from loadtest_lib import (
     AccountPool,
     build_ai_job_request_fn,
     find_max_concurrency,
+    format_eval_metrics,
     load_accounts,
     load_fixture_images,
     make_logger,
     run_baseline,
     run_step,
+    summarize_eval_metrics,
 )
 
 
@@ -55,20 +57,31 @@ def main() -> None:
     images = load_fixture_images("dish")
     print(f"[case2] using {len(images)} fixture image(s): {[name for _, name in images]}")
 
+    eval_sink: list[dict] = []
     request_fn = build_ai_job_request_fn(
-        args.base_url, "/ai/dish-recognition", images, pool, args.timeout
+        args.base_url, "/ai/dish-recognition", images, pool, args.timeout,
+        extra_fields={"language": "en", "eval": "true"},
+        eval_metrics_sink=eval_sink,
     )
     error_definition = (
         "Error definition: ok = HTTP 2xx AND job status == 'completed'. "
         "http_error / timeout / connection_error / job_failed all count as errors."
     )
 
+    def step_with_eval(log, concurrency):
+        eval_sink.clear()
+        r = run_step(concurrency, args.requests_per_worker, request_fn)
+        metrics = format_eval_metrics(summarize_eval_metrics(eval_sink))
+        if metrics:
+            log.line(metrics)
+        return r
+
     if args.baseline:
         levels = [int(s) for s in args.baseline_levels.split(",")]
         log = make_logger("case2_dish_recognition_baseline")
         run_baseline(
             log,
-            lambda concurrency: run_step(concurrency, args.requests_per_worker, request_fn),
+            lambda concurrency: step_with_eval(log, concurrency),
             levels,
             target_description=f"CASE 2 — POST /ai/dish-recognition @ {args.base_url}",
             error_definition=error_definition,
@@ -80,7 +93,7 @@ def main() -> None:
     log = make_logger("case2_dish_recognition")
     find_max_concurrency(
         log,
-        lambda concurrency: run_step(concurrency, args.requests_per_worker, request_fn),
+        lambda concurrency: step_with_eval(log, concurrency),
         target_description=f"CASE 2 — POST /ai/dish-recognition @ {args.base_url}",
         error_definition=error_definition,
         coarse_steps=coarse_steps,
