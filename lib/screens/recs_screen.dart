@@ -9,6 +9,7 @@ import 'package:foodhub_mobile/services/ai_service.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/feedback_service.dart';
 import 'package:foodhub_mobile/services/favorite_service.dart';
+import 'package:foodhub_mobile/services/profile_draft_store.dart';
 import 'package:foodhub_mobile/services/recipe_service.dart';
 import 'package:foodhub_mobile/widgets/ai_capture_overlay.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
@@ -277,7 +278,120 @@ class _RecsScreenState extends State<RecsScreen> {
     _welcomeStarted = true;
     _clearComposeDetections();
     _promptController.clear();
-    await _bootstrapWelcome();
+    final previousSessionId = _sessionId;
+    if (mounted) {
+      setState(() {
+        _isBootstrapping = true;
+        _messages.clear();
+        _conversationHistory.clear();
+        _selectedRecipeDetail = null;
+        _recipeCacheEpoch++;
+        _recipeCache.clear();
+        _recipeFetches.clear();
+        _sessionId = null;
+      });
+    }
+    widget.onDetailModeChanged?.call(false);
+
+    final s = S.of(context);
+    try {
+      final response = await _aiService.newChat(
+        previousSessionId: previousSessionId,
+        dietaryRestrictions: widget.dietaryRestrictions.toList(),
+        primaryGoal: widget.primaryGoal,
+      );
+      if (!mounted) return;
+      setState(() {
+        _sessionId = response.sessionId;
+        _messages.add(
+          _ChatMessage(
+            text: response.reply.isNotEmpty
+                ? response.reply
+                : "Hello! I'm your culinary companion. Tell me what you'd like to cook.",
+            isUser: false,
+            recipes: response.recipes,
+            options: response.options,
+            isWelcome: true,
+          ),
+        );
+        if (response.reply.isNotEmpty) {
+          _conversationHistory.add(
+            ChatMessageModel(role: 'assistant', content: response.reply),
+          );
+        }
+        _isBootstrapping = false;
+      });
+      _scrollToBottom();
+      _prefetchRecipes(response.reply, response.recipes);
+      AiService.sessionChanges.value++;
+
+      if (response.changedFields.isNotEmpty &&
+          response.proposedProfile != null) {
+        ProfileDraftStore.save(
+          proposedProfile: response.proposedProfile!,
+          changedFields: response.changedFields,
+        );
+        final labels = response.changedFields
+            .map(_profileFieldLabel)
+            .join(', ');
+        if (mounted) {
+          showSuccessToast(
+            context,
+            s.profileUpdatedFromChatToast(labels),
+          );
+        }
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isBootstrapping = false;
+        _messages.add(_ChatMessage(text: e.message, isUser: false));
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isBootstrapping = false;
+        _messages.add(_ChatMessage(text: s.unableToReachAi, isUser: false));
+      });
+    }
+  }
+
+  String _profileFieldLabel(String field) {
+    final s = S.of(context);
+    switch (field) {
+      case 'age':
+        return s.ageLabel;
+      case 'gender':
+        return s.genderLabel;
+      case 'weight':
+        return s.weightLabel;
+      case 'height_cm':
+        return s.heightLabel;
+      case 'cooking_skill':
+        return s.cookingSkillLabel;
+      case 'meals_per_day':
+        return s.mealsPerDayLabel;
+      case 'calorie_target':
+        return s.dailyCalorieTarget;
+      case 'protein_target':
+        return s.targetProtein;
+      case 'carb_target':
+        return s.targetCarb;
+      case 'fat_target':
+        return s.targetFat;
+      case 'dietary_restrictions':
+        return s.dietaryRestrictionsLabel;
+      case 'excluded_ingredients':
+        return s.excludedIngredientsLabel;
+      case 'favorite_foods':
+        return s.favoriteFoodsLabel;
+      case 'disliked_ingredients':
+        return s.dislikedIngredientsLabel;
+      case 'primary_goal':
+        return s.primaryGoalLabel;
+      default:
+        return field;
+    }
   }
 
   List<int> _recipeIdsFrom(String markdown, List<RagRecipeModel> recipes) {

@@ -330,11 +330,18 @@ class S {
   String get startingSession =>
       _vi ? 'Đang khởi động phiên trợ lý...' : 'Starting companion session...';
   String get aiThinking => _vi ? 'Đang suy nghĩ…' : 'Thinking…';
-  String get resetChatTitle => _vi ? 'Đặt lại cuộc trò chuyện?' : 'Reset chat?';
+  String get resetChatTitle =>
+      _vi ? 'Bắt đầu trò chuyện mới?' : 'Start a new chat?';
   String get resetChatDesc => _vi
-      ? 'Thao tác này sẽ xóa cuộc trò chuyện và các dữ liệu đã nhận diện. Tùy chọn hồ sơ vẫn được giữ nguyên.'
-      : 'This clears the conversation and compose detections. Your profile preferences stay the same.';
-  String get resetLabel => _vi ? 'Đặt lại' : 'Reset';
+      ? 'Chúng tôi sẽ dùng cuộc trò chuyện hiện tại để đề xuất cập nhật hồ sơ (nếu có), rồi mở phiên mới. Tùy chọn đã lưu chưa đổi cho đến khi bạn xác nhận trong Hồ sơ.'
+      : 'We will use the current conversation to suggest profile updates (if any), then open a fresh session. Saved preferences stay unchanged until you confirm them in Profile.';
+  String get resetLabel => _vi ? 'Trò chuyện mới' : 'New chat';
+  String profileUpdatedFromChatToast(String fields) => _vi
+      ? 'Hồ sơ được đề xuất cập nhật từ phiên chat trước ($fields). Hãy xem lại trong Hồ sơ và chỉnh nếu cần.'
+      : 'Profile suggestions from the previous chat ($fields). Please review them in Profile and edit if needed.';
+  String get profileDraftBanner => _vi
+      ? 'Có đề xuất hồ sơ từ chat trước — đã điền sẵn bên dưới. Lưu để áp dụng hoặc Hủy để bỏ.'
+      : 'Suggestions from a previous chat are prefilled below. Save to apply or Cancel to discard.';
   String get askForRecipesHint =>
       _vi ? 'Hỏi về công thức...' : 'Ask for recipes...';
   String get editDishesLabel => _vi ? 'Sửa món ăn' : 'Edit dishes';

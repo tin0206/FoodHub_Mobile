@@ -5,6 +5,7 @@ import 'package:foodhub_mobile/screens/feedback_screen.dart';
 import 'package:foodhub_mobile/screens/reset_password_screen.dart';
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
+import 'package:foodhub_mobile/services/profile_draft_store.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
 import 'package:foodhub_mobile/widgets/password_requirements.dart';
 
@@ -117,6 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _proteinError;
   String? _carbError;
   String? _fatError;
+  bool _hasProfileDraft = false;
 
   final _scrollController = ScrollController();
   void _onFieldChanged() {
@@ -156,6 +158,99 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ..addListener(_onFieldChanged);
     _fatTargetController = TextEditingController(text: _snapFat)
       ..addListener(_onFieldChanged);
+    ProfileDraftStore.revision.addListener(_onDraftRevision);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _applyProfileDraftIfAny();
+    });
+  }
+
+  void _onDraftRevision() {
+    if (!mounted) return;
+    if (ProfileDraftStore.hasDraft) {
+      _applyProfileDraftIfAny();
+    } else if (_hasProfileDraft) {
+      setState(() => _hasProfileDraft = false);
+    }
+  }
+
+  String _draftText(dynamic value) {
+    if (value == null) return '';
+    return value.toString();
+  }
+
+  String _draftListCsv(dynamic value) {
+    if (value is List) {
+      return value.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).join(', ');
+    }
+    if (value is String) return value;
+    return '';
+  }
+
+  void _applyProfileDraftIfAny() {
+    final draft = ProfileDraftStore.proposedProfile;
+    if (!ProfileDraftStore.hasDraft || draft == null) return;
+
+    if (draft.containsKey('age')) {
+      _ageController.text = _draftText(draft['age']);
+    }
+    if (draft.containsKey('weight')) {
+      _weightController.text = _draftText(draft['weight']);
+    }
+    if (draft.containsKey('height_cm')) {
+      _heightController.text = _draftText(draft['height_cm']);
+    }
+    if (draft.containsKey('meals_per_day')) {
+      _mealsPerDayController.text = _draftText(draft['meals_per_day']);
+    }
+    if (draft.containsKey('excluded_ingredients')) {
+      _excludedController.text = _draftListCsv(draft['excluded_ingredients']);
+    }
+    if (draft.containsKey('favorite_foods')) {
+      _favoritesController.text = _draftListCsv(draft['favorite_foods']);
+    }
+    if (draft.containsKey('disliked_ingredients')) {
+      _dislikedController.text = _draftListCsv(draft['disliked_ingredients']);
+    }
+    if (draft.containsKey('calorie_target')) {
+      _calorieTargetController.text = _draftText(draft['calorie_target']);
+    }
+    if (draft.containsKey('protein_target')) {
+      _proteinTargetController.text = _draftText(draft['protein_target']);
+    }
+    if (draft.containsKey('carb_target')) {
+      _carbTargetController.text = _draftText(draft['carb_target']);
+    }
+    if (draft.containsKey('fat_target')) {
+      _fatTargetController.text = _draftText(draft['fat_target']);
+    }
+    if (draft.containsKey('gender')) {
+      _pendingGender = (draft['gender'] as String?) ?? '';
+    }
+    if (draft.containsKey('cooking_skill')) {
+      _pendingCookingSkill = (draft['cooking_skill'] as String?) ?? '';
+    }
+    if (draft.containsKey('primary_goal')) {
+      final goal = (draft['primary_goal'] as String?) ?? '';
+      if (goal != widget.primaryGoal) {
+        widget.onPrimaryGoalChanged(goal);
+      }
+    }
+    if (draft.containsKey('dietary_restrictions')) {
+      final proposed = (draft['dietary_restrictions'] is List)
+          ? (draft['dietary_restrictions'] as List)
+              .map((e) => e.toString())
+              .toSet()
+          : <String>{};
+      for (final tag in widget.selectedDietaryRestrictions.difference(proposed)) {
+        widget.onDietaryRestrictionToggled(tag, false);
+      }
+      for (final tag in proposed.difference(widget.selectedDietaryRestrictions)) {
+        widget.onDietaryRestrictionToggled(tag, true);
+      }
+    }
+
+    setState(() => _hasProfileDraft = true);
   }
 
   @override
@@ -230,6 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
+    ProfileDraftStore.revision.removeListener(_onDraftRevision);
     _fullNameController.removeListener(_onFieldChanged);
     _ageController.removeListener(_onFieldChanged);
     _weightController.removeListener(_onFieldChanged);
@@ -382,8 +478,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (!mounted) return;
       Navigator.of(context).pop();
+      ProfileDraftStore.clear();
       setState(() {
         _isSaving = false;
+        _hasProfileDraft = false;
         _applyUser(updated);
         _fullNameController.text = _snapFullName;
         _emailController.text = _snapEmail;
@@ -452,6 +550,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _cancelChanges() {
+    ProfileDraftStore.clear();
     // Reset dietary restrictions to original
     final originalDiet = widget.user.dietaryRestrictions.toSet();
     for (final tag in widget.selectedDietaryRestrictions.difference(
@@ -472,6 +571,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     setState(() {
+      _hasProfileDraft = false;
       _pendingDarkMode = _snapTheme == 'dark';
       _pendingLanguage = _snapLanguage;
       _pendingGender = _snapGender;
@@ -533,6 +633,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
             controller: _scrollController,
             padding: EdgeInsets.fromLTRB(8, 8, 8, _hasChanges ? 90 : 14),
             children: [
+              if (_hasProfileDraft) ...[
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: widget.isDarkMode
+                        ? const Color(0xFF0F3D2E)
+                        : const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: widget.isDarkMode
+                          ? const Color(0xFF166534)
+                          : const Color(0xFFA7F3D0),
+                    ),
+                  ),
+                  child: Text(
+                    s.profileDraftBanner,
+                    style: TextStyle(
+                      color: widget.isDarkMode
+                          ? const Color(0xFF6EE7B7)
+                          : const Color(0xFF065F46),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
               // ── Avatar card ─────────────────────────────────────────────────
               Container(
                 width: double.infinity,
