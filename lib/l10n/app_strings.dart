@@ -425,6 +425,18 @@ class S {
   String get cookingSkillBeginner => _vi ? 'Mới bắt đầu' : 'Beginner';
   String get cookingSkillIntermediate => _vi ? 'Trung bình' : 'Intermediate';
   String get cookingSkillAdvanced => _vi ? 'Nâng cao' : 'Advanced';
+  String cookingSkillDisplay(String value) {
+    switch (value) {
+      case 'beginner':
+        return cookingSkillBeginner;
+      case 'intermediate':
+        return cookingSkillIntermediate;
+      case 'advanced':
+        return cookingSkillAdvanced;
+      default:
+        return value;
+    }
+  }
   String get genderLabel => _vi ? 'Giới tính' : 'Gender';
   String get genderMale => _vi ? 'Nam' : 'Male';
   String get genderFemale => _vi ? 'Nữ' : 'Female';

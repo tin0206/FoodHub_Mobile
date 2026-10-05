@@ -26,6 +26,11 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
   late final TextEditingController _passwordCtrl;
   late final TextEditingController _ageCtrl;
   late final TextEditingController _weightCtrl;
+  late final TextEditingController _heightCtrl;
+  late final TextEditingController _mealsCtrl;
+  late final TextEditingController _excludedCtrl;
+  late final TextEditingController _favoritesCtrl;
+  late final TextEditingController _dislikedCtrl;
   late final TextEditingController _calorieCtrl;
   late final TextEditingController _proteinCtrl;
   late final TextEditingController _carbCtrl;
@@ -34,11 +39,24 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
   late String _role;
   late bool _isActive;
   late String _gender;
+  late String _cookingSkill;
   late Set<String> _dietaryRestrictions;
   late String? _primaryGoal;
   bool _isSaving = false;
   bool _obscurePassword = false;
   String? _notice;
+
+  static const _cookingSkills = [
+    ('beginner', 'Beginner'),
+    ('intermediate', 'Intermediate'),
+    ('advanced', 'Advanced'),
+  ];
+
+  static List<String> _csvToList(String value) => value
+      .split(',')
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
 
   static const _goals = [
     'Lose Weight',
@@ -74,6 +92,21 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
     _weightCtrl = TextEditingController(
       text: u?.weight != null ? '${u!.weight}' : '',
     );
+    _heightCtrl = TextEditingController(
+      text: u?.heightCm != null ? '${u!.heightCm}' : '',
+    );
+    _mealsCtrl = TextEditingController(
+      text: u != null ? '${u.mealsPerDay}' : '',
+    );
+    _excludedCtrl = TextEditingController(
+      text: (u?.excludedIngredients ?? const <String>[]).join(', '),
+    );
+    _favoritesCtrl = TextEditingController(
+      text: (u?.favoriteFoods ?? const <String>[]).join(', '),
+    );
+    _dislikedCtrl = TextEditingController(
+      text: (u?.dislikedIngredients ?? const <String>[]).join(', '),
+    );
     _calorieCtrl = TextEditingController(
       text: u?.calorieTarget != null ? '${u!.calorieTarget}' : '',
     );
@@ -89,6 +122,7 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
     _role = u?.role ?? 'user';
     _isActive = u?.isActive ?? true;
     _gender = u?.gender ?? '';
+    _cookingSkill = u?.cookingSkill ?? '';
     _dietaryRestrictions = {...?u?.dietaryRestrictions};
     _primaryGoal = u?.primaryGoal;
   }
@@ -101,6 +135,11 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
     _passwordCtrl.dispose();
     _ageCtrl.dispose();
     _weightCtrl.dispose();
+    _heightCtrl.dispose();
+    _mealsCtrl.dispose();
+    _excludedCtrl.dispose();
+    _favoritesCtrl.dispose();
+    _dislikedCtrl.dispose();
     _calorieCtrl.dispose();
     _proteinCtrl.dispose();
     _carbCtrl.dispose();
@@ -131,9 +170,19 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
           'carb_target': int.parse(_carbCtrl.text.trim()),
         if (_fatCtrl.text.trim().isNotEmpty)
           'fat_target': int.parse(_fatCtrl.text.trim()),
+        'height_cm': _heightCtrl.text.trim().isNotEmpty
+            ? double.parse(_heightCtrl.text.trim())
+            : null,
+        'cooking_skill': _cookingSkill.isNotEmpty ? _cookingSkill : null,
+        'meals_per_day': _mealsCtrl.text.trim().isNotEmpty
+            ? int.parse(_mealsCtrl.text.trim())
+            : null,
         if (_gender.isNotEmpty) 'gender': _gender,
         if (_primaryGoal != null) 'primary_goal': _primaryGoal,
         'dietary_restrictions': _dietaryRestrictions.toList(),
+        'excluded_ingredients': _csvToList(_excludedCtrl.text),
+        'favorite_foods': _csvToList(_favoritesCtrl.text),
+        'disliked_ingredients': _csvToList(_dislikedCtrl.text),
       };
       if (widget.isEditing) {
         await admin.updateUser(widget.user!.id, fields);
@@ -149,6 +198,11 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
         _passwordCtrl.text = '123456';
         _ageCtrl.clear();
         _weightCtrl.clear();
+        _heightCtrl.clear();
+        _mealsCtrl.clear();
+        _excludedCtrl.clear();
+        _favoritesCtrl.clear();
+        _dislikedCtrl.clear();
         _calorieCtrl.clear();
         _proteinCtrl.clear();
         _carbCtrl.clear();
@@ -158,6 +212,7 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
           _role = 'user';
           _isActive = true;
           _gender = '';
+          _cookingSkill = '';
           _dietaryRestrictions = {};
           _primaryGoal = null;
           _notice = 'User created successfully.';
@@ -477,6 +532,62 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
               ),
               const SizedBox(height: 12),
 
+              // ── Cooking Skill ─────────────────────────────────────────
+              _FormSection(
+                title: 'Cooking Skill',
+                icon: Icons.soup_kitchen_outlined,
+                isDark: isDark,
+                cardBg: cardBg,
+                textPrimary: textPrimary,
+                children: [
+                  Text(
+                    'Optional',
+                    style: TextStyle(fontSize: 12, color: textSub),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: _cookingSkills.asMap().entries.map((e) {
+                      final (value, label) = e.value;
+                      final sel = _cookingSkill == value;
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right: e.key < _cookingSkills.length - 1 ? 7 : 0,
+                          ),
+                          child: GestureDetector(
+                            onTap: () => setState(
+                              () => _cookingSkill = sel ? '' : value,
+                            ),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              decoration: BoxDecoration(
+                                color: sel
+                                    ? kAdminAccent
+                                    : (isDark
+                                          ? const Color(0xFF1E1E1E)
+                                          : const Color(0xFFF3F4F6)),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                label,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: sel ? Colors.white : textSub,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
               // ── Nutrition Goals ────────────────────────────────────────
               _FormSection(
                 title: 'Nutrition Goals',
@@ -519,6 +630,53 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
                             if (v != null && v.isNotEmpty) {
                               if (double.tryParse(v) == null) {
                                 return 'Invalid';
+                              }
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _heightCtrl,
+                          style: TextStyle(fontSize: 14, color: textPrimary),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: fieldDec(
+                            'Height (cm)',
+                            icon: Icons.height_rounded,
+                          ),
+                          validator: (v) {
+                            if (v != null && v.isNotEmpty) {
+                              if (double.tryParse(v) == null) {
+                                return 'Invalid';
+                              }
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _mealsCtrl,
+                          style: TextStyle(fontSize: 14, color: textPrimary),
+                          keyboardType: TextInputType.number,
+                          decoration: fieldDec(
+                            'Meals per day',
+                            icon: Icons.restaurant_outlined,
+                          ),
+                          validator: (v) {
+                            if (v != null && v.isNotEmpty) {
+                              final n = int.tryParse(v);
+                              if (n == null || n < 1 || n > 6) {
+                                return '1-6';
                               }
                             }
                             return null;
@@ -701,6 +859,33 @@ class _AdminUserFormScreenState extends State<AdminUserFormScreen> {
                         ),
                       );
                     }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _excludedCtrl,
+                    style: TextStyle(fontSize: 14, color: textPrimary),
+                    decoration: fieldDec(
+                      'Allergies / excluded ingredients',
+                      icon: Icons.block_rounded,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _favoritesCtrl,
+                    style: TextStyle(fontSize: 14, color: textPrimary),
+                    decoration: fieldDec(
+                      'Favorite foods',
+                      icon: Icons.favorite_border_rounded,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _dislikedCtrl,
+                    style: TextStyle(fontSize: 14, color: textPrimary),
+                    decoration: fieldDec(
+                      'Disliked ingredients',
+                      icon: Icons.thumb_down_outlined,
+                    ),
                   ),
                 ],
               ),

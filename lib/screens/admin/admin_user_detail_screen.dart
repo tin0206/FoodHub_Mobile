@@ -615,6 +615,25 @@ class _ProfileTab extends StatelessWidget {
     }
   }
 
+  static String _skillLabel(String? skill) {
+    switch (skill) {
+      case 'beginner':
+        return 'Beginner';
+      case 'intermediate':
+        return 'Intermediate';
+      case 'advanced':
+        return 'Advanced';
+      default:
+        return '—';
+    }
+  }
+
+  static String _trimNum(double v) =>
+      v == v.roundToDouble() ? v.toInt().toString() : v.toString();
+
+  static String _listLabel(List<String> values) =>
+      values.isEmpty ? '—' : values.join(', ');
+
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
@@ -663,9 +682,27 @@ class _ProfileTab extends StatelessWidget {
                     value: user.weight != null ? '${user.weight} kg' : '—',
                   ),
                   _InfoRow(
+                    icon: Icons.height_rounded,
+                    label: 'Height',
+                    value: user.heightCm != null
+                        ? '${_trimNum(user.heightCm!)} cm'
+                        : '—',
+                  ),
+                  _InfoRow(
                     icon: Icons.wc_rounded,
                     label: 'Gender',
                     value: _genderLabel(user.gender),
+                  ),
+                  _InfoRow(
+                    icon: Icons.soup_kitchen_outlined,
+                    label: 'Cooking Skill',
+                    value: _skillLabel(user.cookingSkill),
+                  ),
+                  _InfoRow(
+                    icon: Icons.restaurant_outlined,
+                    label: 'Meals per day',
+                    value:
+                        '${user.mealsPerDay} meal${user.mealsPerDay == 1 ? '' : 's'}/day',
                   ),
                 ],
               ),
@@ -721,7 +758,23 @@ class _ProfileTab extends StatelessWidget {
                 cardBg: cardBg,
                 textPrimary: textPrimary,
                 textSub: textSub,
-                rows: const [],
+                rows: [
+                  _InfoRow(
+                    icon: Icons.block_rounded,
+                    label: 'Allergies / excluded',
+                    value: _listLabel(user.excludedIngredients),
+                  ),
+                  _InfoRow(
+                    icon: Icons.favorite_border_rounded,
+                    label: 'Favorite foods',
+                    value: _listLabel(user.favoriteFoods),
+                  ),
+                  _InfoRow(
+                    icon: Icons.thumb_down_outlined,
+                    label: 'Disliked',
+                    value: _listLabel(user.dislikedIngredients),
+                  ),
+                ],
                 customChild: user.dietaryRestrictions.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -1064,10 +1117,10 @@ class _InfoCard extends StatelessWidget {
           ),
           if (rows.isNotEmpty || customChild != null) ...[
             const SizedBox(height: 12),
-            if (customChild != null)
-              customChild!
-            else
-              ...rows.asMap().entries.map((e) {
+            ?customChild,
+            if (customChild != null && rows.isNotEmpty)
+              const SizedBox(height: 4),
+            ...rows.asMap().entries.map((e) {
                 final isLast = e.key == rows.length - 1;
                 final row = e.value;
                 return Column(

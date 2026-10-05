@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:foodhub_mobile/l10n/app_strings.dart';
 import 'package:foodhub_mobile/models/user.dart';
 import 'package:foodhub_mobile/screens/main_shell_screen.dart';
-import 'package:foodhub_mobile/screens/profile_screen.dart' show kDietaryTags, kPrimaryGoals;
+import 'package:foodhub_mobile/screens/profile_screen.dart'
+    show kCookingSkills, kDietaryTags, kPrimaryGoals;
 import 'package:foodhub_mobile/services/api_exception.dart';
 import 'package:foodhub_mobile/services/auth_service.dart';
 import 'package:foodhub_mobile/widgets/favorite_toast.dart';
@@ -14,6 +15,18 @@ bool _isPositiveNumber(String v) {
   final n = num.tryParse(v.trim());
   return n != null && n > 0;
 }
+
+bool _isMealsPerDay(String v) {
+  if (v.trim().isEmpty) return true;
+  final n = int.tryParse(v.trim());
+  return n != null && n >= 1 && n <= 6;
+}
+
+List<String> _csvToList(String value) => value
+    .split(',')
+    .map((e) => e.trim())
+    .where((e) => e.isNotEmpty)
+    .toList();
 
 /// Post sign-up survey.
 class OnboardingScreen extends StatefulWidget {
@@ -29,12 +42,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _userService = UserService();
   final _ageController = TextEditingController();
   final _weightController = TextEditingController();
+  final _heightController = TextEditingController();
+  final _mealsController = TextEditingController();
+  final _excludedController = TextEditingController();
+  final _favoritesController = TextEditingController();
+  final _dislikedController = TextEditingController();
 
   int _step = 1;
   String? _ageError;
   String? _weightError;
+  String? _heightError;
+  String? _mealsError;
   String _primaryGoal = '';
   String _gender = '';
+  String _cookingSkill = '';
   final Set<String> _dietaryRestrictions = {};
   bool _saving = false;
   String? _error;
@@ -51,6 +72,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void dispose() {
     _ageController.dispose();
     _weightController.dispose();
+    _heightController.dispose();
+    _mealsController.dispose();
+    _excludedController.dispose();
+    _favoritesController.dispose();
+    _dislikedController.dispose();
     super.dispose();
   }
 
@@ -88,11 +114,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final weightErr = _isPositiveNumber(_weightController.text)
         ? null
         : s.mustBePositiveNumber;
+    final heightErr = _isPositiveNumber(_heightController.text)
+        ? null
+        : s.mustBePositiveNumber;
+    final mealsErr = _isMealsPerDay(_mealsController.text)
+        ? null
+        : s.mustBePositiveNumber;
     setState(() {
       _ageError = ageErr;
       _weightError = weightErr;
+      _heightError = heightErr;
+      _mealsError = mealsErr;
     });
-    return ageErr == null && weightErr == null;
+    return ageErr == null &&
+        weightErr == null &&
+        heightErr == null &&
+        mealsErr == null;
   }
 
   void _toggleDietary(String tag) {
@@ -126,13 +163,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     try {
       final age = _ageController.text.trim();
       final weight = _weightController.text.trim();
+      final height = _heightController.text.trim();
+      final meals = _mealsController.text.trim();
       final updated = await _userService.updateMe(
         widget.user.toProfileUpdateJson(
           age: age.isNotEmpty ? int.tryParse(age) : null,
           weight: weight.isNotEmpty ? double.tryParse(weight) : null,
+          heightCm: height.isNotEmpty ? double.tryParse(height) : null,
+          cookingSkill: _cookingSkill.isNotEmpty ? _cookingSkill : null,
+          mealsPerDay: meals.isNotEmpty ? int.tryParse(meals) : null,
           gender: _gender.isNotEmpty ? _gender : null,
           primaryGoal: _primaryGoal,
           dietaryRestrictions: _dietaryRestrictions.toList(),
+          excludedIngredients: _csvToList(_excludedController.text),
+          favoriteFoods: _csvToList(_favoritesController.text),
+          dislikedIngredients: _csvToList(_dislikedController.text),
           language: LangScope.current.value,
         ),
       );
@@ -210,11 +255,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 color: Color(0xFFF3F4F6),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                     Text(
                       s.onboardingWelcomeTitle,
                       style: const TextStyle(
@@ -284,12 +332,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       subtitle: s.onboardingStepAboutSubtitle,
                       ageLabel: s.ageLabel,
                       weightLabel: s.weightLabel,
+                      heightLabel: s.heightLabel,
+                      mealsPerDayLabel: s.mealsPerDayLabel,
                       genderLabel: s.genderLabel,
                       genderDisplay: s.genderDisplay,
+                      cookingSkillLabel: s.cookingSkillLabel,
+                      cookingSkillDisplay: s.cookingSkillDisplay,
                       ageController: _ageController,
                       weightController: _weightController,
+                      heightController: _heightController,
+                      mealsController: _mealsController,
                       ageError: _ageError,
                       weightError: _weightError,
+                      heightError: _heightError,
+                      mealsError: _mealsError,
+                      selectedCookingSkill: _cookingSkill,
+                      onCookingSkillSelected: (skill) => setState(
+                        () => _cookingSkill = _cookingSkill == skill ? '' : skill,
+                      ),
+                      onHeightChanged: () {
+                        if (_heightError != null) setState(() => _heightError = null);
+                      },
+                      onMealsChanged: () {
+                        if (_mealsError != null) setState(() => _mealsError = null);
+                      },
                       selectedGender: _gender,
                       onGenderSelected: (g) => setState(
                         () => _gender = _gender == g ? '' : g,
@@ -316,33 +382,51 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       selected: _dietaryRestrictions,
                       onToggle: _toggleDietary,
                       display: s.dietaryTagDisplay,
+                      excludedLabel: s.excludedIngredientsLabel,
+                      favoritesLabel: s.favoriteFoodsLabel,
+                      dislikedLabel: s.dislikedIngredientsLabel,
+                      excludedController: _excludedController,
+                      favoritesController: _favoritesController,
+                      dislikedController: _dislikedController,
                     ),
 
-                    const SizedBox(height: 18),
-                    Text(
-                      s.onboardingChangeLaterHint,
-                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8)),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 18),
-
-                    Row(
-                      children: [
-                        if (_step > 1) ...[
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: _saving ? null : _handleBack,
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size.fromHeight(48),
-                                foregroundColor: const Color(0xFF374151),
-                                side: const BorderSide(color: Color(0xFFD1D5DB)),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                              ),
-                              child: Text(s.onboardingBack),
-                            ),
+                  ),
+                  // Pinned so Continue / Finish stays reachable on long steps.
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            s.onboardingChangeLaterHint,
+                            style: const TextStyle(fontSize: 11.5, color: Color(0xFF94A3B8)),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(height: 10),
+
+                          Row(
+                            children: [
+                              if (_step > 1) ...[
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: _saving ? null : _handleBack,
+                                    style: OutlinedButton.styleFrom(
+                                      minimumSize: const Size.fromHeight(48),
+                                      foregroundColor: const Color(0xFF374151),
+                                      side: const BorderSide(color: Color(0xFFD1D5DB)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                    ),
+                                    child: Text(s.onboardingBack),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
                         ],
                         Expanded(
                           flex: 2,
@@ -398,8 +482,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                       ],
                     ),
-                  ],
-                ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -515,32 +602,56 @@ class _AboutStep extends StatelessWidget {
     required this.subtitle,
     required this.ageLabel,
     required this.weightLabel,
+    required this.heightLabel,
+    required this.mealsPerDayLabel,
     required this.genderLabel,
     required this.genderDisplay,
+    required this.cookingSkillLabel,
+    required this.cookingSkillDisplay,
     required this.ageController,
     required this.weightController,
+    required this.heightController,
+    required this.mealsController,
     required this.ageError,
     required this.weightError,
+    required this.heightError,
+    required this.mealsError,
     required this.selectedGender,
+    required this.selectedCookingSkill,
     required this.onGenderSelected,
+    required this.onCookingSkillSelected,
     required this.onAgeChanged,
     required this.onWeightChanged,
+    required this.onHeightChanged,
+    required this.onMealsChanged,
   });
 
   final String title;
   final String subtitle;
   final String ageLabel;
   final String weightLabel;
+  final String heightLabel;
+  final String mealsPerDayLabel;
   final String genderLabel;
   final String Function(String) genderDisplay;
+  final String cookingSkillLabel;
+  final String Function(String) cookingSkillDisplay;
   final TextEditingController ageController;
   final TextEditingController weightController;
+  final TextEditingController heightController;
+  final TextEditingController mealsController;
   final String? ageError;
   final String? weightError;
+  final String? heightError;
+  final String? mealsError;
   final String selectedGender;
+  final String selectedCookingSkill;
   final ValueChanged<String> onGenderSelected;
+  final ValueChanged<String> onCookingSkillSelected;
   final VoidCallback onAgeChanged;
   final VoidCallback onWeightChanged;
+  final VoidCallback onHeightChanged;
+  final VoidCallback onMealsChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -572,6 +683,35 @@ class _AboutStep extends StatelessWidget {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 errorText: weightError,
                 onChanged: onWeightChanged,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _OnboardingField(
+                label: heightLabel,
+                icon: Icons.height,
+                controller: heightController,
+                hint: '170',
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                errorText: heightError,
+                onChanged: onHeightChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _OnboardingField(
+                label: mealsPerDayLabel,
+                icon: Icons.restaurant_outlined,
+                controller: mealsController,
+                hint: '3',
+                keyboardType: TextInputType.number,
+                errorText: mealsError,
+                onChanged: onMealsChanged,
               ),
             ),
           ],
@@ -608,6 +748,51 @@ class _AboutStep extends StatelessWidget {
                     ),
                     child: Text(
                       genderDisplay(g),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                        color: active ? const Color(0xFF065F46) : const Color(0xFF374151),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          cookingSkillLabel,
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: kCookingSkills.asMap().entries.map((e) {
+            final skill = e.value;
+            final active = selectedCookingSkill == skill;
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: e.key < kCookingSkills.length - 1 ? 8 : 0),
+                child: GestureDetector(
+                  onTap: () => onCookingSkillSelected(skill),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    decoration: BoxDecoration(
+                      color: active ? const Color(0xFFD1FAE5) : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: active ? const Color(0xFF059669) : const Color(0xFFE5E7EB),
+                        width: active ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Text(
+                      cookingSkillDisplay(skill),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12.5,
@@ -762,6 +947,12 @@ class _DietaryStep extends StatelessWidget {
     required this.selected,
     required this.onToggle,
     required this.display,
+    required this.excludedLabel,
+    required this.favoritesLabel,
+    required this.dislikedLabel,
+    required this.excludedController,
+    required this.favoritesController,
+    required this.dislikedController,
   });
 
   final String title;
@@ -769,6 +960,12 @@ class _DietaryStep extends StatelessWidget {
   final Set<String> selected;
   final ValueChanged<String> onToggle;
   final String Function(String) display;
+  final String excludedLabel;
+  final String favoritesLabel;
+  final String dislikedLabel;
+  final TextEditingController excludedController;
+  final TextEditingController favoritesController;
+  final TextEditingController dislikedController;
 
   @override
   Widget build(BuildContext context) {
@@ -805,6 +1002,33 @@ class _DietaryStep extends StatelessWidget {
               ),
             );
           }).toList(),
+        ),
+        const SizedBox(height: 16),
+        _OnboardingField(
+          label: excludedLabel,
+          icon: Icons.block,
+          controller: excludedController,
+          hint: 'peanut, scallion, green onion',
+          keyboardType: TextInputType.text,
+          onChanged: () {},
+        ),
+        const SizedBox(height: 12),
+        _OnboardingField(
+          label: favoritesLabel,
+          icon: Icons.favorite_border,
+          controller: favoritesController,
+          hint: 'spicy, soup, chicken',
+          keyboardType: TextInputType.text,
+          onChanged: () {},
+        ),
+        const SizedBox(height: 12),
+        _OnboardingField(
+          label: dislikedLabel,
+          icon: Icons.thumb_down_outlined,
+          controller: dislikedController,
+          hint: 'cilantro, liver',
+          keyboardType: TextInputType.text,
+          onChanged: () {},
         ),
       ],
     );
